@@ -1,0 +1,141 @@
+/* =========================================================
+   FRUTLOG - TECNICO AGRICOLA
+   Estilos exclusivos dos registros de campo.
+   ========================================================= */
+
+.bloco-talhoes-tecnico {
+  margin-bottom: 20px;
+}
+
+.painel-mapa-tecnico {
+  margin-bottom: 20px;
+}
+
+.lista-tarefas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.tarefa-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px;
+  background: #fcfbf9;
+  border: 1px solid var(--cor-borda);
+  border-left: 5px solid var(--cor-destaque);
+  border-radius: 8px;
+}
+
+.tarefa-card.atencao {
+  border-left-color: var(--cor-alerta);
+}
+
+.tarefa-card.critica,
+.tarefa-card.critico {
+  border-left-color: var(--cor-critico);
+}
+
+.tarefa-card strong {
+  color: var(--cor-texto-escuro);
+}
+
+.tarefa-card p {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+}
+
+.talhao-card {
+  padding: 16px;
+  background: #fcfbf9;
+  border: 1px solid var(--cor-borda);
+  border-left: 5px solid var(--cor-destaque);
+  border-radius: 8px;
+}
+
+.talhao-card.atencao {
+  border-left-color: var(--cor-alerta);
+}
+
+.talhao-card.critico {
+  border-left-color: var(--cor-critico);
+}
+
+.talhao-card h3 {
+  margin: 0 0 8px;
+  color: var(--cor-texto-escuro);
+}
+
+.talhao-card p {
+  margin: 4px 0;
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+}
+
+.campo-largo {
+  grid-column: span 2;
+}
+
+.status-sensor {
+  display: inline-flex;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.status-sensor.online {
+  background: rgba(46, 125, 50, 0.14);
+  color: var(--cor-destaque);
+}
+
+.status-sensor.offline {
+  background: rgba(198, 40, 40, 0.12);
+  color: var(--cor-critico);
+}
+
+.status-sensor.atencao {
+  background: rgba(251, 192, 45, 0.18);
+  color: #8a6d00;
+}
+
+.lista-alertas {
+  display: grid;
+  gap: 12px;
+}
+
+.alerta-tecnico {
+  padding: 14px;
+  border: 1px solid var(--cor-borda);
+  border-left: 5px solid var(--cor-alerta);
+  border-radius: 8px;
+  background: #fffdf6;
+}
+
+.alerta-tecnico.critico {
+  border-left-color: var(--cor-critico);
+  background: #fff8f8;
+}
+
+.alerta-tecnico strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.alerta-tecnico p {
+  margin: 0;
+  color: var(--cor-texto-suave);
+}
+
+@media (max-width: 760px) {
+  .lista-tarefas {
+    grid-template-columns: 1fr;
+  }
+
+  .campo-largo {
+    grid-column: span 1;
+  }
+}

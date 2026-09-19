@@ -1,0 +1,76 @@
+/* =========================================================
+   FRUTLOG - ESTILOS GLOBAIS
+   Variaveis, reset simples, tipografia e utilitarios comuns.
+   ========================================================= */
+
+:root {
+  --cor-fundo-site: #f4f6f8;
+  --cor-sidebar: #492d03;
+  --cor-texto-escuro: #2c3e50;
+  --cor-texto-suave: #6f7b85;
+  --cor-destaque: #2e7d32;
+  --cor-destaque-hover: #1b5e20;
+  --cor-perigo: #d32f2f;
+  --cor-perigo-hover: #a92525;
+  --cor-alerta: #fbc02d;
+  --cor-critico: #c62828;
+  --cor-selecao: #7b1fa2;
+  --cor-borda: #e2ded8;
+  --cor-card: #ffffff;
+  --sombra-card: 0 4px 12px rgba(0, 0, 0, 0.04);
+  --fonte-principal: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background-color: var(--cor-fundo-site);
+  color: var(--cor-texto-escuro);
+  font-family: var(--fonte-principal);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+img {
+  max-width: 100%;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.mensagem-feedback {
+  min-height: 20px;
+  margin: 10px 0 0;
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+}
+
+.mensagem-feedback.erro {
+  color: var(--cor-perigo);
+}
+
+.mensagem-feedback.sucesso {
+  color: var(--cor-destaque);
+}

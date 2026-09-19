@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/tec.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <title>FrutLog - Tecnico Agricola</title>
+</head>
+<body class="layout-dashboard">
+  <aside class="sidebar">
+    <div class="logo-area">
+      <i class="fa-solid fa-leaf logo-icone" aria-hidden="true"></i>
+      <h2>FrutLog</h2>
+    </div>
+    <nav class="menu" aria-label="Menu do tecnico">
+      <a href="#tarefas-dia" class="nav-link"><i class="fa-solid fa-list-check" aria-hidden="true"></i> Tarefas</a>
+      <a href="#talhoes" class="nav-link active"><i class="fa-solid fa-map" aria-hidden="true"></i> Talhoes</a>
+      <a href="#inspecao" class="nav-link"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Inspecao</a>
+      <a href="#historico-inspecoes" class="nav-link"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Historico</a>
+      <a href="#ocorrencias" class="nav-link"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Ocorrencias</a>
+      <a href="#sensores" class="nav-link"><i class="fa-solid fa-microchip" aria-hidden="true"></i> Sensores</a>
+      <a href="#alertas" class="nav-link"><i class="fa-solid fa-bell" aria-hidden="true"></i> Alertas</a>
+    </nav>
+    <div class="sidebar-acoes">
+      <button id="btn-logout" class="btn-logout" type="button"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Sair</button>
+    </div>
+  </aside>
+
+  <main class="conteudo-dashboard">
+    <section class="topo">
+      <h1>Painel do Tecnico Agricola</h1>
+      <p>Registros de campo, ocorrencias e acompanhamento dos sensores dos talhoes.</p>
+    </section>
+
+    <section id="tarefas-dia" class="cartao">
+      <div class="titulo-cartao"><i class="fa-solid fa-list-check" aria-hidden="true"></i> Tarefas do Dia</div>
+      <div class="lista-tarefas" id="lista-tarefas"></div>
+    </section>
+
+    <section id="talhoes" class="bloco-talhoes-tecnico">
+      <div class="titulo-cartao"><i class="fa-solid fa-map" aria-hidden="true"></i> Monitoramento dos Talhoes</div>
+      <div class="secao-mapa-detalhes painel-mapa-tecnico">
+        <div class="cartao cartao-mapa-wrapper">
+          <div class="mapa-header">
+            <div>
+              <h2>Mapa dos Talhoes</h2>
+              <p>Selecione um talhao para consultar a situacao em campo.</p>
+            </div>
+            <div class="botoes-do-talhao" aria-label="Selecao de talhao">
+              <button class="btn-talhao active" type="button" data-talhao="A1">A1</button>
+              <button class="btn-talhao" type="button" data-talhao="A2">A2</button>
+              <button class="btn-talhao" type="button" data-talhao="B1">B1</button>
+              <button class="btn-talhao" type="button" data-talhao="B2">B2</button>
+            </div>
+          </div>
+
+          <div class="mapa-container">
+            <img src="imagem/mapa-FrutLog.jpg" alt="Mapa aereo dos talhoes" class="mapa-imagem">
+            <svg class="camada-talhoes" viewBox="0 0 500 400" preserveAspectRatio="none" aria-hidden="true">
+              <polygon class="talhao-mapa selecionado status-normal" data-talhao="A1" points="180,135 278,14 298,18 340,55 285,120 260,140 202,141" />
+              <g class="vertices-a1">
+                <circle cx="180" cy="135" r="4" class="ponto-arrastavel" />
+                <circle cx="278" cy="14" r="4" class="ponto-arrastavel" />
+                <circle cx="298" cy="18" r="4" class="ponto-arrastavel" />
+                <circle cx="340" cy="55" r="4" class="ponto-arrastavel" />
+                <circle cx="285" cy="120" r="4" class="ponto-arrastavel" />
+                <circle cx="260" cy="140" r="4" class="ponto-arrastavel" />
+                <circle cx="202" cy="141" r="4" class="ponto-arrastavel" />
+              </g>
+
+              <polygon class="talhao-mapa status-atencao" data-talhao="A2" points="116,120 136,127 172,127 195,142 240,147 235,215 185,215 145,205 115,190" />
+              <g class="vertices-a2">
+                <circle cx="116" cy="120" r="4" class="ponto-arrastavel" />
+                <circle cx="136" cy="127" r="4" class="ponto-arrastavel" />
+                <circle cx="172" cy="127" r="4" class="ponto-arrastavel" />
+                <circle cx="195" cy="142" r="4" class="ponto-arrastavel" />
+                <circle cx="240" cy="147" r="4" class="ponto-arrastavel" />
+                <circle cx="235" cy="215" r="4" class="ponto-arrastavel" />
+                <circle cx="185" cy="215" r="4" class="ponto-arrastavel" />
+                <circle cx="145" cy="205" r="4" class="ponto-arrastavel" />
+                <circle cx="115" cy="190" r="4" class="ponto-arrastavel" />
+              </g>
+
+              <polygon class="talhao-mapa status-normal" data-talhao="B1" points="285,120 305,85 340,95 380,140 350,170 320,205 285,235 250,220 235,185 250,150 270,135" />
+              <g class="vertices-b1">
+                <circle cx="285" cy="120" r="4" class="ponto-arrastavel" />
+                <circle cx="305" cy="85" r="4" class="ponto-arrastavel" />
+                <circle cx="340" cy="95" r="4" class="ponto-arrastavel" />
+                <circle cx="380" cy="140" r="4" class="ponto-arrastavel" />
+                <circle cx="350" cy="170" r="4" class="ponto-arrastavel" />
+                <circle cx="320" cy="205" r="4" class="ponto-arrastavel" />
+                <circle cx="285" cy="235" r="4" class="ponto-arrastavel" />
+                <circle cx="250" cy="220" r="4" class="ponto-arrastavel" />
+                <circle cx="235" cy="185" r="4" class="ponto-arrastavel" />
+                <circle cx="250" cy="150" r="4" class="ponto-arrastavel" />
+                <circle cx="270" cy="135" r="4" class="ponto-arrastavel" />
+              </g>
+
+              <polygon class="talhao-mapa status-critico" data-talhao="B2" points="75,85 115,120 187,107 230,105 220,85 280,5 230,5" />
+              <g class="vertices-b2">
+                <circle cx="75" cy="85" r="4" class="ponto-arrastavel" />
+                <circle cx="115" cy="120" r="4" class="ponto-arrastavel" />
+                <circle cx="187" cy="107" r="4" class="ponto-arrastavel" />
+                <circle cx="230" cy="105" r="4" class="ponto-arrastavel" />
+                <circle cx="220" cy="85" r="4" class="ponto-arrastavel" />
+                <circle cx="280" cy="5" r="4" class="ponto-arrastavel" />
+                <circle cx="230" cy="5" r="4" class="ponto-arrastavel" />
+              </g>
+            </svg>
+          </div>
+
+          <div class="legenda-mapa">
+            <div class="legenda-item"><span class="legenda-cor legenda-normal"></span><span>Normal</span></div>
+            <div class="legenda-item"><span class="legenda-cor legenda-atencao"></span><span>Atencao</span></div>
+            <div class="legenda-item"><span class="legenda-cor legenda-critico"></span><span>Critico</span></div>
+            <div class="legenda-item"><span class="legenda-cor legenda-selecao"></span><span>Selecionado</span></div>
+          </div>
+        </div>
+
+        <div class="cartao card-detalhes-elegante">
+          <div class="cabecalho-detalhes">
+            <span class="badge-status" id="tecnico-talhao-status">Normal</span>
+            <h2 class="titulo-talhao" id="tecnico-titulo-talhao">Detalhes: Talhao A1</h2>
+          </div>
+          <div class="info-grid-detalhes">
+            <div class="item-detalhe"><span class="label">Cultura</span><span class="valor" id="tecnico-talhao-cultura">--</span></div>
+            <div class="item-detalhe"><span class="label">Area</span><span class="valor" id="tecnico-talhao-area">--</span></div>
+            <div class="item-detalhe"><span class="label">Sensor principal</span><span class="valor" id="tecnico-talhao-sensor">--</span></div>
+            <div class="item-detalhe"><span class="label">Ultima leitura</span><span class="valor" id="tecnico-talhao-leitura">--</span></div>
+            <div class="item-detalhe destaque-fruta"><span class="label">Prioridade de campo</span><span class="valor" id="tecnico-talhao-prioridade">--</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-cards" id="lista-talhoes"></div>
+    </section>
+
+    <section id="inspecao" class="cartao">
+      <div class="cabecalho-cadastro">
+        <span class="badge-status">Campo</span>
+        <h2 class="titulo-talhao">Inspecao de Campo</h2>
+      </div>
+      <form id="form-inspecao">
+        <div class="info-grid-cadastro">
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="inspecao-talhao">Talhao</label>
+            <select id="inspecao-talhao" name="talhao" class="campo-formulario" required></select>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="inspecao-data">Data da inspecao</label>
+            <input type="date" id="inspecao-data" name="data" class="campo-formulario" required>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="inspecao-situacao">Situacao da plantacao</label>
+            <select id="inspecao-situacao" name="situacao" class="campo-formulario" required>
+              <option value="">Selecione</option>
+              <option value="Normal">Normal</option>
+              <option value="Atencao">Atencao</option>
+              <option value="Critico">Critico</option>
+            </select>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="inspecao-problemas">Problemas encontrados</label>
+            <input type="text" id="inspecao-problemas" name="problemas" class="campo-formulario" placeholder="Ex.: folhas amareladas">
+          </div>
+          <div class="item-detalhe-cadastro campo-largo">
+            <label class="label" for="inspecao-observacoes">Observacoes</label>
+            <textarea id="inspecao-observacoes" name="observacoes" class="campo-formulario"></textarea>
+          </div>
+        </div>
+        <p class="mensagem-feedback" id="mensagem-inspecao" aria-live="polite"></p>
+        <div class="area-botao-cadastro">
+          <button type="submit" class="btn-primario"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Registrar Inspecao</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="historico-inspecoes" class="cartao">
+      <div class="titulo-cartao"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Historico de Inspecoes</div>
+      <div class="tabela-responsiva">
+        <table class="tabela-dados">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Talhao</th>
+              <th>Situacao</th>
+              <th>Problemas</th>
+              <th>Observacoes</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-inspecoes"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="ocorrencias" class="cartao">
+      <div class="cabecalho-cadastro">
+        <span class="badge-status atencao">Ocorrencias</span>
+        <h2 class="titulo-talhao">Registrar Ocorrencia</h2>
+      </div>
+      <form id="form-ocorrencia">
+        <div class="info-grid-cadastro">
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="ocorrencia-talhao">Talhao</label>
+            <select id="ocorrencia-talhao" name="talhao" class="campo-formulario" required></select>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="ocorrencia-tipo">Problema</label>
+            <select id="ocorrencia-tipo" name="tipo" class="campo-formulario" required>
+              <option value="">Selecione</option>
+              <option>Pragas</option>
+              <option>Doencas</option>
+              <option>Falta de agua</option>
+              <option>Excesso de agua</option>
+              <option>Desenvolvimento irregular</option>
+              <option>Problema no sensor</option>
+              <option>Outro</option>
+            </select>
+          </div>
+          <div class="item-detalhe-cadastro campo-largo">
+            <label class="label" for="ocorrencia-observacao">Observacao</label>
+            <textarea id="ocorrencia-observacao" name="observacao" class="campo-formulario"></textarea>
+          </div>
+        </div>
+        <p class="mensagem-feedback" id="mensagem-ocorrencia" aria-live="polite"></p>
+        <div class="area-botao-cadastro">
+          <button type="submit" class="btn-primario"><i class="fa-solid fa-plus" aria-hidden="true"></i> Registrar Ocorrencia</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="sensores" class="cartao">
+      <div class="titulo-cartao"><i class="fa-solid fa-microchip" aria-hidden="true"></i> Sensores</div>
+      <div class="tabela-responsiva">
+        <table class="tabela-dados">
+          <thead>
+            <tr>
+              <th>Sensor</th>
+              <th>Talhao</th>
+              <th>Status</th>
+              <th>Ultima comunicacao</th>
+              <th>Ultima leitura</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-sensores"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="problema-sensor" class="cartao">
+      <div class="cabecalho-cadastro">
+        <span class="badge-status critico">Sensor</span>
+        <h2 class="titulo-talhao">Registro de Problema do Sensor</h2>
+      </div>
+      <form id="form-problema-sensor">
+        <div class="info-grid-cadastro">
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="problema-sensor-id">Sensor</label>
+            <select id="problema-sensor-id" name="sensor" class="campo-formulario" required></select>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="problema-sensor-talhao">Talhao</label>
+            <select id="problema-sensor-talhao" name="talhao" class="campo-formulario" required></select>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="problema-sensor-data">Data</label>
+            <input type="date" id="problema-sensor-data" name="data" class="campo-formulario" required>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="problema-sensor-descricao">Problema</label>
+            <input type="text" id="problema-sensor-descricao" name="problema" class="campo-formulario" required>
+          </div>
+          <div class="item-detalhe-cadastro campo-largo">
+            <label class="label" for="problema-sensor-observacao">Observacao</label>
+            <textarea id="problema-sensor-observacao" name="observacao" class="campo-formulario"></textarea>
+          </div>
+        </div>
+        <p class="mensagem-feedback" id="mensagem-problema-sensor" aria-live="polite"></p>
+        <div class="area-botao-cadastro">
+          <button type="submit" class="btn-primario"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Registrar Problema</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="alertas" class="cartao">
+      <div class="titulo-cartao"><i class="fa-solid fa-bell" aria-hidden="true"></i> Alertas Importantes</div>
+      <div class="lista-alertas" id="lista-alertas"></div>
+    </section>
+  </main>
+
+  <script src="js/global.js"></script>
+  <script src="js/tec.js"></script>
+</body>
+</html>

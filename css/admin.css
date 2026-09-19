@@ -1,0 +1,78 @@
+/* =========================================================
+   FRUTLOG - ADMINISTRADOR
+   Estilos exclusivos da administracao.
+   ========================================================= */
+
+.status-usuario {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 92px;
+  font-weight: 700;
+}
+
+.bolinha-status {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--cor-texto-suave);
+}
+
+.status-usuario.online {
+  color: var(--cor-destaque);
+}
+
+.status-usuario.online .bolinha-status {
+  background-color: var(--cor-destaque);
+  box-shadow: 0 0 0 4px rgba(46, 125, 50, 0.12);
+}
+
+.status-usuario.offline {
+  color: var(--cor-critico);
+}
+
+.status-usuario.offline .bolinha-status {
+  background-color: var(--cor-critico);
+  box-shadow: 0 0 0 4px rgba(198, 40, 40, 0.10);
+}
+
+#mapa-fazenda {
+  max-width: 760px;
+}
+
+#mapa-fazenda .mapa-container {
+  max-height: 360px;
+}
+
+#funcionario-matricula[readonly] {
+  background-color: #f7f4ee;
+  color: var(--cor-texto-suave);
+  cursor: not-allowed;
+}
+
+.texto-ajuda {
+  color: var(--cor-texto-suave);
+  font-size: 0.78rem;
+}
+
+.admin-graficos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.admin-graficos .cartao {
+  margin-bottom: 0;
+}
+
+.admin-grafico-container {
+  position: relative;
+  width: 100%;
+  min-height: 320px;
+}
+
+@media (max-width: 1100px) {
+  .admin-graficos {
+    grid-template-columns: 1fr;
+  }
+}

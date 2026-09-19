@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/login.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <title>FrutLog - Login</title>
+</head>
+<body class="pagina-login">
+  <main class="login" aria-label="Acesso ao FrutLog">
+    <section class="caixa-do-login1" aria-label="Apresentacao do FrutLog">
+      <h2 class="titulo-do-sistema">FrutLog</h2>
+      <div class="banner-text">
+        <h1>Bem-vindo!</h1>
+        <p>Gestao e monitoramento inteligente para o cultivo.</p>
+      </div>
+    </section>
+
+    <section class="caixa-do-login2" aria-label="Formulario de login">
+      <h2>Entrar</h2>
+      <form id="formularioLogin" novalidate>
+        <div class="input-field">
+          <label class="sr-only" for="matricula">Matricula</label>
+          <i class="fa-solid fa-user icon-left" aria-hidden="true"></i>
+          <input type="text" id="matricula" name="matricula" placeholder="Matricula" autocomplete="username" required>
+        </div>
+
+        <div class="input-field">
+          <label class="sr-only" for="senha">Senha</label>
+          <i class="fa-solid fa-lock icon-left" aria-hidden="true"></i>
+          <input type="password" id="senha" name="senha" placeholder="Digite sua senha" autocomplete="current-password" minlength="8" required>
+          <button type="button" class="btn-toggle-senha" id="togglePassword" aria-label="Mostrar senha">
+            <i class="fa-solid fa-eye" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="campo-demo" id="campo-perfil-demo">
+          <label for="perfil-demo">Perfil da demonstracao</label>
+          <select id="perfil-demo" name="perfilDemo">
+            <option value="engenheiro">Engenheiro</option>
+            <option value="tecnico">Tecnico</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+
+        <p class="mensagem-feedback" id="mensagem-login" aria-live="polite"></p>
+
+        <button type="submit" class="btn-login">Entrar</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="js/global.js"></script> 
+  <script src="js/login.js"></script>
+</body>
+</html>

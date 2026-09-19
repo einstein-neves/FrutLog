@@ -1,0 +1,68 @@
+/* =========================================================
+   FRUTLOG - ENGENHEIRO AGRONOMO
+   Estilos exclusivos da tela do Engenheiro.
+   ========================================================= */
+
+.card-cadastro-produto {
+  border-top: 6px solid var(--cor-destaque);
+}
+
+#cadastro-plantio .info-grid-cadastro {
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+}
+
+#cadastro-plantio .item-detalhe-cadastro:last-child {
+  grid-column: span 1;
+}
+
+#telemetria .fa-bolt,
+#historico .fa-calendar-days {
+  color: var(--cor-destaque);
+}
+
+.destaque-tecnico {
+  background-color: #f5f9ff;
+  border-color: #d9e8fb;
+}
+
+.destaque-tecnico .valor {
+  color: #244766;
+}
+
+.card-grafico-thingspeak{ 
+
+  width: 100%;
+  margin:0 0 20px 0;
+
+}
+.card-grafico-thingspeak >h1{
+  margin:  0 0 20px 0;
+  font-size: 1.5rem;
+  color: black;
+}
+
+ .graficos-thingspeak{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  width: 100%;
+ }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@media (max-width: 760px) {
+  #cadastro-plantio .info-grid-cadastro {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,191 @@
+/* =========================================================
+   FRUTLOG - LOGIN
+   Estilos exclusivos da pagina de autenticacao.
+   ========================================================= */
+
+.pagina-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+    url("../imagem/fotinha.png") no-repeat center center / cover;
+}
+
+.login {
+  display: flex;
+  width: min(900px, 100%);
+  min-height: 500px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55);
+}
+
+.caixa-do-login1 {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 40px;
+  background:
+    linear-gradient(rgba(45, 30, 24, 0.5), rgba(45, 30, 24, 0.82)),
+    url("../imagem/fotinha.png") no-repeat center center / cover;
+}
+
+.caixa-do-login1 .titulo-do-sistema,
+.caixa-do-login1 h1,
+.caixa-do-login1 p {
+  color: #ffffff;
+}
+
+.titulo-do-sistema {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.banner-text h1 {
+  margin: 0 0 10px;
+  font-size: 2.5rem;
+}
+
+.banner-text p {
+  margin: 0;
+  color: #e2ded8;
+  font-size: 0.95rem;
+}
+
+.caixa-do-login2 {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  padding: 50px 40px;
+  background-color: rgba(45, 30, 24, 0.94);
+  color: #ffffff;
+}
+
+.caixa-do-login2 h2 {
+  margin: 0 0 30px;
+  color: #ffffff;
+  font-size: 2rem;
+  text-align: center;
+}
+
+.input-field {
+  position: relative;
+  margin-bottom: 18px;
+}
+
+.input-field input {
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 44px 12px 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  color: #ffffff;
+  outline: none;
+}
+
+.input-field input:focus {
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.28);
+}
+
+.input-field input::placeholder {
+  color: #cccccc;
+}
+
+.campo-demo {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.campo-demo label {
+  color: #e8e8e8;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.campo-demo select {
+  width: 100%;
+  min-height: 44px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  color: #ffffff;
+  outline: none;
+}
+
+.campo-demo select option {
+  color: var(--cor-texto-escuro);
+}
+
+.campo-demo select:focus {
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.28);
+}
+
+.icon-left,
+.btn-toggle-senha {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #cccccc;
+}
+
+.icon-left {
+  left: 12px;
+}
+
+.btn-toggle-senha {
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.btn-login {
+  width: 100%;
+  min-height: 46px;
+  padding: 14px;
+  background-color: var(--cor-destaque);
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.btn-login:hover {
+  background-color: var(--cor-destaque-hover);
+}
+
+.btn-login:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
+@media (max-width: 760px) {
+  .login {
+    flex-direction: column;
+    min-height: auto;
+  }
+
+  .caixa-do-login1,
+  .caixa-do-login2 {
+    padding: 32px 24px;
+  }
+}

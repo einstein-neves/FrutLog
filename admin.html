@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <title>FrutLog - Administracao</title>
+</head>
+<body class="layout-dashboard">
+  <aside class="sidebar">
+    <div class="logo-area">
+      <i class="fa-solid fa-leaf logo-icone" aria-hidden="true"></i>
+      <h2>FrutLog</h2>
+    </div>
+    <nav class="menu" aria-label="Menu administrativo">
+      <a href="#funcionarios" class="nav-link active"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Funcionarios</a>
+      <a href="#sessoes" class="nav-link"><i class="fa-solid fa-signal" aria-hidden="true"></i> Usuarios Ativos</a>
+      <a href="#mapa-fazenda" class="nav-link"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> Mapa</a>
+      <a href="#graficos" class="nav-link"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Graficos</a>
+    </nav>
+    
+    <div class="sidebar-acoes">
+      <button id="btn-logout" class="btn-logout" type="button"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Sair</button>
+    </div>
+  </aside>
+
+  <main class="conteudo-dashboard">
+    <section class="topo">
+      <h1>Administracao do Sistema</h1>
+      <p>Controle de funcionarios, usuarios ativos, mapa da fazenda e indicadores da producao.</p>
+    </section>
+
+    <section id="funcionarios" class="cartao">
+      <div class="cabecalho-cadastro">
+        <span class="badge-status">Equipe</span>
+        <h2 class="titulo-talhao">Cadastro de Funcionarios</h2>
+      </div>
+      <form id="form-funcionario">
+        <div class="info-grid-cadastro">
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="funcionario-matricula">Matricula</label>
+            <input id="funcionario-matricula" name="matricula" class="campo-formulario" readonly required>
+            <span class="texto-ajuda">Gerada automaticamente pelo sistema.</span>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="funcionario-nome">Nome</label>
+            <input id="funcionario-nome" name="nome" class="campo-formulario" required>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="funcionario-cargo">Cargo</label>
+            <input id="funcionario-cargo" name="cargo" class="campo-formulario" placeholder="Ex.: Tecnico agricola" required>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="funcionario-perfil">Perfil de acesso</label>
+            <select id="funcionario-perfil" name="perfil" class="campo-formulario" required>
+              <option value="">Selecione</option>
+              <option value="engenheiro">Engenheiro</option>
+              <option value="tecnico">Tecnico</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="funcionario-status">Status</label>
+            <select id="funcionario-status" name="status" class="campo-formulario" required>
+              <option value="ativo">Ativo</option>
+              <option value="inativo">Inativo</option>
+            </select>
+          </div>
+        </div>
+        <p class="mensagem-feedback" id="mensagem-funcionario" aria-live="polite"></p>
+        <div class="area-botao-cadastro">
+          <button type="submit" class="btn-primario"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Cadastrar Funcionario</button>
+        </div>
+      </form>
+
+      <div class="subsecao-admin">
+        <div class="titulo-cartao"><i class="fa-solid fa-address-book" aria-hidden="true"></i> Funcionarios Cadastrados</div>
+        <div class="tabela-responsiva">
+          <table class="tabela-dados">
+            <thead>
+              <tr>
+                <th>Matricula</th>
+                <th>Nome</th>
+                <th>Cargo</th>
+                <th>Perfil</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-funcionarios"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="sessoes" class="cartao">
+      <div class="titulo-cartao"><i class="fa-solid fa-signal" aria-hidden="true"></i> Usuarios Ativos</div>
+      <div class="tabela-responsiva">
+        <table class="tabela-dados">
+          <thead>
+            <tr>
+              <th>Matricula</th>
+              <th>Nome</th>
+              <th>Perfil</th>
+              <th>Ultimo acesso</th>
+              <th>Ultima atividade</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-sessoes"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="mapa-fazenda" class="cartao cartao-mapa-wrapper">
+      <div class="mapa-header">
+        <div>
+          <h2>Mapa da Fazenda</h2>
+          <p>Visao administrativa dos talhoes A1, A2, B1 e B2.</p>
+        </div>
+        <span class="status-mapa">Monitoramento Ativo</span>
+      </div>
+
+      <div class="mapa-container">
+        <img src="imagem/mapa-FrutLog.jpg" alt="Mapa aereo dos talhoes" class="mapa-imagem">
+        <svg class="camada-talhoes" viewBox="0 0 500 400" preserveAspectRatio="none" aria-hidden="true">
+          <polygon class="talhao-mapa selecionado status-normal" data-talhao="A1" points="180,135 278,14 298,18 340,55 285,120 260,140 202,141" />
+          <polygon class="talhao-mapa status-atencao" data-talhao="A2" points="116,120 136,127 172,127 195,142 240,147 235,215 185,215 145,205 115,190" />
+          <polygon class="talhao-mapa status-normal" data-talhao="B1" points="285,120 305,85 340,95 380,140 350,170 320,205 285,235 250,220 235,185 250,150 270,135" />
+          <polygon class="talhao-mapa status-critico" data-talhao="B2" points="75,85 115,120 187,107 230,105 220,85 280,5 230,5" />
+        </svg>
+      </div>
+
+      <div class="legenda-mapa">
+        <div class="legenda-item"><span class="legenda-cor legenda-normal"></span><span>Normal</span></div>
+        <div class="legenda-item"><span class="legenda-cor legenda-atencao"></span><span>Atencao</span></div>
+        <div class="legenda-item"><span class="legenda-cor legenda-critico"></span><span>Critico</span></div>
+        <div class="legenda-item"><span class="legenda-cor legenda-selecao"></span><span>Selecionado</span></div>
+      </div>
+    </section>
+
+    <section id="graficos" class="admin-graficos">
+      <article class="cartao">
+        <div class="titulo-cartao"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Colheita Anual</div>
+        <div class="admin-grafico-container">
+          <canvas id="grafico-colheita-anual"></canvas>
+        </div>
+      </article>
+
+      <article class="cartao">
+        <div class="titulo-cartao"><i class="fa-solid fa-cloud-sun-rain" aria-hidden="true"></i> Clima Mensal</div>
+        <div class="admin-grafico-container">
+          <canvas id="grafico-clima-mensal"></canvas>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="js/global.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
