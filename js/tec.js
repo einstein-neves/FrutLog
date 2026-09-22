@@ -1,45 +1,24 @@
 /* =========================================================
    FRUTLOG - TECNICO AGRICOLA
-   Estrutura preparada para API REST e dados de IoT via backend.
+   Visualizacao de talhoes e registros de campo.
    ========================================================= */
 
 document.addEventListener("DOMContentLoaded", () => {
   verificarSessao();
   FrutLog.configurarLogout();
-  carregarTarefasDia();
   carregarTalhoes();
   configurarMapaTalhoes();
+  carregarTarefasDia();
   carregarHistoricoInspecoes();
+  carregarHistoricoOcorrencias();
   carregarSensores();
+  carregarHistoricoProblemasSensores();
   carregarAlertas();
   configurarFormularios();
-  selecionarTalhao("A1");
+  selecionarTalhao(talhoes[0]?.properties.codigo || "");
 });
 
-const talhoes = [
-  { id: "A1", situacao: "Normal", cultura: "Uva Isabel", area: "10 hectares", sensor: "TEMP-A1-01", leitura: "31 C", prioridade: "Rotina de acompanhamento" },
-  { id: "A2", situacao: "Atencao", cultura: "Manga Tommy Atkins", area: "8 hectares", sensor: "SOLO-A2-01", leitura: "35%", prioridade: "Verificar umidade do solo" },
-  { id: "B1", situacao: "Normal", cultura: "Uva Sugar Crisp", area: "9 hectares", sensor: "CHUVA-B1-01", leitura: "3,1 mm", prioridade: "Rotina de acompanhamento" },
-  { id: "B2", situacao: "Critico", cultura: "Melao Goldex", area: "7,6 hectares", sensor: "SOLO-B2-01", leitura: "28%", prioridade: "Checar sensor e irrigacao" },
-];
-
-const sensores = [
-  { sensor: "TEMP-A1-01", talhao: "A1", status: "Online", comunicacao: "13/09/2026 09:30", leitura: "31 C" },
-  { sensor: "SOLO-A2-01", talhao: "A2", status: "Atencao", comunicacao: "13/09/2026 08:55", leitura: "35%" },
-  { sensor: "CHUVA-B1-01", talhao: "B1", status: "Online", comunicacao: "13/09/2026 09:28", leitura: "3,1 mm" },
-  { sensor: "SOLO-B2-01", talhao: "B2", status: "Offline", comunicacao: "12/09/2026 17:10", leitura: "28%" },
-];
-
-const alertas = [
-  { nivel: "atencao", titulo: "Talhao A2 exige acompanhamento", texto: "Umidade do solo abaixo do ideal para a fase atual." },
-  { nivel: "critico", titulo: "Sensor SOLO-B2-01 offline", texto: "Ultima comunicacao registrada em 12/09/2026 as 17:10." },
-];
-
-const tarefasDia = [
-  { talhao: "B2", prioridade: "Critica", atividade: "Verificar sensor SOLO-B2-01 e irrigacao." },
-  { talhao: "A2", prioridade: "Atencao", atividade: "Reavaliar umidade do solo no periodo da tarde." },
-  { talhao: "A1", prioridade: "Normal", atividade: "Registrar vistoria preventiva da plantacao." },
-];
+let talhoes = FrutLogTalhoes.obterTalhoes();
 
 const historicoInspecoes = [
   { data: "13/09/2026", talhao: "A2", situacao: "Atencao", problemas: "Umidade baixa", observacoes: "Monitorar proxima leitura do sensor." },
@@ -47,32 +26,103 @@ const historicoInspecoes = [
   { data: "11/09/2026", talhao: "B1", situacao: "Normal", problemas: "Sem ocorrencia", observacoes: "Plantacao em desenvolvimento regular." },
 ];
 
+const historicoOcorrencias = [];
+const historicoProblemasSensores = [];
+
 function verificarSessao() {
   return FrutLog.verificarSessao(["tecnico"]);
 }
 
 function normalizarClasse(texto) {
-  return texto.toLowerCase();
+  return String(texto).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
 function preencherTexto(id, valor) {
   const elemento = document.getElementById(id);
-  if (elemento) {
-    elemento.textContent = valor;
-  }
+  if (elemento) elemento.textContent = valor;
+}
+
+function atualizarTalhoesMonitorados() {
+  talhoes = talhoes.map((feature) => FrutLogTalhoes.aplicarMonitoramento(feature));
+}
+
+function formatarData(dataISO) {
+  if (!dataISO) return "--";
+  const [ano, mes, dia] = dataISO.split("-");
+  return dia && mes && ano ? `${dia}/${mes}/${ano}` : dataISO;
+}
+
+function obterPontos(feature) {
+  return FrutLogTalhoes.obterPontos(feature);
+}
+
+function pontosParaString(pontos) {
+  return pontos.map((ponto) => `${ponto[0]},${ponto[1]}`).join(" ");
+}
+
+function obterSensores() {
+  atualizarTalhoesMonitorados();
+
+  return talhoes.map((feature) => {
+    const props = feature.properties;
+    const monitoramento = props.monitoramento || {};
+
+    return {
+      sensor: props.sensor || "Nao associado",
+      talhao: props.codigo,
+      status: props.sensor === "Nao associado" ? "Atencao" : monitoramento.status || props.status,
+      comunicacao: props.apontamentoTecnico?.data || "--",
+      leitura: monitoramento.temperaturaAtual !== null && monitoramento.temperaturaAtual !== undefined
+        ? `${monitoramento.temperaturaAtual} C`
+        : "--",
+    };
+  });
+}
+
+function obterTarefasDia() {
+  atualizarTalhoesMonitorados();
+
+  return talhoes
+    .filter((feature) => feature.properties.status !== "Normal" || feature.properties.sensor === "Nao associado")
+    .map((feature) => ({
+      talhao: feature.properties.codigo,
+      prioridade: feature.properties.status === "Critico" ? "Critico" : "Atencao",
+      atividade: feature.properties.prioridade || "Verificar situacao do talhao.",
+    }));
+}
+
+function obterAlertas() {
+  atualizarTalhoesMonitorados();
+
+  return talhoes
+    .filter((feature) => feature.properties.status !== "Normal" || feature.properties.sensor === "Nao associado")
+    .map((feature) => ({
+      nivel: feature.properties.status === "Critico" ? "critico" : "atencao",
+      titulo: `Talhao ${feature.properties.codigo} exige acompanhamento`,
+      texto: feature.properties.sensor === "Nao associado"
+        ? "Talhao sem sensor associado apos configuracao ou divisao."
+        : feature.properties.prioridade,
+    }));
 }
 
 function preencherSelectTalhoes(select) {
   if (!select) return;
 
   select.innerHTML = '<option value="">Selecione o talhao</option>' + talhoes
-    .map((talhao) => `<option value="${talhao.id}">${talhao.id}</option>`)
+    .map((feature) => `<option value="${feature.properties.codigo}">${feature.properties.codigo}</option>`)
     .join("");
 }
 
 function carregarTarefasDia() {
   const lista = document.getElementById("lista-tarefas");
   if (!lista) return;
+
+  const tarefasDia = obterTarefasDia();
+
+  if (!tarefasDia.length) {
+    lista.innerHTML = '<article class="tarefa-card"><strong>Normal</strong><p>Nenhuma tarefa critica registrada para os talhoes.</p></article>';
+    return;
+  }
 
   lista.innerHTML = tarefasDia.map((tarefa) => `
     <article class="tarefa-card ${normalizarClasse(tarefa.prioridade)}">
@@ -87,20 +137,58 @@ function carregarTalhoes() {
   const lista = document.getElementById("lista-talhoes");
   if (!lista) return;
 
-  lista.innerHTML = talhoes.map((talhao) => `
-    <article class="talhao-card ${normalizarClasse(talhao.situacao)}">
-      <h3>Talhao ${talhao.id}</h3>
-      <p><strong>Situacao:</strong> ${talhao.situacao}</p>
-      <p><strong>Cultura:</strong> ${talhao.cultura}</p>
-      <p><strong>Area:</strong> ${talhao.area}</p>
-    </article>
-  `).join("");
+  atualizarTalhoesMonitorados();
+  renderizarBotoesTalhao();
+  renderizarMapa();
+
+  lista.innerHTML = talhoes.map((feature) => {
+    const props = feature.properties;
+    return `
+      <article class="talhao-card ${normalizarClasse(props.status)}">
+        <h3>Talhao ${props.codigo}</h3>
+        <p><strong>Situacao:</strong> ${props.status}</p>
+        <p><strong>Cultura:</strong> ${props.produto} ${props.variedade}</p>
+        <p><strong>Area:</strong> ${props.area}</p>
+      </article>
+    `;
+  }).join("");
 
   [
     "inspecao-talhao",
     "ocorrencia-talhao",
     "problema-sensor-talhao",
   ].forEach((id) => preencherSelectTalhoes(document.getElementById(id)));
+}
+
+function renderizarBotoesTalhao() {
+  const botoesTalhao = document.getElementById("botoes-talhao");
+  if (!botoesTalhao) return;
+
+  botoesTalhao.innerHTML = talhoes.map((feature, index) => {
+    const codigo = feature.properties.codigo;
+    const ativo = index === 0 ? " active" : "";
+    return `<button class="btn-talhao${ativo}" type="button" data-talhao="${codigo}">${codigo}</button>`;
+  }).join("");
+}
+
+function renderizarMapa() {
+  const svgMapa = document.getElementById("camada-talhoes");
+  if (!svgMapa) return;
+
+  atualizarTalhoesMonitorados();
+  svgMapa.innerHTML = "";
+
+  talhoes.forEach((feature, index) => {
+    const props = feature.properties;
+    const poligono = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+
+    poligono.setAttribute("points", pontosParaString(obterPontos(feature)));
+    poligono.dataset.talhao = props.codigo;
+    poligono.classList.add("talhao-mapa", `status-${normalizarClasse(props.status)}`);
+    poligono.classList.toggle("selecionado", index === 0);
+    poligono.addEventListener("click", () => selecionarTalhao(props.codigo));
+    svgMapa.appendChild(poligono);
+  });
 }
 
 function carregarHistoricoInspecoes() {
@@ -118,9 +206,51 @@ function carregarHistoricoInspecoes() {
   `).join("");
 }
 
+function carregarHistoricoOcorrencias() {
+  const tabela = document.getElementById("tabela-ocorrencias");
+  if (!tabela) return;
+
+  if (!historicoOcorrencias.length) {
+    tabela.innerHTML = '<tr><td colspan="3">Nenhuma ocorrencia registrada nesta sessao.</td></tr>';
+    return;
+  }
+
+  tabela.innerHTML = historicoOcorrencias.map((ocorrencia) => `
+    <tr>
+      <td>${ocorrencia.talhao}</td>
+      <td>${ocorrencia.problema}</td>
+      <td>${ocorrencia.observacao || "-"}</td>
+    </tr>
+  `).join("");
+}
+
+function carregarHistoricoProblemasSensores() {
+  const tabela = document.getElementById("tabela-problemas-sensores");
+  if (!tabela) return;
+
+  if (!historicoProblemasSensores.length) {
+    tabela.innerHTML = '<tr><td colspan="5">Nenhum problema de sensor registrado nesta sessao.</td></tr>';
+    return;
+  }
+
+  tabela.innerHTML = historicoProblemasSensores.map((problema) => `
+    <tr>
+      <td>${problema.sensor}</td>
+      <td>${problema.talhao}</td>
+      <td>${problema.data}</td>
+      <td>${problema.problema}</td>
+      <td>${problema.observacao || "-"}</td>
+    </tr>
+  `).join("");
+}
+
 function selecionarTalhao(idTalhao) {
-  const talhao = talhoes.find((item) => item.id === idTalhao);
+  atualizarTalhoesMonitorados();
+  const talhao = talhoes.find((item) => item.properties.codigo === idTalhao);
   if (!talhao) return;
+
+  const props = talhao.properties;
+  const monitoramento = props.monitoramento || {};
 
   document.querySelectorAll(".btn-talhao").forEach((botao) => {
     botao.classList.toggle("active", botao.dataset.talhao === idTalhao);
@@ -130,33 +260,37 @@ function selecionarTalhao(idTalhao) {
     area.classList.toggle("selecionado", area.dataset.talhao === idTalhao);
   });
 
-  preencherTexto("tecnico-titulo-talhao", `Detalhes: Talhao ${talhao.id}`);
-  preencherTexto("tecnico-talhao-cultura", talhao.cultura);
-  preencherTexto("tecnico-talhao-area", talhao.area);
-  preencherTexto("tecnico-talhao-sensor", talhao.sensor);
-  preencherTexto("tecnico-talhao-leitura", talhao.leitura);
-  preencherTexto("tecnico-talhao-prioridade", talhao.prioridade);
+  preencherTexto("tecnico-titulo-talhao", `Detalhes: Talhao ${props.codigo}`);
+  preencherTexto("tecnico-talhao-produto", props.produto || "--");
+  preencherTexto("tecnico-talhao-variedade", props.variedade || "--");
+  preencherTexto("tecnico-talhao-area", props.area);
+  preencherTexto("tecnico-talhao-solo", props.solo || "--");
+  preencherTexto("tecnico-talhao-plantio", props.plantio || "--");
+  preencherTexto("tecnico-talhao-colheita", props.colheita || "--");
+  preencherTexto("tecnico-talhao-sensor", props.sensor || "Nao associado");
+  preencherTexto("tecnico-talhao-limite", monitoramento.temperaturaMaxima !== null && monitoramento.temperaturaMaxima !== undefined ? `${monitoramento.temperaturaMaxima} C` : "--");
+  preencherTexto("tecnico-talhao-temperatura", monitoramento.temperaturaAtual !== null && monitoramento.temperaturaAtual !== undefined ? `${monitoramento.temperaturaAtual} C` : "--");
+  preencherTexto("tecnico-talhao-umidade", props.diaria?.umidadeAr ? `${props.diaria.umidadeAr}% ar / ${props.diaria.umidadeSolo || "--"}% solo` : "--");
+  preencherTexto("tecnico-talhao-prioridade", props.prioridade || "Rotina de acompanhamento");
 
   const badge = document.getElementById("tecnico-talhao-status");
   if (badge) {
-    badge.textContent = talhao.situacao;
-    badge.className = `badge-status ${normalizarClasse(talhao.situacao)}`;
+    badge.textContent = props.status;
+    badge.className = `badge-status ${normalizarClasse(props.status)}`;
   }
 }
 
 function configurarMapaTalhoes() {
-  document.querySelectorAll(".btn-talhao").forEach((botao) => {
-    botao.addEventListener("click", () => selecionarTalhao(botao.dataset.talhao));
-  });
-
-  document.querySelectorAll(".talhao-mapa").forEach((area) => {
-    area.addEventListener("click", () => selecionarTalhao(area.dataset.talhao));
+  document.getElementById("botoes-talhao")?.addEventListener("click", (evento) => {
+    const botao = evento.target.closest(".btn-talhao");
+    if (botao) selecionarTalhao(botao.dataset.talhao);
   });
 }
 
 function carregarSensores() {
   const tabela = document.getElementById("tabela-sensores");
   const selectSensor = document.getElementById("problema-sensor-id");
+  const sensores = obterSensores();
 
   if (tabela) {
     tabela.innerHTML = sensores.map((item) => `
@@ -180,6 +314,13 @@ function carregarSensores() {
 function carregarAlertas() {
   const lista = document.getElementById("lista-alertas");
   if (!lista) return;
+
+  const alertas = obterAlertas();
+
+  if (!alertas.length) {
+    lista.innerHTML = '<article class="alerta-tecnico"><strong>Sem alertas</strong><p>Nenhum alerta importante registrado.</p></article>';
+    return;
+  }
 
   lista.innerHTML = alertas.map((alerta) => `
     <article class="alerta-tecnico ${alerta.nivel}">
@@ -206,11 +347,9 @@ async function registrarInspecao(evento) {
   const dados = obterDadosFormulario(evento.currentTarget);
 
   try {
-    // TODO: confirmar endpoint com o backend.
-    // await FrutLog.apiFetch("/inspecoes", { method: "POST", body: JSON.stringify(dados) });
     console.info("Inspecao preparada para API:", dados);
     historicoInspecoes.unshift({
-      data: dados.data,
+      data: formatarData(dados.data),
       talhao: dados.talhao,
       situacao: dados.situacao,
       problemas: dados.problemas || "Sem ocorrencia",
@@ -229,9 +368,13 @@ async function registrarOcorrencia(evento) {
   const dados = obterDadosFormulario(evento.currentTarget);
 
   try {
-    // TODO: confirmar endpoint com o backend.
-    // await FrutLog.apiFetch("/ocorrencias", { method: "POST", body: JSON.stringify(dados) });
     console.info("Ocorrencia preparada para API:", dados);
+    historicoOcorrencias.unshift({
+      talhao: dados.talhao,
+      problema: dados.tipo,
+      observacao: dados.observacao || "-",
+    });
+    carregarHistoricoOcorrencias();
     exibirMensagem("mensagem-ocorrencia", "Ocorrencia preparada para envio ao backend.");
     evento.currentTarget.reset();
   } catch (erro) {
@@ -244,9 +387,15 @@ async function registrarProblemaSensor(evento) {
   const dados = obterDadosFormulario(evento.currentTarget);
 
   try {
-    // TODO: confirmar endpoint com o backend.
-    // await FrutLog.apiFetch("/sensores/problemas", { method: "POST", body: JSON.stringify(dados) });
     console.info("Problema de sensor preparado para API:", dados);
+    historicoProblemasSensores.unshift({
+      sensor: dados.sensor,
+      talhao: dados.talhao,
+      data: formatarData(dados.data),
+      problema: dados.problema,
+      observacao: dados.observacao || "-",
+    });
+    carregarHistoricoProblemasSensores();
     exibirMensagem("mensagem-problema-sensor", "Problema preparado para envio ao backend.");
     evento.currentTarget.reset();
   } catch (erro) {

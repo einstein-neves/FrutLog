@@ -44,68 +44,23 @@
         <h2>Visao dos Talhoes</h2>
         <p>Selecione um talhao para visualizar seus dados.</p>
       </div>
-      <div class="botoes-do-talhao" aria-label="Selecao de talhao">
-        <button class="btn-talhao active" type="button" data-talhao="A1">A1</button>
-        <button class="btn-talhao" type="button" data-talhao="A2">A2</button>
-        <button class="btn-talhao" type="button" data-talhao="B1">B1</button>
-        <button class="btn-talhao" type="button" data-talhao="B2">B2</button>
-      </div>
+      <div class="botoes-do-talhao" id="botoes-talhao" aria-label="Selecao de talhao"></div>
       <span class="status-mapa">Monitoramento Ativo</span>
     </div>
 
+    <div class="barra-edicao-talhao" aria-label="Ferramentas de edicao de talhoes">
+      <button class="btn-filtro" type="button" id="btn-editar-talhoes">Editar Talhoes</button>
+      <button class="btn-filtro" type="button" id="btn-criar-talhao" disabled>Criar</button>
+      <button class="btn-filtro" type="button" id="btn-dividir-talhao" disabled>Dividir</button>
+      <button class="btn-filtro" type="button" id="btn-excluir-talhao" disabled>Excluir</button>
+      <button class="btn-filtro" type="button" id="btn-salvar-talhao" disabled>Salvar</button>
+      <button class="btn-filtro" type="button" id="btn-cancelar-talhao" disabled>Cancelar</button>
+    </div>
+    <p class="mensagem-feedback" id="mensagem-edicao-talhao" aria-live="polite"></p>
+
     <div class="mapa-container">
       <img src="imagem/mapa-FrutLog.jpg" alt="Mapa aereo dos talhoes" class="mapa-imagem">
-      <svg class="camada-talhoes" viewBox="0 0 500 400" preserveAspectRatio="none" aria-hidden="true">
-        <polygon class="talhao-mapa selecionado status-normal" data-talhao="A1" points="180,135 278,14 298,18 340,55 285,120 260,140 202,141" />
-        <g class="vertices-a1">
-          <circle cx="180" cy="135" r="4" class="ponto-arrastavel" data-talhao="A1" data-index="0" />
-          <circle cx="278" cy="14" r="4" class="ponto-arrastavel" data-talhao="A1" data-index="1" />
-          <circle cx="298" cy="18" r="4" class="ponto-arrastavel" data-talhao="A1" data-index="2" />
-          <circle cx="340" cy="55" r="4" class="ponto-arrastavel" data-talhao="A1" data-index="3" />
-          <circle cx="285" cy="120" r="4" class="ponto-arrastavel" data-talhao="A1" data-index="4" />
-          <circle cx="260" cy="140" r="4" class="ponto-arrastavel" data-talhao="A1" data-index="5" />
-          <circle cx="202" cy="141" r="4" class="ponto-arrastavel" data-talhao="A1" data-index="6" />
-        </g>
-
-        <polygon class="talhao-mapa status-atencao" data-talhao="A2" points="116,120 136,127 172,127 195,142 240,147 235,215 185,215 145,205 115,190" />
-        <g class="vertices-a2">
-          <circle cx="116" cy="120" r="4" class="ponto-arrastavel" data-talhao="A2" data-index="0" />
-          <circle cx="136" cy="127" r="4" class="ponto-arrastavel" data-talhao="A2" data-index="1" />
-          <circle cx="172" cy="127" r="4" class="ponto-arrastavel" data-talhao="A2" data-index="2" />
-          <circle cx="195" cy="142" r="4" class="ponto-arrastavel" data-talhao="A2" data-index="3" />
-          <circle cx="240" cy="147" r="4" class="ponto-arrastavel" data-talhao="A2" data-index="4" />
-          <circle cx="235" cy="215" r="4" class="ponto-arrastavel" data-talhao="A2" data-index="5" />
-          <circle cx="185" cy="215" r="4" class="ponto-arrastavel" data-talhao="A2" data-index="6" />
-          <circle cx="145" cy="205" r="4" class="ponto-arrastavel" data-talhao="A2" data-index="7" />
-          <circle cx="115" cy="190" r="4" class="ponto-arrastavel" data-talhao="A2" data-index="8" />
-        </g>
-
-        <polygon class="talhao-mapa status-normal" data-talhao="B1" points="285,120 309,92 340,95 380,140 350,170 320,205 285,235 250,220 235,185 250,150 270,135" />
-        <g class="vertices-b1">
-          <circle cx="285" cy="120" r="4" class="ponto-arrastavel" data-talhao="B1" data-index="0" />
-          <circle cx="305" cy="85" r="4" class="ponto-arrastavel" data-talhao="B1" data-index="1" />
-          <circle cx="340" cy="95" r="4" class="ponto-arrastavel" data-talhao="B1" data-index="2" />
-          <circle cx="380" cy="140" r="4" class="ponto-arrastavel" data-talhao="B1" data-index="3" />
-          <circle cx="350" cy="170" r="4" class="ponto-arrastavel" data-talhao="B1" data-index="4" />
-          <circle cx="320" cy="205" r="4" class="ponto-arrastavel" data-talhao="B1" data-index="5" />
-          <circle cx="285" cy="235" r="4" class="ponto-arrastavel" data-talhao="B1" data-index="6" />
-          <circle cx="250" cy="220" r="4" class="ponto-arrastavel" data-talhao="B1" data-index="7" />
-          <circle cx="235" cy="185" r="4" class="ponto-arrastavel" data-talhao="B1" data-index="8" />
-          <circle cx="250" cy="150" r="4" class="ponto-arrastavel" data-talhao="B1" data-index="9" />
-          <circle cx="270" cy="135" r="4" class="ponto-arrastavel" data-talhao="B1" data-index="10" />
-        </g>
-
-        <polygon class="talhao-mapa status-critico" data-talhao="B2" points="75,85 115,120 187,107 200,105 220,85 280,5 230,5" />
-        <g class="vertices-b2">
-          <circle cx="75" cy="85" r="4" class="ponto-arrastavel" data-talhao="B2" data-index="0" />
-          <circle cx="115" cy="120" r="4" class="ponto-arrastavel" data-talhao="B2" data-index="1" />
-          <circle cx="187" cy="107" r="4" class="ponto-arrastavel" data-talhao="B2" data-index="2" />
-          <circle cx="230" cy="105" r="4" class="ponto-arrastavel" data-talhao="B2" data-index="3" />
-          <circle cx="220" cy="85" r="4" class="ponto-arrastavel" data-talhao="B2" data-index="4" />
-          <circle cx="280" cy="5" r="4" class="ponto-arrastavel" data-talhao="B2" data-index="5" />
-          <circle cx="230" cy="5" r="4" class="ponto-arrastavel" data-talhao="B2" data-index="6" />
-        </g>
-      </svg>
+      <svg class="camada-talhoes" id="camada-talhoes" viewBox="0 0 500 400" preserveAspectRatio="none" aria-label="Talhoes da fazenda"></svg>
     </div>
 
     <div class="legenda-mapa">
@@ -140,9 +95,18 @@
         <span class="valor" id="talhao-colheita">--</span>
       </div>
 
-      <div class="item-detalhe destaque-fruta">
-        <span class="label">Variedade Cultivada</span>span>
+      <div class="item-detalhe"><span class="label">Produto</span>
         <span class="valor" id="talhao-produto">--</span>
+      </div>
+
+      <div class="item-detalhe destaque-fruta">
+        <span class="label">Variedade Cultivada</span>
+        <span class="valor" id="talhao-variedade">--</span>
+      </div>
+
+      <div class="item-detalhe">
+        <span class="label">Temperatura Configurada</span>
+        <span class="valor" id="talhao-temperatura-maxima">--</span>
       </div>
 
       <div class="item-detalhe"><span class="label">Ultima Inspecao</span>
@@ -308,6 +272,17 @@
         <label class="label" for="data-colheita">Previsao de Colheita</label>
         <input type="date" id="data-colheita" name="dataColheita" class="campo-formulario" required>
       </div>
+      <div class="item-detalhe-cadastro">
+        <label class="label" for="temperatura-maxima">Temperatura maxima</label>
+        <div class="campo-com-unidade">
+          <input type="number" id="temperatura-maxima" name="temperaturaMaxima" class="campo-formulario" min="0" step="0.1" placeholder="Ex.: 30" required>
+          <span>C</span>
+        </div>
+      </div>
+      <div class="item-detalhe-cadastro">
+        <label class="label" for="sensor-associado">Sensor associado</label>
+        <input type="text" id="sensor-associado" name="sensor" class="campo-formulario" placeholder="Ex.: ESP32-01">
+      </div>
     </div>
 
     <p class="mensagem-feedback" id="mensagem-plantio" aria-live="polite"></p>
@@ -323,6 +298,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="js/global.js"></script>
+<script src="js/frutlog-talhoes.js"></script>
 <script src="js/eng.js"></script>
 </body>
 </html>

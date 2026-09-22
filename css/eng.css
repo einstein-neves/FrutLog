@@ -29,6 +29,43 @@
   color: #244766;
 }
 
+.barra-edicao-talhao {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.barra-edicao-talhao .btn-filtro:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.mapa-container.modo-edicao {
+  cursor: crosshair;
+}
+
+.mapa-container.modo-divisao {
+  cursor: cell;
+}
+
+.poligono-rascunho {
+  fill: rgba(123, 31, 162, 0.18);
+  stroke: var(--cor-selecao);
+  stroke-dasharray: 5 4;
+  stroke-width: 1.8;
+  pointer-events: none;
+}
+
+.linha-divisao-talhao {
+  fill: none;
+  stroke: var(--cor-selecao);
+  stroke-dasharray: 8 5;
+  stroke-linecap: round;
+  stroke-width: 2.2;
+  pointer-events: none;
+}
+
 .card-grafico-thingspeak{ 
 
   width: 100%;
@@ -105,5 +142,9 @@
 @media (max-width: 760px) {
   #cadastro-plantio .info-grid-cadastro {
     grid-template-columns: 1fr;
+  }
+
+  .barra-edicao-talhao .btn-filtro {
+    flex: 1 1 calc(50% - 6px);
   }
 }

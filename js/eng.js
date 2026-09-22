@@ -1,103 +1,37 @@
 /* =========================================================
    FRUTLOG - ENGENHEIRO AGRONOMO
-   Monitoramento, telemetria, colheita e cadastro de plantio.
+   Monitoramento, edicao de talhoes, telemetria e plantio.
    ========================================================= */
 
 document.addEventListener("DOMContentLoaded", () => {
   FrutLog.verificarSessao(["engenheiro"]);
   FrutLog.configurarLogout();
 
-  const botoesTalhao = document.querySelectorAll(".btn-talhao");
-  const talhoesMapa = document.querySelectorAll(".talhao-mapa");
-  const filtrosGrafico = document.querySelectorAll(".btn-filtro");
+  const svgMapa = document.getElementById("camada-talhoes");
+  const mapaContainer = document.querySelector(".mapa-container");
+  const botoesTalhao = document.getElementById("botoes-talhao");
   const formularioPlantio = document.getElementById("formulario-plantio");
   const mensagemPlantio = document.getElementById("mensagem-plantio");
+  const mensagemEdicao = document.getElementById("mensagem-edicao-talhao");
+  const filtrosGrafico = document.querySelectorAll(".btn-filtro[data-unidade]");
+  const btnEditar = document.getElementById("btn-editar-talhoes");
+  const btnCriar = document.getElementById("btn-criar-talhao");
+  const btnDividir = document.getElementById("btn-dividir-talhao");
+  const btnExcluir = document.getElementById("btn-excluir-talhao");
+  const btnSalvar = document.getElementById("btn-salvar-talhao");
+  const btnCancelar = document.getElementById("btn-cancelar-talhao");
+
+  let talhoes = FrutLogTalhoes.obterTalhoes();
+  let talhaoSelecionado = talhoes[0]?.properties.codigo || "";
+  let modoEdicao = false;
+  let modoCriacao = false;
+  let modoDivisao = false;
+  let pontosCriacao = [];
+  let pontosDivisao = [];
+  let verticeArrastado = null;
+  let talhaoArrastado = null;
   let graficoColheita = null;
   let unidadeAtual = "toneladas";
-
-  // Dados locais de apresentacao ate a API oficial estar disponivel.
-  const dadosTalhoes = {
-    A1: {
-      status: "Normal",
-      produto: "Uva",
-      variedade: "Uva Isabel",
-      area: "10 hectares",
-      solo: "Arenoso",
-      plantio: "15/03/2026",
-      colheita: "20/10/2026",
-      apontamentoTecnico: {
-        data: "13/09/2026",
-        tecnico: "Marina",
-        problema: "Sem problema registrado.",
-        recomendacao: "Manter rotina de acompanhamento.",
-      },
-      diaria: { temperatura: "31", umidadeAr: "68", umidadeSolo: "45", chuva: "2,4" },
-      mensal: [
-        { temp: "30", umidAr: "65", umidSolo: "45", chuva: "12", prev: "Out/2026", qtd: "25 t" },
-        { temp: "31", umidAr: "68", umidSolo: "42", chuva: "8", prev: "Out/2026", qtd: "28 t" },
-      ],
-    },
-    A2: {
-      status: "Atencao",
-      produto: "Manga",
-      variedade: "Tommy Atkins",
-      area: "8 hectares",
-      solo: "Franco Arenoso",
-      plantio: "10/02/2026",
-      colheita: "18/09/2026",
-      apontamentoTecnico: {
-        data: "13/09/2026",
-        tecnico: "Marina",
-        problema: "Umidade do solo abaixo do ideal.",
-        recomendacao: "Verificar irrigacao e acompanhar nas proximas leituras.",
-      },
-      diaria: { temperatura: "33", umidadeAr: "61", umidadeSolo: "35", chuva: "1,8" },
-      mensal: [
-        { temp: "32", umidAr: "60", umidSolo: "38", chuva: "5", prev: "Set/2026", qtd: "40 t" },
-        { temp: "33", umidAr: "61", umidSolo: "35", chuva: "2", prev: "Set/2026", qtd: "42 t" },
-      ],
-    },
-    B1: {
-      status: "Normal",
-      produto: "Uva",
-      variedade: "Sugar Crisp",
-      area: "9 hectares",
-      solo: "Arenoso",
-      plantio: "05/02/2026",
-      colheita: "25/09/2026",
-      apontamentoTecnico: {
-        data: "13/09/2026",
-        tecnico: "Marina",
-        problema: "Sem problema registrado.",
-        recomendacao: "Manter rotina de acompanhamento.",
-      },
-      diaria: { temperatura: "30", umidadeAr: "72", umidadeSolo: "48", chuva: "3,1" },
-      mensal: [
-        { temp: "29", umidAr: "70", umidSolo: "50", chuva: "15", prev: "Set/2026", qtd: "30 t" },
-        { temp: "30", umidAr: "72", umidSolo: "48", chuva: "10", prev: "Set/2026", qtd: "35 t" },
-      ],
-    },
-    B2: {
-      status: "Critico",
-      produto: "Melao",
-      variedade: "Goldex",
-      area: "7,6 hectares",
-      solo: "Franco Arenoso",
-      plantio: "20/01/2026",
-      colheita: "15/09/2026",
-      apontamentoTecnico: {
-        data: "12/09/2026",
-        tecnico: "Marina",
-        problema: "Sensor de solo offline e leitura critica de umidade.",
-        recomendacao: "Priorizar vistoria em campo e checar irrigacao.",
-      },
-      diaria: { temperatura: "35", umidadeAr: "54", umidadeSolo: "28", chuva: "0,8" },
-      mensal: [
-        { temp: "34", umidAr: "55", umidSolo: "30", chuva: "0", prev: "Set/2026", qtd: "18 t" },
-        { temp: "35", umidAr: "54", umidSolo: "28", chuva: "1", prev: "Set/2026", qtd: "20 t" },
-      ],
-    },
-  };
 
   const colheitas = [
     { ano: "2022", toneladas: 72, media: "0,20 t/dia" },
@@ -108,14 +42,186 @@ document.addEventListener("DOMContentLoaded", () => {
   ];
 
   function classeStatus(status) {
-    return status.toLowerCase().replace("ç", "c").replace("ã", "a");
+    return String(status).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function formatarData(dataISO) {
+    if (!dataISO) return "--";
+    const [ano, mes, dia] = dataISO.split("-");
+    return dia && mes && ano ? `${dia}/${mes}/${ano}` : dataISO;
   }
 
   function preencherTexto(id, valor) {
     const elemento = document.getElementById(id);
-    if (elemento) {
-      elemento.textContent = valor;
+    if (elemento) elemento.textContent = valor;
+  }
+
+  function obterFeature(codigo) {
+    return talhoes.find((feature) => feature.properties.codigo === codigo);
+  }
+
+  function obterPontos(feature) {
+    return FrutLogTalhoes.obterPontos(feature);
+  }
+
+  function pontosParaString(pontos) {
+    return pontos.map((ponto) => `${ponto[0]},${ponto[1]}`).join(" ");
+  }
+
+  function atualizarStatusTalhao(feature) {
+    const monitorado = FrutLogTalhoes.aplicarMonitoramento(feature);
+    feature.properties = monitorado.properties;
+    return feature.properties.status;
+  }
+
+  function renderizarBotoesTalhao() {
+    if (!botoesTalhao) return;
+
+    botoesTalhao.innerHTML = talhoes.map((feature) => {
+      const codigo = feature.properties.codigo;
+      const ativo = codigo === talhaoSelecionado ? " active" : "";
+      return `<button class="btn-talhao${ativo}" type="button" data-talhao="${codigo}">${codigo}</button>`;
+    }).join("");
+
+    botoesTalhao.querySelectorAll(".btn-talhao").forEach((botao) => {
+      botao.addEventListener("click", () => selecionarTalhao(botao.dataset.talhao));
+    });
+  }
+
+  function renderizarMapa() {
+    if (!svgMapa) return;
+
+    svgMapa.innerHTML = "";
+
+    talhoes.forEach((feature) => {
+      const codigo = feature.properties.codigo;
+      const status = atualizarStatusTalhao(feature);
+      const poligono = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+
+      poligono.setAttribute("points", pontosParaString(obterPontos(feature)));
+      poligono.dataset.talhao = codigo;
+      poligono.classList.add("talhao-mapa", `status-${classeStatus(status)}`);
+      poligono.classList.toggle("selecionado", codigo === talhaoSelecionado);
+      poligono.addEventListener("click", (evento) => {
+        if (modoCriacao || modoDivisao) return;
+        evento.stopPropagation();
+        if (!talhaoArrastado?.moveu) selecionarTalhao(codigo);
+      });
+      poligono.addEventListener("pointerdown", (evento) => {
+        if (!modoEdicao || modoCriacao || modoDivisao || codigo !== talhaoSelecionado) return;
+        evento.preventDefault();
+        talhaoArrastado = {
+          codigo,
+          origem: obterPontoSvg(evento),
+          moveu: false,
+        };
+      });
+
+      svgMapa.appendChild(poligono);
+
+      if (modoEdicao && codigo === talhaoSelecionado) {
+        renderizarVertices(feature);
+      }
+    });
+
+    if (modoCriacao && pontosCriacao.length > 0) {
+      const rascunho = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+      rascunho.setAttribute("points", pontosParaString(pontosCriacao));
+      rascunho.classList.add("poligono-rascunho");
+      svgMapa.appendChild(rascunho);
     }
+
+    if (modoDivisao && pontosDivisao.length > 0) {
+      const linhaDivisao = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+      linhaDivisao.setAttribute("points", pontosParaString(pontosDivisao));
+      linhaDivisao.classList.add("linha-divisao-talhao");
+      svgMapa.appendChild(linhaDivisao);
+    }
+  }
+
+  function renderizarVertices(feature) {
+    const grupo = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    grupo.dataset.verticesTalhao = feature.properties.codigo;
+
+    obterPontos(feature).forEach((ponto, index) => {
+      const vertice = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      vertice.setAttribute("cx", ponto[0]);
+      vertice.setAttribute("cy", ponto[1]);
+      vertice.setAttribute("r", "5");
+      vertice.classList.add("ponto-arrastavel");
+      vertice.dataset.index = String(index);
+      vertice.addEventListener("pointerdown", (evento) => {
+        evento.preventDefault();
+        verticeArrastado = { codigo: feature.properties.codigo, index };
+      });
+      grupo.appendChild(vertice);
+    });
+
+    svgMapa.appendChild(grupo);
+  }
+
+  function atualizarSelectCadastro() {
+    const select = document.getElementById("talhao");
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Selecione o talhao</option>' + talhoes
+      .map((feature) => `<option value="${feature.properties.codigo}">${feature.properties.codigo}</option>`)
+      .join("");
+  }
+
+  function atualizarControlesEdicao() {
+    const habilitarFerramentas = modoEdicao;
+
+    [btnCriar, btnDividir, btnExcluir, btnSalvar, btnCancelar].forEach((botao) => {
+      if (botao) botao.disabled = !habilitarFerramentas;
+    });
+
+    btnEditar?.classList.toggle("active", modoEdicao);
+    if (btnEditar) btnEditar.textContent = modoEdicao ? "Encerrar Edicao" : "Editar Talhoes";
+    btnCriar?.classList.toggle("active", modoCriacao);
+    btnDividir?.classList.toggle("active", modoDivisao);
+    if (btnDividir) btnDividir.textContent = modoDivisao ? "Divisao Ativa" : "Dividir";
+    mapaContainer?.classList.toggle("modo-edicao", modoEdicao);
+    mapaContainer?.classList.toggle("modo-divisao", modoDivisao);
+  }
+
+  function exibirMensagemEdicao(texto, tipo = "sucesso") {
+    if (!mensagemEdicao) return;
+    mensagemEdicao.textContent = texto;
+    mensagemEdicao.className = `mensagem-feedback ${tipo}`;
+  }
+
+  function selecionarTalhao(codigo) {
+    const feature = obterFeature(codigo);
+    if (!feature) return;
+
+    talhaoSelecionado = codigo;
+    const props = feature.properties;
+    const status = atualizarStatusTalhao(feature);
+
+    preencherTexto("titulo-talhao", `Detalhes: Talhao ${codigo}`);
+    preencherTexto("talhao-area", props.area);
+    preencherTexto("talhao-solo", props.solo);
+    preencherTexto("talhao-plantio", props.plantio);
+    preencherTexto("talhao-colheita", props.colheita);
+    preencherTexto("talhao-produto", props.produto);
+    preencherTexto("talhao-variedade", props.variedade);
+    preencherTexto("talhao-temperatura-maxima", `${props.parametros?.temperaturaMaxima ?? "--"} C`);
+    preencherTexto("talhao-inspecao-data", props.apontamentoTecnico?.data || "--");
+    preencherTexto("talhao-inspecao-tecnico", props.apontamentoTecnico?.tecnico || "--");
+    preencherTexto("talhao-inspecao-problema", props.apontamentoTecnico?.problema || "--");
+    preencherTexto("talhao-inspecao-recomendacao", props.apontamentoTecnico?.recomendacao || "--");
+
+    const badge = document.getElementById("talhao-status");
+    if (badge) {
+      badge.textContent = status;
+      badge.className = `badge-status ${classeStatus(status)}`;
+    }
+
+    atualizarTabelaDiaria(props.diaria || {});
+    atualizarTabelaMensal(props.mensal || []);
+    renderizarBotoesTalhao();
+    renderizarMapa();
   }
 
   function atualizarTabelaDiaria(dados) {
@@ -124,10 +230,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     tabela.innerHTML = `
       <tr>
-        <td>${dados.temperatura}</td>
-        <td>${dados.umidadeAr}</td>
-        <td>${dados.umidadeSolo}</td>
-        <td>${dados.chuva}</td>
+        <td>${dados.temperatura || "--"}</td>
+        <td>${dados.umidadeAr || "--"}</td>
+        <td>${dados.umidadeSolo || "--"}</td>
+        <td>${dados.chuva || "--"}</td>
       </tr>
     `;
   }
@@ -135,6 +241,11 @@ document.addEventListener("DOMContentLoaded", () => {
   function atualizarTabelaMensal(dadosMensais) {
     const tabela = document.getElementById("tabela-talhao-mensal");
     if (!tabela) return;
+
+    if (!dadosMensais.length) {
+      tabela.innerHTML = '<tr><td colspan="6">Sem consolidado mensal para este talhao.</td></tr>';
+      return;
+    }
 
     tabela.innerHTML = dadosMensais.map((item) => `
       <tr>
@@ -148,37 +259,314 @@ document.addEventListener("DOMContentLoaded", () => {
     `).join("");
   }
 
-  function selecionarTalhao(nomeTalhao) {
-    const dados = dadosTalhoes[nomeTalhao];
-    if (!dados) return;
+  function obterPontoSvg(evento) {
+    const ponto = svgMapa.createSVGPoint();
+    ponto.x = evento.clientX;
+    ponto.y = evento.clientY;
+    const convertido = ponto.matrixTransform(svgMapa.getScreenCTM().inverse());
 
-    botoesTalhao.forEach((botao) => {
-      botao.classList.toggle("active", botao.dataset.talhao === nomeTalhao);
-    });
+    return [
+      Math.max(0, Math.min(500, Math.round(convertido.x))),
+      Math.max(0, Math.min(400, Math.round(convertido.y))),
+    ];
+  }
 
-    talhoesMapa.forEach((talhao) => {
-      talhao.classList.toggle("selecionado", talhao.dataset.talhao === nomeTalhao);
-    });
+  function atualizarVertice(evento) {
+    if (!verticeArrastado) return;
 
-    preencherTexto("titulo-talhao", `Detalhes: Talhao ${nomeTalhao}`);
-    preencherTexto("talhao-area", dados.area);
-    preencherTexto("talhao-solo", dados.solo);
-    preencherTexto("talhao-plantio", dados.plantio);
-    preencherTexto("talhao-colheita", dados.colheita);
-    preencherTexto("talhao-produto", `${dados.produto} ${dados.variedade}`);
-    preencherTexto("talhao-inspecao-data", dados.apontamentoTecnico.data);
-    preencherTexto("talhao-inspecao-tecnico", dados.apontamentoTecnico.tecnico);
-    preencherTexto("talhao-inspecao-problema", dados.apontamentoTecnico.problema);
-    preencherTexto("talhao-inspecao-recomendacao", dados.apontamentoTecnico.recomendacao);
+    const feature = obterFeature(verticeArrastado.codigo);
+    if (!feature) return;
 
-    const badge = document.getElementById("talhao-status");
-    if (badge) {
-      badge.textContent = dados.status;
-      badge.className = `badge-status ${classeStatus(dados.status)}`;
+    const pontos = obterPontos(feature);
+    pontos[verticeArrastado.index] = obterPontoSvg(evento);
+    feature.geometry.coordinates[0] = FrutLogTalhoes.fecharAnel(pontos);
+    renderizarMapa();
+  }
+
+  function moverTalhao(evento) {
+    if (!talhaoArrastado) return;
+
+    const feature = obterFeature(talhaoArrastado.codigo);
+    if (!feature) return;
+
+    const destino = obterPontoSvg(evento);
+    const deslocamentoX = destino[0] - talhaoArrastado.origem[0];
+    const deslocamentoY = destino[1] - talhaoArrastado.origem[1];
+
+    if (deslocamentoX === 0 && deslocamentoY === 0) return;
+
+    const pontos = obterPontos(feature).map((ponto) => [
+      Math.max(0, Math.min(500, ponto[0] + deslocamentoX)),
+      Math.max(0, Math.min(400, ponto[1] + deslocamentoY)),
+    ]);
+
+    feature.geometry.coordinates[0] = FrutLogTalhoes.fecharAnel(pontos);
+    talhaoArrastado.origem = destino;
+    talhaoArrastado.moveu = true;
+    renderizarMapa();
+  }
+
+  function gerarCodigoNovo() {
+    let indice = talhoes.length + 1;
+    let codigo = `T${indice}`;
+
+    while (obterFeature(codigo)) {
+      indice += 1;
+      codigo = `T${indice}`;
     }
 
-    atualizarTabelaDiaria(dados.diaria);
-    atualizarTabelaMensal(dados.mensal);
+    return codigo;
+  }
+
+  function concluirCriacao() {
+    if (!modoCriacao || pontosCriacao.length < 3) {
+      exibirMensagemEdicao("Adicione pelo menos tres pontos para criar um talhao.", "erro");
+      return;
+    }
+
+    const codigo = gerarCodigoNovo();
+    const novoTalhao = FrutLogTalhoes.criarFeature(codigo, pontosCriacao);
+    talhoes.push(novoTalhao);
+    modoCriacao = false;
+    pontosCriacao = [];
+    selecionarTalhao(codigo);
+    atualizarSelectCadastro();
+    exibirMensagemEdicao(`Talhao ${codigo} criado. Clique em Salvar para preparar a persistencia.`);
+  }
+
+  function ativarOuDesativarEdicao() {
+    modoEdicao = !modoEdicao;
+    modoCriacao = false;
+    modoDivisao = false;
+    pontosCriacao = [];
+    pontosDivisao = [];
+    verticeArrastado = null;
+    talhaoArrastado = null;
+    atualizarControlesEdicao();
+    renderizarMapa();
+    exibirMensagemEdicao(modoEdicao ? "Modo de edicao ativado." : "Modo de edicao desativado.");
+  }
+
+  function iniciarCriacao() {
+    if (!modoEdicao) return;
+    modoCriacao = true;
+    modoDivisao = false;
+    pontosCriacao = [];
+    pontosDivisao = [];
+    atualizarControlesEdicao();
+    renderizarMapa();
+    exibirMensagemEdicao("Clique no mapa para adicionar pontos. Dê dois cliques para finalizar.");
+  }
+
+  function iniciarDivisao() {
+    if (!modoEdicao || !talhaoSelecionado) return;
+
+    modoCriacao = false;
+    modoDivisao = !modoDivisao;
+    pontosCriacao = [];
+    pontosDivisao = [];
+    atualizarControlesEdicao();
+    renderizarMapa();
+    exibirMensagemEdicao(
+      modoDivisao
+        ? `Clique em dois pontos atravessando o talhao ${talhaoSelecionado} para dividir.`
+        : "Divisao cancelada."
+    );
+  }
+
+  function ladoDaLinha(ponto, linhaInicio, linhaFim) {
+    return ((linhaFim[0] - linhaInicio[0]) * (ponto[1] - linhaInicio[1]))
+      - ((linhaFim[1] - linhaInicio[1]) * (ponto[0] - linhaInicio[0]));
+  }
+
+  function calcularIntersecaoLinha(inicio, fim, linhaInicio, linhaFim) {
+    const distanciaInicio = ladoDaLinha(inicio, linhaInicio, linhaFim);
+    const distanciaFim = ladoDaLinha(fim, linhaInicio, linhaFim);
+    const divisor = distanciaInicio - distanciaFim;
+
+    if (divisor === 0) return fim;
+
+    const proporcao = distanciaInicio / divisor;
+    return [
+      Math.round(inicio[0] + (fim[0] - inicio[0]) * proporcao),
+      Math.round(inicio[1] + (fim[1] - inicio[1]) * proporcao),
+    ];
+  }
+
+  function recortarPoligonoPorLinha(pontos, linhaInicio, linhaFim, manterPositivo) {
+    const resultado = [];
+
+    pontos.forEach((fim, index) => {
+      const inicio = pontos[(index - 1 + pontos.length) % pontos.length];
+      const inicioLado = ladoDaLinha(inicio, linhaInicio, linhaFim);
+      const fimLado = ladoDaLinha(fim, linhaInicio, linhaFim);
+      const inicioDentro = manterPositivo ? inicioLado >= 0 : inicioLado <= 0;
+      const fimDentro = manterPositivo ? fimLado >= 0 : fimLado <= 0;
+
+      if (fimDentro) {
+        if (!inicioDentro) resultado.push(calcularIntersecaoLinha(inicio, fim, linhaInicio, linhaFim));
+        resultado.push(fim);
+      } else if (inicioDentro) {
+        resultado.push(calcularIntersecaoLinha(inicio, fim, linhaInicio, linhaFim));
+      }
+    });
+
+    return removerPontosDuplicados(resultado);
+  }
+
+  function removerPontosDuplicados(pontos) {
+    return pontos.filter((ponto, index) => {
+      const anterior = pontos[index - 1];
+      const primeiro = index === pontos.length - 1 ? pontos[0] : null;
+      const repeteAnterior = anterior && anterior[0] === ponto[0] && anterior[1] === ponto[1];
+      const repetePrimeiro = primeiro && primeiro[0] === ponto[0] && primeiro[1] === ponto[1];
+      return !repeteAnterior && !repetePrimeiro;
+    });
+  }
+
+  function dividirTalhaoSelecionado(linhaInicio, linhaFim) {
+    if (!modoEdicao) return;
+
+    const feature = obterFeature(talhaoSelecionado);
+    if (!feature) return;
+
+    if (linhaInicio[0] === linhaFim[0] && linhaInicio[1] === linhaFim[1]) {
+      exibirMensagemEdicao("Escolha dois pontos diferentes para dividir o talhao.", "erro");
+      pontosDivisao = [];
+      renderizarMapa();
+      return;
+    }
+
+    const pontos = obterPontos(feature);
+    const lados = pontos.map((ponto) => ladoDaLinha(ponto, linhaInicio, linhaFim));
+    const atravessaTalhao = lados.some((lado) => lado > 0) && lados.some((lado) => lado < 0);
+
+    if (!atravessaTalhao) {
+      exibirMensagemEdicao("A linha precisa atravessar o interior do talhao selecionado.", "erro");
+      pontosDivisao = [];
+      renderizarMapa();
+      return;
+    }
+
+    const parteUm = recortarPoligonoPorLinha(pontos, linhaInicio, linhaFim, true);
+    const parteDois = recortarPoligonoPorLinha(pontos, linhaInicio, linhaFim, false);
+
+    if (parteUm.length < 3 || parteDois.length < 3) {
+      exibirMensagemEdicao("A linha precisa atravessar o talhao para gerar duas areas.", "erro");
+      return;
+    }
+
+    const propriedadesBase = {
+      ...feature.properties,
+      sensor: "Nao associado",
+      apontamentoTecnico: {
+        data: "--",
+        tecnico: "--",
+        problema: "Talhao dividido. Sensor ainda nao associado.",
+        recomendacao: "Associar sensor ao novo talhao.",
+      },
+      prioridade: "Associar sensor",
+    };
+
+    const codigoBase = feature.properties.codigo;
+    const codigoUm = gerarCodigoFilho(codigoBase, 1);
+    const codigoDois = gerarCodigoFilho(codigoBase, 2);
+    const novoUm = FrutLogTalhoes.criarFeature(codigoUm, parteUm, propriedadesBase);
+    const novoDois = FrutLogTalhoes.criarFeature(codigoDois, parteDois, propriedadesBase);
+    novoUm.properties.codigo = codigoUm;
+    novoDois.properties.codigo = codigoDois;
+
+    talhoes = talhoes.filter((item) => item.properties.codigo !== codigoBase);
+    talhoes.push(novoUm, novoDois);
+    modoDivisao = false;
+    pontosDivisao = [];
+    atualizarControlesEdicao();
+    selecionarTalhao(novoUm.properties.codigo);
+    atualizarSelectCadastro();
+    exibirMensagemEdicao(`${codigoBase} dividido em ${novoUm.properties.codigo} e ${novoDois.properties.codigo}. Clique em Salvar.`);
+  }
+
+  function gerarCodigoFilho(codigoBase, indiceInicial) {
+    let indice = indiceInicial;
+    let codigo = `${codigoBase}.${indice}`;
+
+    while (obterFeature(codigo)) {
+      indice += 1;
+      codigo = `${codigoBase}.${indice}`;
+    }
+
+    return codigo;
+  }
+
+  function excluirTalhaoSelecionado() {
+    if (!modoEdicao || talhoes.length <= 1) return;
+
+    talhoes = talhoes.filter((feature) => feature.properties.codigo !== talhaoSelecionado);
+    talhaoSelecionado = talhoes[0]?.properties.codigo || "";
+    selecionarTalhao(talhaoSelecionado);
+    atualizarSelectCadastro();
+    exibirMensagemEdicao("Talhao removido do rascunho. Clique em Salvar para confirmar.");
+  }
+
+  function salvarAlteracoesMapa() {
+    modoCriacao = false;
+    modoDivisao = false;
+    pontosCriacao = [];
+    pontosDivisao = [];
+    talhoes = FrutLogTalhoes.substituirTalhoes(talhoes);
+    atualizarControlesEdicao();
+    renderizarBotoesTalhao();
+    renderizarMapa();
+    atualizarSelectCadastro();
+    exibirMensagemEdicao("Alteracoes salvas no navegador. O Tecnico ja visualiza este rascunho.");
+  }
+
+  function cancelarAlteracoesMapa() {
+    talhoes = FrutLogTalhoes.obterTalhoes();
+    modoCriacao = false;
+    modoDivisao = false;
+    pontosCriacao = [];
+    pontosDivisao = [];
+    talhaoSelecionado = obterFeature(talhaoSelecionado)?.properties.codigo || talhoes[0]?.properties.codigo || "";
+    atualizarControlesEdicao();
+    selecionarTalhao(talhaoSelecionado);
+    atualizarSelectCadastro();
+    exibirMensagemEdicao("Alteracoes nao salvas foram descartadas.");
+  }
+
+  async function registrarPlantio(evento) {
+    evento.preventDefault();
+
+    const dadosFormulario = Object.fromEntries(new FormData(formularioPlantio));
+    const feature = obterFeature(dadosFormulario.talhao);
+
+    if (!feature) return;
+
+    try {
+      feature.properties = {
+        ...feature.properties,
+        produto: dadosFormulario.produto,
+        variedade: dadosFormulario.variedade,
+        area: `${dadosFormulario.area} hectares`,
+        solo: dadosFormulario.solo,
+        plantio: formatarData(dadosFormulario.dataPlantio),
+        colheita: formatarData(dadosFormulario.dataColheita),
+        sensor: dadosFormulario.sensor?.trim() || feature.properties.sensor || "Nao associado",
+        parametros: {
+          ...feature.properties.parametros,
+          temperaturaMaxima: Number(dadosFormulario.temperaturaMaxima),
+        },
+      };
+
+      talhoes = FrutLogTalhoes.substituirTalhoes(talhoes);
+      selecionarTalhao(dadosFormulario.talhao);
+      mensagemPlantio.textContent = "Cadastro preparado para envio ao backend e exibido nos detalhes do talhao.";
+      mensagemPlantio.className = "mensagem-feedback sucesso";
+      formularioPlantio.reset();
+    } catch (erro) {
+      mensagemPlantio.textContent = erro.message;
+      mensagemPlantio.className = "mensagem-feedback erro";
+    }
   }
 
   function atualizarResumoColheita() {
@@ -208,9 +596,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const rotulo = unidadeAtual === "sacas" ? "Sacas" : "Toneladas";
     const valores = colheitas.map((item) => Math.round(item.toneladas * fator));
 
-    if (graficoColheita) {
-      graficoColheita.destroy();
-    }
+    if (graficoColheita) graficoColheita.destroy();
 
     graficoColheita = new Chart(canvas, {
       type: "bar",
@@ -234,30 +620,47 @@ document.addEventListener("DOMContentLoaded", () => {
     atualizarResumoColheita();
   }
 
-  async function registrarPlantio(evento) {
-    evento.preventDefault();
+  btnEditar?.addEventListener("click", ativarOuDesativarEdicao);
+  btnCriar?.addEventListener("click", iniciarCriacao);
+  btnDividir?.addEventListener("click", iniciarDivisao);
+  btnExcluir?.addEventListener("click", excluirTalhaoSelecionado);
+  btnSalvar?.addEventListener("click", salvarAlteracoesMapa);
+  btnCancelar?.addEventListener("click", cancelarAlteracoesMapa);
 
-    const dadosFormulario = Object.fromEntries(new FormData(formularioPlantio));
+  svgMapa?.addEventListener("click", (evento) => {
+    if (!modoCriacao && !modoDivisao) return;
 
-    try {
-      // TODO: confirmar endpoint com o backend.
-      // await FrutLog.apiFetch("/plantios", { method: "POST", body: JSON.stringify(dadosFormulario) });
-      console.info("Plantio pronto para envio futuro:", dadosFormulario);
-      mensagemPlantio.textContent = "Cadastro preparado para envio ao backend.";
-      mensagemPlantio.className = "mensagem-feedback sucesso";
-      formularioPlantio.reset();
-    } catch (erro) {
-      mensagemPlantio.textContent = erro.message;
-      mensagemPlantio.className = "mensagem-feedback erro";
+    const ponto = obterPontoSvg(evento);
+
+    if (modoDivisao) {
+      pontosDivisao.push(ponto);
+
+      if (pontosDivisao.length === 2) {
+        dividirTalhaoSelecionado(pontosDivisao[0], pontosDivisao[1]);
+        return;
+      }
+
+      renderizarMapa();
+      exibirMensagemEdicao("Agora clique no segundo ponto da linha de divisao.");
+      return;
     }
-  }
 
-  botoesTalhao.forEach((botao) => {
-    botao.addEventListener("click", () => selecionarTalhao(botao.dataset.talhao));
+    pontosCriacao.push(ponto);
+    renderizarMapa();
   });
 
-  talhoesMapa.forEach((talhao) => {
-    talhao.addEventListener("click", () => selecionarTalhao(talhao.dataset.talhao));
+  svgMapa?.addEventListener("dblclick", (evento) => {
+    evento.preventDefault();
+    concluirCriacao();
+  });
+
+  window.addEventListener("pointermove", (evento) => {
+    atualizarVertice(evento);
+    moverTalhao(evento);
+  });
+  window.addEventListener("pointerup", () => {
+    verticeArrastado = null;
+    talhaoArrastado = null;
   });
 
   filtrosGrafico.forEach((botao) => {
@@ -268,10 +671,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  if (formularioPlantio) {
-    formularioPlantio.addEventListener("submit", registrarPlantio);
-  }
+  formularioPlantio?.addEventListener("submit", registrarPlantio);
 
-  selecionarTalhao("A1");
+  atualizarControlesEdicao();
+  atualizarSelectCadastro();
+  renderizarBotoesTalhao();
+  selecionarTalhao(talhaoSelecionado);
   carregarGraficoColheita();
 });

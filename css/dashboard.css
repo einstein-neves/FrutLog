@@ -263,9 +263,8 @@
 }
 
 .talhao-mapa.selecionado {
-  fill: rgba(123, 31, 162, 0.38);
   stroke: var(--cor-selecao);
-  stroke-width: 2;
+  stroke-width: 3;
 }
 
 .talhao-mapa:hover {
@@ -273,10 +272,11 @@
 }
 
 .ponto-arrastavel {
-  fill: rgba(246, 247, 245, 0);
-  stroke: rgba(23, 102, 7, 0.35);
-  stroke-width: 1;
-  pointer-events: none;
+  fill: #ffffff;
+  stroke: var(--cor-selecao);
+  stroke-width: 1.5;
+  cursor: move;
+  pointer-events: auto;
 }
 
 .legenda-mapa {
