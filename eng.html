@@ -158,43 +158,16 @@
     </table>
   </div>
 </section>
-<<<<<<< HEAD
-
-
-<--!edição pra hoje  colocar lick do espe32  1 lick para cada grfico copiar do admin.html   --> 
-<section class="cartao">
-  <div class="titulo-cartao"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Graficos do ESP32 (Node-RED)</div>
-  <div class="container-iframe"><iframe src="http://localhost:1880/dashboard/thingspeak" title="Graficos do ESP32 "></iframe>   
-  </div>
-  <div class="container-iframe"><iframe src="http://localhost:1880/dashboard/thingspeak" title="Graficos do ESP32 "></iframe>   
-  </div>
-  
-</section>
-
-=======
-<section class="cartao">
-  <div class="titulo-cartao"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Graficos do ESP32 (Node-RED)</div>
-  <iframe src="http://localhost:1880/dashboard/temperatura" title="Grafico de temperatura via Node-RED" scrolling="no" style="width:100%; height:320px; border:0;"></iframe>
-  <iframe src="http://localhost:1880/dashboard/umidade" title="Grafico de umidade via Node-RED" scrolling="no" style="width:100%; height:320px; border:0;"></iframe>
-</section>
->>>>>>> dd4f711a526d9193963d47eb3afed569f79ef96d
 <section class="cartao thingspeak-dashboard" data-thingspeak-panel aria-labelledby="eng-thingspeak-heading">
   <div class="titulo-cartao" id="eng-thingspeak-heading">ThingSpeak / ESP32 — clima e telemetria</div>
   <p class="mensagem-feedback" data-thingspeak-status aria-live="polite">Carregando canal ThingSpeak...</p>
   <div class="thingspeak-summary" data-thingspeak-summary></div>
-  <div class="thingspeak-embeds" aria-label="Graficos ThingSpeak em tempo real">
-    <article>
-<<<<<<< HEAD
-
-=======
->>>>>>> dd4f711a526d9193963d47eb3afed569f79ef96d
-      <h3>Temperatura</h3>
-      <div class="container-iframe"><iframe data-thingspeak-embed="temperatura" title="Grafico de temperatura ThingSpeak" loading="lazy"></iframe>
-      </div>
-    </article>
-
-    <article><h3>Umidade do ar</h3><div class="container-iframe"><iframe data-thingspeak-embed="umidadeAr" title="Grafico de umidade do ar ThingSpeak" loading="lazy"></iframe></div></article>
+  <!-- INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: graficos do ESP32 via Node-RED, um link por grafico, lado a lado -->
+  <div class="thingspeak-embeds" aria-label="Graficos do ESP32 via Node-RED">
+    <article><div class="container-iframe" style="height:300px;"><iframe src="http://localhost:1880/dashboard/temperatura" title="Grafico de temperatura via Node-RED" scrolling="no"></iframe></div></article>
+    <article><div class="container-iframe" style="height:300px;"><iframe src="http://localhost:1880/dashboard/umidade" title="Grafico de umidade via Node-RED" scrolling="no"></iframe></div></article>
   </div>
+  <!-- FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO -->
   <div class="thingspeak-chart"><canvas aria-label="Historico recente das metricas do ThingSpeak"></canvas></div>
   <div class="thingspeak-feed-scroll">
     <table class="tabela-dados">
