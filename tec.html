@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/tec.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <title>FrutLog - Tecnico Agricola</title>
+</head>
+
+<body class="layout-dashboard">
+  <aside class="sidebar">
+    <div class="logo-area">
+      <i class="fa-solid fa-leaf logo-icone" aria-hidden="true"></i>
+      <h2>FrutLog</h2>
+    </div>
+
+    <nav class="menu" aria-label="Menu do técnico">
+      <a href="#aba-monitoramento" class="nav-link active"><i class="fa-solid fa-map" aria-hidden="true"></i> Monitoramento</a>
+      <a href="#aba-inspecoes" class="nav-link"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Inspeções</a>
+      <a href="#aba-ocorrencias" class="nav-link"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Ocorrências</a>
+      <a href="#aba-relatorios" class="nav-link"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Relatórios diários</a>
+      <a href="#aba-telemetria" class="nav-link"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i> Telemetria</a>
+    </nav>
+    <div class="sidebar-acoes">
+      <button id="btn-logout" class="btn-logout" type="button"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Sair</button>
+    </div>
+  </aside>
+
+  <main class="conteudo-dashboard">
+    <section class="topo">
+      <h1>Painel do Técnico Agrícola</h1>
+      <p>Registros de campo, ocorrências e acompanhamento dos sensores dos talhões.</p>
+      <p class="mensagem-feedback" id="mensagem-dados-tecnicos" aria-live="polite"></p>
+    </section>
+
+    <div class="abas-tecnico" role="tablist" aria-label="Seções do painel técnico">
+      <button id="tab-monitoramento" class="aba-tecnico ativa" type="button" role="tab" aria-selected="true" aria-controls="aba-monitoramento" tabindex="0">Monitoramento e Detalhes de Talhões</button>
+      <button id="tab-inspecoes" class="aba-tecnico" type="button" role="tab" aria-selected="false" aria-controls="aba-inspecoes" tabindex="-1">Inspeção de Campo e Histórico</button>
+      <button id="tab-ocorrencias" class="aba-tecnico" type="button" role="tab" aria-selected="false" aria-controls="aba-ocorrencias" tabindex="-1">Registro de Ocorrências e Histórico</button>
+      <button id="tab-relatorios" class="aba-tecnico" type="button" role="tab" aria-selected="false" aria-controls="aba-relatorios" tabindex="-1">Relatórios diários</button>
+      <button id="tab-telemetria" class="aba-tecnico" type="button" role="tab" aria-selected="false" aria-controls="aba-telemetria" tabindex="-1">Telemetria e histórico diário</button>
+    </div>
+
+    <div id="aba-monitoramento" class="painel-aba-tecnico" role="tabpanel" aria-labelledby="tab-monitoramento">
+    <section id="tarefas-dia" class="cartao">
+      <div class="titulo-cartao"><i class="fa-solid fa-list-check" aria-hidden="true"></i> Tarefas do Dia</div>
+      <div class="lista-tarefas" id="lista-tarefas"></div>
+    </section>
+
+    <section id="talhoes" class="bloco-talhoes-tecnico">
+      <div class="titulo-cartao"><i class="fa-solid fa-map" aria-hidden="true"></i> Monitoramento dos Talhões</div>
+      <div class="secao-mapa-detalhes painel-mapa-tecnico">
+        <div class="cartao cartao-mapa-wrapper">
+          <div class="mapa-header">
+            <div>
+              <h2>Mapa dos Talhões</h2>
+              <p>Selecione um talhão para consultar a situação em campo.</p>
+            </div>
+            <div class="botoes-do-talhao" id="botoes-talhao" aria-label="Seleção de talhão"></div>
+          </div>
+
+          <div class="mapa-container">
+            <img src="imagem/mapa-FrutLog.jpg" alt="Mapa aéreo dos talhões" class="mapa-imagem">
+            <svg class="camada-talhoes" id="camada-talhoes" viewBox="0 0 500 400" preserveAspectRatio="none" aria-label="Talhões da fazenda"></svg>
+          </div>
+          <p class="texto-ajuda" id="mensagem-geometria-talhoes" aria-live="polite"></p>
+
+          <div class="legenda-mapa">
+            <div class="legenda-item"><span class="legenda-cor legenda-normal"></span><span>Normal</span></div>
+            <div class="legenda-item"><span class="legenda-cor legenda-atencao"></span><span>Atenção</span></div>
+            <div class="legenda-item"><span class="legenda-cor legenda-critico"></span><span>Crítico</span></div>
+            <div class="legenda-item"><span class="legenda-cor legenda-selecao"></span><span>Selecionado</span></div>
+          </div>
+        </div>
+
+        <div class="cartao card-detalhes-elegante">
+          <div class="cabecalho-detalhes">
+            <span class="badge-status" id="tecnico-talhao-status">Normal</span>
+            <h2 class="titulo-talhao" id="tecnico-titulo-talhao">Detalhes: Talhão A1</h2>
+          </div>
+          <div class="info-grid-detalhes">
+            <div class="item-detalhe"><span class="label">Produto</span><span class="valor" id="tecnico-talhao-produto">--</span></div>
+            <div class="item-detalhe"><span class="label">Variedade</span><span class="valor" id="tecnico-talhao-variedade">--</span></div>
+            <div class="item-detalhe"><span class="label">Area</span><span class="valor" id="tecnico-talhao-area">--</span></div>
+            <div class="item-detalhe"><span class="label">Tipo de solo</span><span class="valor" id="tecnico-talhao-solo">--</span></div>
+            <div class="item-detalhe"><span class="label">Data de plantio</span><span class="valor" id="tecnico-talhao-plantio">--</span></div>
+            <div class="item-detalhe"><span class="label">Previsao de colheita</span><span class="valor" id="tecnico-talhao-colheita">--</span></div>
+            <div class="item-detalhe"><span class="label">Sensor principal</span><span class="valor" id="tecnico-talhao-sensor">--</span></div>
+            <div class="item-detalhe"><span class="label">Temperatura configurada</span><span class="valor" id="tecnico-talhao-limite">--</span></div>
+            <div class="item-detalhe"><span class="label">Temperatura atual</span><span class="valor" id="tecnico-talhao-temperatura">--</span></div>
+            <div class="item-detalhe"><span class="label">Umidade atual</span><span class="valor" id="tecnico-talhao-umidade">--</span></div>
+            <div class="item-detalhe destaque-fruta"><span class="label">Prioridade de campo</span><span class="valor" id="tecnico-talhao-prioridade">--</span></div>
+          </div>
+        </div>
+      </div>
+      <section class="cartao">
+        <div class="titulo-cartao"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Talhões cadastrados</div>
+        <div class="lista-tarefas" id="lista-talhoes"></div>
+      </section>
+      <section class="cartao">
+        <div class="titulo-cartao"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Métricas dos Sensores</div>
+        <label class="label" for="filtro-metrica-tecnico">Métrica</label>
+        <select id="filtro-metrica-tecnico" class="campo-formulario"></select>
+        <p id="mensagem-grafico-metricas" class="texto-ajuda" aria-live="polite"></p>
+        <div class="grafico-metricas-tecnico"><canvas id="grafico-metricas-tecnico"></canvas></div>
+      </section>
+    </section>
+
+    <section id="sensores" class="cartao">
+      <div class="titulo-cartao"><i class="fa-solid fa-microchip" aria-hidden="true"></i> Sensores</div>
+      <div class="tabela-responsiva">
+        <table class="tabela-dados">
+          <thead><tr><th>Sensor</th><th>Talhão</th><th>Status</th><th>Última comunicação</th><th>Última leitura</th></tr></thead>
+          <tbody id="tabela-sensores"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="problema-sensor" class="cartao">
+      <div class="cabecalho-cadastro">
+        <span class="badge-status critico">Sensor</span>
+        <h2 class="titulo-talhao">Registro de Problema do Sensor</h2>
+      </div>
+      <form id="form-problema-sensor">
+        <div class="info-grid-cadastro">
+          <div class="item-detalhe-cadastro"><label class="label" for="problema-sensor-id">Sensor (opcional se ausente)</label><select id="problema-sensor-id" name="sensor" class="campo-formulario"></select></div>
+          <div class="item-detalhe-cadastro"><label class="label" for="problema-sensor-talhao">Talhão</label><select id="problema-sensor-talhao" name="talhao" class="campo-formulario" required></select></div>
+          <div class="item-detalhe-cadastro"><label class="label" for="problema-sensor-data">Data</label><input type="date" id="problema-sensor-data" name="data" class="campo-formulario" required></div>
+          <div class="item-detalhe-cadastro"><label class="label" for="problema-sensor-descricao">Problema</label><input type="text" id="problema-sensor-descricao" name="problema" class="campo-formulario" required></div>
+          <div class="item-detalhe-cadastro campo-largo"><label class="label" for="problema-sensor-observacao">Observação</label><textarea id="problema-sensor-observacao" name="observacao" class="campo-formulario"></textarea></div>
+        </div>
+        <p class="mensagem-feedback" id="mensagem-problema-sensor" aria-live="polite"></p>
+        <div class="area-botao-cadastro"><button type="submit" class="btn-primario"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Registrar Problema</button></div>
+      </form>
+      <div class="tabela-responsiva historico-formulario">
+        <table class="tabela-dados">
+          <thead><tr><th>Sensor</th><th>Talhão</th><th>Data</th><th>Problema</th><th>Observação</th></tr></thead>
+          <tbody id="tabela-problemas-sensores"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="alertas" class="cartao">
+      <div class="titulo-cartao"><i class="fa-solid fa-bell" aria-hidden="true"></i> Alertas Importantes</div>
+      <div class="lista-alertas" id="lista-alertas"></div>
+    </section>
+    </div>
+
+    <div id="aba-inspecoes" class="painel-aba-tecnico" role="tabpanel" aria-labelledby="tab-inspecoes" hidden>
+    <section id="inspecao" class="cartao">
+      <div class="cabecalho-cadastro">
+        <span class="badge-status">Campo</span>
+        <h2 class="titulo-talhao">Inspecao de Campo</h2>
+      </div>
+      <form id="form-inspecao">
+        <div class="info-grid-cadastro">
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="inspecao-talhao">Talhão</label>
+            <select id="inspecao-talhao" name="talhao" class="campo-formulario" required></select>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="inspecao-data">Data da inspecao</label>
+            <input type="date" id="inspecao-data" name="data" class="campo-formulario" required>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="inspecao-sensor">Sensor cadastrado (opcional)</label>
+            <select id="inspecao-sensor" name="sensor_id" class="campo-formulario">
+              <option value="">Sem sensor associado</option>
+            </select>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="inspecao-situacao">Situação da plantação</label>
+            <select id="inspecao-situacao" name="situacao" class="campo-formulario" required>
+              <option value="">Selecione</option>
+              <option value="Normal">Normal</option>
+              <option value="Atencao">Atenção</option>
+              <option value="Critico">Critico</option>
+            </select>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="inspecao-problemas">Problemas encontrados</label>
+            <input type="text" id="inspecao-problemas" name="problemas" class="campo-formulario" placeholder="Ex.: folhas amareladas">
+          </div>
+          <div class="item-detalhe-cadastro campo-largo">
+            <label class="label" for="inspecao-observacoes">Observações</label>
+            <textarea id="inspecao-observacoes" name="observacoes" class="campo-formulario"></textarea>
+          </div>
+        </div>
+        <p class="mensagem-feedback" id="mensagem-inspecao" aria-live="polite"></p>
+        <div class="area-botao-cadastro">
+          <button type="submit" class="btn-primario"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Registrar Inspeção</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="historico-inspecoes" class="cartao">
+      <div class="titulo-cartao"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Histórico de Inspeções</div>
+      <div class="tabela-responsiva">
+        <table class="tabela-dados">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Talhão</th>
+              <th>Sensor</th>
+              <th>Situação</th>
+              <th>Problemas</th>
+              <th>Observações</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-inspecoes"></tbody>
+        </table>
+      </div>
+    </section>
+
+    </div>
+
+    <div id="aba-relatorios" class="painel-aba-tecnico" role="tabpanel" aria-labelledby="tab-relatorios" hidden>
+      <section id="relatorio-diario" class="cartao">
+        <div class="cabecalho-cadastro"><span class="badge-status">Relatório</span><h2 class="titulo-talhao">Relatório diário de campo</h2></div>
+        <form id="form-relatorio-diario">
+          <div class="info-grid-cadastro">
+            <div class="item-detalhe-cadastro"><label class="label" for="relatorio-data">Data</label><input id="relatorio-data" name="data" type="date" class="campo-formulario" required></div>
+            <div class="item-detalhe-cadastro campo-largo"><label class="label" for="relatorio-conteudo">Atividades, condições observadas e recomendações</label><textarea id="relatorio-conteudo" name="conteudo" class="campo-formulario" maxlength="6000" rows="7" required></textarea></div>
+          </div>
+          <p class="mensagem-feedback" id="mensagem-relatorio-diario" aria-live="polite"></p>
+          <div class="area-botao-cadastro"><button type="submit" class="btn-primario"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar relatório</button></div>
+        </form>
+      </section>
+    </div>
+
+    <div id="aba-telemetria" class="painel-aba-tecnico" role="tabpanel" aria-labelledby="tab-telemetria" hidden>
+      <section class="cartao thingspeak-dashboard" data-thingspeak-panel aria-labelledby="tec-thingspeak-heading">
+        <div class="titulo-cartao" id="tec-thingspeak-heading">ThingSpeak / ESP32 — clima e telemetria</div>
+        <p class="mensagem-feedback" data-thingspeak-status aria-live="polite">Carregando canal ThingSpeak...</p>
+        <div class="thingspeak-summary" data-thingspeak-summary></div>
+        <div class="thingspeak-chart"><canvas aria-label="Historico recente das metricas do ThingSpeak"></canvas></div>
+        <div class="thingspeak-feed-scroll">
+          <table class="tabela-dados">
+            <thead><tr><th>Data/hora</th><th>Temperatura</th><th>Umidade do ar</th><th>Umidade do solo</th><th>Chuva</th></tr></thead>
+            <tbody data-thingspeak-rows><tr><td colspan="5">Carregando...</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="cartao">
+        <div class="titulo-cartao"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Histórico diário de telemetria por talhão</div>
+        <label class="label" for="filtro-talhao-telemetria">Talhão</label>
+        <select id="filtro-talhao-telemetria" class="campo-formulario"></select>
+        <p id="mensagem-telemetria-diaria" class="mensagem-feedback" aria-live="polite"></p>
+        <div class="tabela-responsiva thingspeak-feed-scroll">
+          <table class="tabela-dados">
+            <thead><tr><th>Data</th><th>Métrica</th><th>Média</th><th>Mínimo</th><th>Máximo</th><th>Leituras</th></tr></thead>
+            <tbody id="tabela-telemetria-tecnico"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="cartao">
+        <div class="titulo-cartao"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i> Consolidado mensal dos últimos 12 meses</div>
+        <div class="tabela-responsiva thingspeak-feed-scroll">
+          <table class="tabela-dados">
+            <thead><tr><th>Mês</th><th>Talhão · métrica</th><th>Média</th><th>Mínimo</th><th>Máximo</th><th>Leituras</th></tr></thead>
+            <tbody id="tabela-telemetria-mensal-tecnico"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <div id="aba-ocorrencias" class="painel-aba-tecnico" role="tabpanel" aria-labelledby="tab-ocorrencias" hidden>
+    <section id="ocorrencias" class="cartao">
+      <div class="cabecalho-cadastro">
+        <span class="badge-status atencao">Ocorrencias</span>
+        <h2 class="titulo-talhao">Registrar Ocorrencia</h2>
+      </div>
+      <form id="form-ocorrencia">
+        <div class="info-grid-cadastro">
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="ocorrencia-talhao">Talhão</label>
+            <select id="ocorrencia-talhao" name="talhao" class="campo-formulario" required></select>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="ocorrencia-tipo">Problema</label>
+            <select id="ocorrencia-tipo" name="tipo" class="campo-formulario" required>
+              <option value="">Selecione</option>
+              <option>Pragas</option>
+              <option>Doencas</option>
+              <option>Falta de agua</option>
+              <option>Excesso de agua</option>
+              <option>Desenvolvimento irregular</option>
+              <option>Problema no sensor</option>
+              <option>Outro</option>
+            </select>
+          </div>
+          <div class="item-detalhe-cadastro campo-largo">
+            <label class="label" for="ocorrencia-observacao">Observação</label>
+            <textarea id="ocorrencia-observacao" name="observacao" class="campo-formulario"></textarea>
+          </div>
+        </div>
+        <p class="mensagem-feedback" id="mensagem-ocorrencia" aria-live="polite"></p>
+        <div class="area-botao-cadastro">
+          <button type="submit" class="btn-primario"><i class="fa-solid fa-plus" aria-hidden="true"></i> Registrar Ocorrência</button>
+        </div>
+      </form>
+      <div class="tabela-responsiva historico-formulario">
+        <table class="tabela-dados">
+          <thead>
+            <tr>
+              <th>Talhão</th>
+              <th>Problema</th>
+              <th>Observação</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-ocorrencias"></tbody>
+        </table>
+      </div>
+    </section>
+
+    </div>
+  </main>
+
+  <script src="js/auth.js"></script>
+  <script src="js/frutlog-talhoes.js"></script>
+  <script src="js/mapa-talhoes.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="js/telemetria-thingspeak.js"></script>
+  <script src="js/tec.js"></script>
+</body>
+</html>
