@@ -9,6 +9,10 @@
 #define DHTTYPE DHT11
 #define BUZZER_PIN 0
 #define LIMITE_TEMPERATURA 28.0
+<<<<<<< HEAD
+=======
+#define LIMITE_UMIDADE 24.0
+>>>>>>> dd4f711a526d9193963d47eb3afed569f79ef96d
 
 //CONFIGS DA CONEXAO WIFI
 const char* ssid = SECRET_SSID;
@@ -59,6 +63,10 @@ void conectarMQTT() {
 float temperaturaMinima = 999;
 float temperaturaMaxima = -999;
 bool ALERTA_TEMPERATURA = 0;
+<<<<<<< HEAD
+=======
+bool ALERTA_UMIDADE = 0;
+>>>>>>> dd4f711a526d9193963d47eb3afed569f79ef96d
 
 // SETUP PARA INICIAR A ESP32 AS CONEXOES
 void setup() {
@@ -128,6 +136,7 @@ void loop() {
      Serial.println("ALERTA: TEMPERATURA ACIMA DO PERMITIDO!!");
      Serial.println(temperatura);
      Serial.println("------");
+<<<<<<< HEAD
      tone(BUZZER_PIN, 1000); // faz um som continuo de 1000 Hz no buzzer
   } else {
     ALERTA_TEMPERATURA = false;
@@ -136,3 +145,27 @@ void loop() {
 
 delay(5000);
 }
+=======
+  } else {
+    ALERTA_TEMPERATURA = false;
+  }
+  //FUNCAO DO ALERTA DE UMIDADE
+  if (umidade < LIMITE_UMIDADE)  {
+    ALERTA_UMIDADE = true;
+    Serial.println("ALERTA: UMIDADE ABAIXO DO PERMITIDO!!");
+    Serial.println(umidade);
+    Serial.println("------");
+  } else {
+    ALERTA_UMIDADE = false;
+  }
+
+  // FUNÇÃO PARA O BUZZER EMITIR SOM QUANDO ALERTA ESTIVER ATIVADO
+  if (ALERTA_UMIDADE || ALERTA_TEMPERATURA ){
+    tone(BUZZER_PIN, 1000);
+  } else {
+    noTone(BUZZER_PIN);
+  }
+  
+delay(5000);
+}
+>>>>>>> dd4f711a526d9193963d47eb3afed569f79ef96d

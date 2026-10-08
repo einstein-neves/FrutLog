@@ -1,4 +1,5 @@
 [
+<<<<<<< HEAD
   { "id": "frutlog_aba", "type": "tab", "label": "FrutLog ThingSpeak", "disabled": false, "info": "" },
   {
     "id": "frutlog_base", "type": "ui-base", "name": "FrutLog", "path": "/dashboard",
@@ -71,5 +72,340 @@
     "textColor": ["#666666"], "textColorDefault": true, "gridColor": ["#e5e5e5"], "gridColorDefault": true,
     "width": 6, "height": 4, "className": "", "interpolation": "linear",
     "x": 820, "y": 120, "wires": [[]]
+=======
+  {
+    "id": "frutlog_aba",
+    "type": "tab",
+    "label": "FrutLog ThingSpeak",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "frutlog_base",
+    "type": "ui-base",
+    "name": "FrutLog",
+    "path": "/dashboard",
+    "includeClientData": true,
+    "acceptsClientConfig": [
+      "ui-notification",
+      "ui-control"
+    ],
+    "showPathInSidebar": false,
+    "headerContent": "none",
+    "navigationStyle": "none",
+    "titleBarStyle": "hidden",
+    "showReconnectNotification": true,
+    "notificationDisplayTime": 1,
+    "showDisconnectNotification": true
+  },
+  {
+    "id": "frutlog_tema",
+    "type": "ui-theme",
+    "name": "FrutLog",
+    "colors": {
+      "surface": "#ffffff",
+      "primary": "#2e7d32",
+      "bgPage": "#ffffff",
+      "groupBg": "#ffffff",
+      "groupOutline": "#e2ded8"
+    },
+    "sizes": {
+      "density": "default",
+      "pagePadding": "8px",
+      "groupGap": "8px",
+      "groupBorderRadius": "8px",
+      "widgetGap": "8px"
+    }
+  },
+  {
+    "id": "frutlog_pagina",
+    "type": "ui-page",
+    "name": "Temperatura",
+    "ui": "frutlog_base",
+    "path": "/temperatura",
+    "icon": "chart-line",
+    "layout": "grid",
+    "theme": "frutlog_tema",
+    "breakpoints": [
+      {
+        "name": "Default",
+        "px": 0,
+        "cols": 3
+      },
+      {
+        "name": "Tablet",
+        "px": 576,
+        "cols": 6
+      },
+      {
+        "name": "Small Desktop",
+        "px": 768,
+        "cols": 9
+      },
+      {
+        "name": "Desktop",
+        "px": 1024,
+        "cols": 12
+      }
+    ],
+    "order": 1,
+    "className": "",
+    "visible": "true",
+    "disabled": "false"
+  },
+  {
+    "id": "frutlog_pagina_umid",
+    "type": "ui-page",
+    "name": "Umidade",
+    "ui": "frutlog_base",
+    "path": "/umidade",
+    "icon": "chart-line",
+    "layout": "grid",
+    "theme": "frutlog_tema",
+    "breakpoints": [
+      {
+        "name": "Default",
+        "px": 0,
+        "cols": 3
+      },
+      {
+        "name": "Tablet",
+        "px": 576,
+        "cols": 6
+      },
+      {
+        "name": "Small Desktop",
+        "px": 768,
+        "cols": 9
+      },
+      {
+        "name": "Desktop",
+        "px": 1024,
+        "cols": 12
+      }
+    ],
+    "order": 2,
+    "className": "",
+    "visible": "true",
+    "disabled": "false"
+  },
+  {
+    "id": "frutlog_grupo_temp",
+    "type": "ui-group",
+    "name": "Temperatura (C)",
+    "page": "frutlog_pagina",
+    "width": 12,
+    "height": 1,
+    "order": 1,
+    "showTitle": true,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "groupType": "default"
+  },
+  {
+    "id": "frutlog_grupo_umid",
+    "type": "ui-group",
+    "name": "Umidade (%)",
+    "page": "frutlog_pagina_umid",
+    "width": 12,
+    "height": 1,
+    "order": 1,
+    "showTitle": true,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "groupType": "default"
+  },
+  {
+    "id": "frutlog_timer",
+    "type": "inject",
+    "z": "frutlog_aba",
+    "name": "A cada 20 s",
+    "props": [],
+    "repeat": "20",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "1",
+    "topic": "",
+    "x": 130,
+    "y": 100,
+    "wires": [
+      [
+        "frutlog_busca"
+      ]
+    ]
+  },
+  {
+    "id": "frutlog_busca",
+    "type": "http request",
+    "z": "frutlog_aba",
+    "name": "Busca no ThingSpeak",
+    "method": "GET",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "https://api.thingspeak.com/channels/3494574/feeds.json?results=60",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 330,
+    "y": 100,
+    "wires": [
+      [
+        "frutlog_separa"
+      ]
+    ]
+  },
+  {
+    "id": "frutlog_separa",
+    "type": "function",
+    "z": "frutlog_aba",
+    "name": "Separa temperatura e umidade",
+    "func": "// No canal do ThingSpeak: field1 = Temperatura, field2 = Umidade\nconst feeds = msg.payload.feeds || [];\n\nfunction pontos(campo) {\n    return feeds\n        .filter((feed) => feed[campo] !== null && feed[campo] !== undefined)\n        .map((feed) => ({ x: new Date(feed.created_at).getTime(), y: Number(feed[campo]) }));\n}\n\n// saida 1 vai para o grafico de temperatura, saida 2 para o de umidade\nreturn [\n    { topic: \"Temperatura\", payload: pontos(\"field1\") },\n    { topic: \"Umidade\", payload: pontos(\"field2\") }\n];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 570,
+    "y": 100,
+    "wires": [
+      [
+        "frutlog_graf_temp"
+      ],
+      [
+        "frutlog_graf_umid"
+      ]
+    ]
+  },
+  {
+    "id": "frutlog_graf_temp",
+    "type": "ui-chart",
+    "z": "frutlog_aba",
+    "group": "frutlog_grupo_temp",
+    "name": "Grafico temperatura",
+    "label": "",
+    "order": 1,
+    "chartType": "line",
+    "category": "topic",
+    "categoryType": "msg",
+    "xAxisLabel": "",
+    "xAxisProperty": "x",
+    "xAxisPropertyType": "property",
+    "xAxisType": "time",
+    "xAxisFormat": "",
+    "xAxisFormatType": "auto",
+    "xmin": "",
+    "xmax": "",
+    "yAxisLabel": "",
+    "yAxisProperty": "y",
+    "yAxisPropertyType": "property",
+    "ymin": "",
+    "ymax": "",
+    "bins": 10,
+    "action": "replace",
+    "stackSeries": false,
+    "pointShape": "circle",
+    "pointRadius": 2,
+    "showLegend": false,
+    "removeOlder": 1,
+    "removeOlderUnit": "604800",
+    "removeOlderPoints": "",
+    "colors": [
+      "#c62828",
+      "#1976d2",
+      "#ff7f0e",
+      "#2ca02c",
+      "#a347e1",
+      "#d62728",
+      "#ff9896",
+      "#9467bd",
+      "#c5b0d5"
+    ],
+    "textColor": [
+      "#666666"
+    ],
+    "textColorDefault": true,
+    "gridColor": [
+      "#e5e5e5"
+    ],
+    "gridColorDefault": true,
+    "width": 12,
+    "height": 4,
+    "className": "",
+    "interpolation": "linear",
+    "x": 830,
+    "y": 80,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "frutlog_graf_umid",
+    "type": "ui-chart",
+    "z": "frutlog_aba",
+    "group": "frutlog_grupo_umid",
+    "name": "Grafico umidade",
+    "label": "",
+    "order": 1,
+    "chartType": "line",
+    "category": "topic",
+    "categoryType": "msg",
+    "xAxisLabel": "",
+    "xAxisProperty": "x",
+    "xAxisPropertyType": "property",
+    "xAxisType": "time",
+    "xAxisFormat": "",
+    "xAxisFormatType": "auto",
+    "xmin": "",
+    "xmax": "",
+    "yAxisLabel": "",
+    "yAxisProperty": "y",
+    "yAxisPropertyType": "property",
+    "ymin": "",
+    "ymax": "",
+    "bins": 10,
+    "action": "replace",
+    "stackSeries": false,
+    "pointShape": "circle",
+    "pointRadius": 2,
+    "showLegend": false,
+    "removeOlder": 1,
+    "removeOlderUnit": "604800",
+    "removeOlderPoints": "",
+    "colors": [
+      "#1976d2",
+      "#c62828",
+      "#ff7f0e",
+      "#2ca02c",
+      "#a347e1",
+      "#d62728",
+      "#ff9896",
+      "#9467bd",
+      "#c5b0d5"
+    ],
+    "textColor": [
+      "#666666"
+    ],
+    "textColorDefault": true,
+    "gridColor": [
+      "#e5e5e5"
+    ],
+    "gridColorDefault": true,
+    "width": 12,
+    "height": 4,
+    "className": "",
+    "interpolation": "linear",
+    "x": 820,
+    "y": 120,
+    "wires": [
+      []
+    ]
+>>>>>>> dd4f711a526d9193963d47eb3afed569f79ef96d
   }
 ]
