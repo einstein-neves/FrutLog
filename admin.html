@@ -297,11 +297,10 @@
       </div>
 
     </section>
-    <section class="cartao">
-  <div class="titulo-cartao"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Graficos do ESP32 (Node-RED)</div>
-  <iframe src="http://localhost:1880/dashboard/thingspeak" title="Graficos do ESP32 via Node-RED" style="width:100%; height:620px; border:0;"></iframe>
-</section>
     <section id="telemetria-admin" class="cartao thingspeak-dashboard" data-thingspeak-panel aria-labelledby="admin-thingspeak-heading">
+        <div class="titulo-cartao"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Graficos do ESP32 (Node-RED)</div>
+        <iframe src="http://localhost:1880/dashboard/temperatura" title="Grafico de temperatura via Node-RED" scrolling="no" style="width:100%; height:320px; border:0;"></iframe>
+        <iframe src="http://localhost:1880/dashboard/umidade" title="Grafico de umidade via Node-RED" scrolling="no" style="width:100%; height:320px; border:0;"></iframe>
         <div class="titulo-cartao" id="admin-thingspeak-heading">ThingSpeak / ESP32 — clima e telemetria</div>
         <p class="mensagem-feedback" data-thingspeak-status aria-live="polite">Carregando canal ThingSpeak...</p>
         <div class="thingspeak-summary" data-thingspeak-summary></div>
