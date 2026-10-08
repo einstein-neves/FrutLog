@@ -78,6 +78,44 @@
   pointer-events: none;
 }
 
+/* =========================================================
+   THINGSPEAK & IFRAMES (AJUSTADO PARA LADO A LADO E RESPONSIVO)
+   ========================================================= */
+
+.thingspeak-embeds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: space-between;
+  align-items: stretch;
+  width: 100%;
+}
+
+.thingspeak-embeds .container-iframe {
+  flex: 1;
+  min-width: calc(50% - 10px); /* Garante que ocupem 50% menos a margem de gap em desktop */
+  height: auto;
+  aspect-ratio: auto;
+  overflow: visible;
+  border-radius: 8px;
+}
+
+.thingspeak-embeds .container-iframe iframe {
+  width: 100%;
+  height: 620px; /* Altura unificada e ideal para os gráficos do Node-RED e ThingSpeak */
+  overflow: hidden;
+  border: none;
+  display: block;
+}
+
+.card-grafico-thingspeak { 
+  width: 100%;
+  margin: 0 0 20px 0;
+}
+
+.card-grafico-thingspeak > h1 {
+  margin: 0 0 20px 0
+}
 .card-grafico-thingspeak{ 
 
   width: 100%;
@@ -105,9 +143,20 @@
 
 .card-grafico-thingspeak >h1{
   margin:  0 0 20px 0;
+
   font-size: 1.5rem;
   color: black;
 }
+
+
+.graficos-thingspeak {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+.graficos-thingspeak-item {
 
  .graficos-thingspeak{
   display: grid;
@@ -117,6 +166,7 @@
  }
 
  .graficos-thingspeak-item{
+
   min-width: 0;
   padding: 18px;
   background-color: var(--cor-card);
@@ -128,28 +178,37 @@
   box-sizing: border-box;
   overflow: hidden;
   align-items: center;
- }
+
+}
+
+}
 
  .graficos-thingspeak-item h2{
+
   margin: 0 0 15px 0;
   font-size: 1rem;
   color: var(--cor-texto-escuro);
   width: 100%;
 
+}
+
+/* =========================================================
+   RESPONSIVIDADE
+   ========================================================= */
+
+@media (max-width: 900px) {
+  #cadastro-plantio .info-grid-cadastro {
+    grid-template-columns: 1fr;
+  }
+
+  /* Em tablets e ecrãs menores, os gráficos passam a empilhar (100% de largura) */
+  .thingspeak-embeds .container-iframe {
+    min-width: 100%;
+  }
+}
+
+
  }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 @media (max-width: 760px) {
   #cadastro-plantio .info-grid-cadastro {
@@ -159,10 +218,17 @@
   .barra-edicao-talhao .btn-filtro {
     flex: 1 1 calc(50% - 6px);
   }
+
+
+  .thingspeak-embeds .container-iframe iframe {
+    height: 450px; /* Reduz ligeiramente a altura em telemóveis para melhor visualização */
+  }
 }
+
 
 @media (max-width: 900px) {
   #cadastro-plantio .info-grid-cadastro {
     grid-template-columns: 1fr;
   }
 }
+

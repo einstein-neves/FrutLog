@@ -296,6 +296,30 @@
 
       </div>
 
+<<<<<<< HEAD
+    <section id="telemetria-admin" class="cartao thingspeak-dashboard" data-thingspeak-panel aria-labelledby="admin-thingspeak-heading">
+        <div class="titulo-cartao" id="admin-thingspeak-heading">ThingSpeak / ESP32 — clima e telemetria</div>
+        <p class="mensagem-feedback" data-thingspeak-status aria-live="polite">Carregando canal ThingSpeak...</p>
+
+        <div class="thingspeak-summary" data-thingspeak-summary></div>
+        <div class="thingspeak-embeds" aria-label="Graficos ThingSpeak em tempo real">
+    <div class="container-iframe">
+        <iframe data-thingspeak-embed="temperatura" title="Grafico de temperatura ThingSpeak" loading="lazy"></iframe>
+    </div>
+
+    <div class="container-iframe">
+        <iframe src="http://localhost:1880/dashboard/temperatura" title="Graficos do ESP32 "></iframe>
+    </div>
+
+    <div class="container-iframe">
+        <iframe src="http://localhost:1880/dashboard/umidade" title="Graficos do ESP32  "></iframe>
+    </div>
+
+</div>
+
+
+
+=======
     </section>
     <section id="telemetria-admin" class="cartao thingspeak-dashboard" data-thingspeak-panel aria-labelledby="admin-thingspeak-heading">
         <div class="titulo-cartao"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Graficos do ESP32 (Node-RED)</div>
@@ -309,6 +333,7 @@
           <article><h3>Umidade do ar</h3><div class="container-iframe"><iframe data-thingspeak-embed="umidadeAr" title="Grafico de umidade do ar ThingSpeak" loading="lazy"></iframe></div></article>
         </div>
 
+
         <div class="thingspeak-chart"><canvas aria-label="Historico recente das metricas do ThingSpeak"></canvas></div>
         <div class="thingspeak-feed-scroll">
           <table class="tabela-dados">
@@ -319,6 +344,9 @@
               <th>Chuva</th>
             </tr>
           </thead>
+
+
+
             <tbody data-thingspeak-rows><tr><td colspan="5">Carregando...</td></tr></tbody>
           </table>
         </div>
