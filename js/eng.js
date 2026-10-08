@@ -37,8 +37,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   let verticeArrastado = null;
   let talhaoArrastado = null;
   let graficoColheita = null;
+  let graficoClimaMensalEngenheiro = null;
   let unidadeAtual = "t";
   let sensoresDoPainel = [];
+  let telemetriaMensalEngenheiro = [];
 
   let colheitas = [];
 
@@ -264,6 +266,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     atualizarTabelaDiaria(props.diaria || {});
     atualizarTabelaMensal(props.mensal || []);
+    renderizarGraficoClimaMensalEngenheiro();
     renderizarBotoesTalhao();
     renderizarMapa();
   }
@@ -301,6 +304,102 @@ document.addEventListener("DOMContentLoaded", async () => {
         <td>${item.qtd}</td>
       </tr>
     `).join("");
+  }
+
+  function renderizarGraficoClimaMensalEngenheiro() {
+    const canvas = document.getElementById("grafico-clima-mensal-engenheiro");
+
+    if (!canvas || typeof Chart === "undefined") return;
+
+    if (graficoClimaMensalEngenheiro) {
+      graficoClimaMensalEngenheiro.destroy();
+    }
+
+    const metricas = {
+      temperatura: {
+        nome: "Temperatura",
+      },
+      chuva: {
+        nome: "Chuva",
+      },
+      umidadeAr: {
+        nome: "Umidade do ar",
+      },
+      umidadeSolo: {
+        nome: "Umidade do solo",
+      },
+    };
+
+    const meses = [
+      ...new Set(
+        telemetriaMensalEngenheiro
+          .map((item) => item.mes)
+          .filter(Boolean)
+      ),
+    ].sort();
+
+    const dados = meses.map((mes) => {
+      const resultado = { mes };
+
+      Object.keys(metricas).forEach((codigo) => {
+        const leituras = telemetriaMensalEngenheiro
+          .filter(
+            (item) =>
+              item.mes === mes &&
+              item.codigo_metrica === codigo &&
+              Number.isFinite(Number(item.valor_medio))
+          )
+          .map((item) => Number(item.valor_medio));
+
+        resultado[codigo] = leituras.length
+          ? leituras.reduce((soma, valor) => soma + valor, 0) / leituras.length
+          : null;
+      });
+
+      return resultado;
+    });
+
+    graficoClimaMensalEngenheiro = new Chart(canvas, {
+      type: "line",
+      data: {
+        labels: dados.map((item) => item.mes),
+        datasets: [
+          {
+            label: "Temperatura (°C)",
+            data: dados.map((item) => item.temperatura),
+            tension: 0.3,
+            borderWidth: 2,
+          },
+          {
+            label: "Chuva (mm)",
+            data: dados.map((item) => item.chuva),
+            tension: 0.3,
+            borderWidth: 2,
+          },
+          {
+            label: "Umidade do ar (%)",
+            data: dados.map((item) => item.umidadeAr),
+            tension: 0.3,
+            borderWidth: 2,
+          },
+          {
+            label: "Umidade do solo (%)",
+            data: dados.map((item) => item.umidadeSolo),
+            tension: 0.3,
+            borderWidth: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+          },
+        },
+      },
+    });
   }
 
   function obterPontoSvg(evento) {
@@ -719,9 +818,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     else renderizarMapa();
     atualizarControlesEdicao();
 
-    const [resultadoPainel, resultadoColheitas] = await Promise.allSettled([
+    const [resultadoPainel, resultadoColheitas, resultadoTelemetria] = await Promise.allSettled([
       FrutLog.apiFetch("/painel-engenheiro"),
       FrutLog.apiFetch("/colheitas/anual"),
+      FrutLog.apiFetch("/telemetria/diaria"),
     ]);
     const erros = [];
     const painel = resultadoPainel.status === "fulfilled" ? resultadoPainel.value : {};
@@ -733,6 +833,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else {
       colheitas = [];
       erros.push(`Historico de colheitas: ${resultadoColheitas.reason?.message || resultadoColheitas.reason}`);
+    }
+    if (resultadoTelemetria.status === "fulfilled") {
+      telemetriaMensalEngenheiro = resultadoTelemetria.value.mensal || [];
+      renderizarGraficoClimaMensalEngenheiro();
+    } else {
+      telemetriaMensalEngenheiro = [];
+      erros.push(`Telemetria: ${resultadoTelemetria.reason?.message || resultadoTelemetria.reason}`);
     }
 
     const sensoresPorTalhao = new Map();

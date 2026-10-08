@@ -51,6 +51,7 @@ let painelTecnico = {
 let graficoColheita = null;
 let graficoLeituras = null;
 let unidadeColheita = "t";
+let graficoClima = null;
 let telemetriaDiariaAdmin = [];
 
 function escaparHtml(valor) {
@@ -164,11 +165,11 @@ function configurarFormularioFuncionario() {
     if (botao) botao.disabled = true;
     try {
       const payload = {
-          nome: dados.nome,
-          cargo: dados.cargo,
-          profissao: dados.profissao,
-          perfil: dados.perfil,
-          status: dados.status,
+        nome: dados.nome,
+        cargo: dados.cargo,
+        profissao: dados.profissao,
+        perfil: dados.perfil,
+        status: dados.status,
       };
       if (dados.senha) payload.senha = dados.senha;
       if (editando) {
@@ -597,6 +598,7 @@ function configurarGraficos() {
       renderizarGraficoColheita();
     });
   });
+  renderizarGraficoClima();
 }
 
 function definirColheitasAnuais(colheitas) {
@@ -679,6 +681,128 @@ function renderizarGraficoLeituras() {
   });
 }
 
+function renderizarGraficoClima() {
+  const canvas = document.getElementById("grafico-clima-mensal");
+
+  if (!canvas || typeof Chart === "undefined") {
+    return;
+  }
+
+  if (graficoClima) {
+    graficoClima.destroy();
+  }
+
+  const meses = [
+    "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+    "Jul", "Ago", "Set", "Out", "Nov", "Dez"
+  ];
+
+  const dadosMensais = meses.map((mes) => ({
+    mes,
+    temperatura: null,
+    chuva: null,
+    umidade: null,
+    solo: null,
+  }));
+
+  const numeroMeses = {
+    Jan: 0,
+    Fev: 1,
+    Mar: 2,
+    Abr: 3,
+    Mai: 4,
+    Jun: 5,
+    Jul: 6,
+    Ago: 7,
+    Set: 8,
+    Out: 9,
+    Nov: 10,
+    Dez: 11,
+  };
+
+  telemetriaDiariaAdmin.forEach((item) => {
+    const data = new Date(item.dia);
+
+    if (Number.isNaN(data.getTime())) return;
+
+    const indiceMes = data.getMonth();
+    const dadosMes = dadosMensais[indiceMes];
+
+    if (!dadosMes) return;
+
+    const valor = Number(item.valor_medio);
+
+    if (!Number.isFinite(valor)) return;
+
+    switch (item.codigo_metrica) {
+      case "temperatura":
+        dadosMes.temperatura = valor;
+        break;
+
+      case "chuva":
+        dadosMes.chuva = valor;
+        break;
+
+      case "umidadeAr":
+        dadosMes.umidade = valor;
+        break;
+
+      case "umidadeSolo":
+        dadosMes.solo = valor;
+        break;
+    }
+  });
+
+  graficoClima = new Chart(canvas, {
+    type: "line",
+    data: {
+      labels: dadosMensais.map((item) => item.mes),
+
+      datasets: [
+        {
+          label: "Temperatura (°C)",
+          data: dadosMensais.map((item) => item.temperatura),
+          borderColor: "#c62828",
+          backgroundColor: "rgba(198, 40, 40, 0.12)",
+          tension: 0.35,
+        },
+        {
+          label: "Chuva (mm)",
+          data: dadosMensais.map((item) => item.chuva),
+          borderColor: "#f9a825",
+          backgroundColor: "rgba(249, 168, 37, 0.12)",
+          tension: 0.35,
+        },
+        {
+          label: "Umidade do ar (%)",
+          data: dadosMensais.map((item) => item.umidade),
+          borderColor: "#1565c0",
+          backgroundColor: "rgba(21, 101, 192, 0.12)",
+          tension: 0.35,
+        },
+        {
+          label: "Umidade do solo (%)",
+          data: dadosMensais.map((item) => item.solo),
+          borderColor: "#388e3c",
+          backgroundColor: "rgba(56, 142, 60, 0.12)",
+          tension: 0.35,
+        },
+      ],
+    },
+
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+
+      scales: {
+        y: {
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+}
+
 async function carregarDadosConectados() {
   const resultados = await Promise.allSettled([
     FrutLog.apiFetch("/funcionarios"),
@@ -700,7 +824,7 @@ async function carregarDadosConectados() {
   if (resultados[1].status === "fulfilled") {
     sensores = resultados[1].value.sensores || [];
     renderizarSensores();
-    renderizarGraficoLeituras();
+    renderizarGraficoClima();
   } else {
     erros.push(`Sensores: ${resultados[1].reason.message}`);
     mostrarLinhasVazias("tabela-sensores-admin", 6, "Falha ao carregar sensores.");
@@ -722,12 +846,14 @@ async function carregarDadosConectados() {
   if (resultados[4].status === "fulfilled") {
     telemetriaDiariaAdmin = resultados[4].value.leituras || [];
     renderizarTelemetriaDiariaAdmin();
+    renderizarGraficoClima();
   } else {
     erros.push(`Telemetria diaria: ${resultados[4].reason.message}`);
     mostrarLinhasVazias("tabela-telemetria-admin", 7, "Falha ao carregar telemetria diaria.");
   }
 
   renderizarGraficoColheita();
+  renderizarGraficoClima();
   if (erros.length) {
     exibirMensagem("mensagem-carregamento-admin", erros.join(" | "), "erro");
   } else {
@@ -769,7 +895,7 @@ async function atualizarDadosCampoConectados() {
   if (resultados[1].status === "fulfilled") {
     sensores = resultados[1].value.sensores || [];
     renderizarSensores();
-    renderizarGraficoLeituras();
+    renderizarGraficoClima();
   } else {
     erros.push(`Sensores: ${resultados[1].reason.message}`);
   }
@@ -784,6 +910,7 @@ async function atualizarDadosCampoConectados() {
   if (resultados[3].status === "fulfilled") {
     telemetriaDiariaAdmin = resultados[3].value.leituras || [];
     renderizarTelemetriaDiariaAdmin();
+    renderizarGraficoClima();
   } else {
     erros.push(`Telemetria diaria: ${resultados[3].reason.message}`);
   }

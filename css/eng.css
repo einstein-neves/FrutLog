@@ -192,6 +192,12 @@
 
 }
 
+.grafico-clima-mensal {
+  position: relative;
+  width: 100%;
+  height: 350px;
+}
+
 /* =========================================================
    RESPONSIVIDADE
    ========================================================= */
@@ -208,7 +214,7 @@
 }
 
 
- }
+ 
 
 @media (max-width: 760px) {
   #cadastro-plantio .info-grid-cadastro {

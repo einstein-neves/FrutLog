@@ -75,6 +75,7 @@ let historicoProblemasSensores = [];
 let sensoresDoServidor = [];
 let painelTecnico = {};
 let graficoMetricas = null;
+let graficoClimaMensalTecnico = null;
 let telemetriaDiaria = [];
 let telemetriaMensal = [];
 let talhaoSelecionadoId = null;
@@ -264,6 +265,7 @@ async function carregarTelemetriaDiaria() {
     telemetriaMensal = resposta.mensal || [];
     renderizarTelemetriaDiaria();
     renderizarTelemetriaMensal();
+    renderizarGraficoClimaMensalTecnico();
     if (mensagem) {
       mensagem.textContent = `Consolidado desde ${formatarData(resposta.desde)}.`;
       mensagem.className = "mensagem-feedback";
@@ -327,6 +329,104 @@ function renderizarTelemetriaMensal() {
       <td>${escaparHtml(item.leituras_contabilizadas)}</td>
     </tr>
   `).join("");
+}
+
+function renderizarGraficoClimaMensalTecnico() {
+  const canvas = document.getElementById("grafico-clima-mensal-tecnico");
+
+  if (!canvas || typeof Chart === "undefined") return;
+
+  if (graficoClimaMensalTecnico) {
+    graficoClimaMensalTecnico.destroy();
+  }
+
+  const metricas = {
+    temperatura: {
+      nome: "Temperatura",
+      unidade: "°C",
+    },
+    chuva: {
+      nome: "Chuva",
+      unidade: "mm",
+    },
+    umidadeAr: {
+      nome: "Umidade do ar",
+      unidade: "%",
+    },
+    umidadeSolo: {
+      nome: "Umidade do solo",
+      unidade: "%",
+    },
+  };
+
+  const meses = [...new Set(
+    telemetriaMensal
+      .map((item) => item.mes)
+      .filter(Boolean)
+  )].sort();
+
+  const dados = meses.map((mes) => {
+    const resultado = { mes };
+
+    Object.keys(metricas).forEach((codigo) => {
+      const leituras = telemetriaMensal
+        .filter(
+          (item) =>
+            item.mes === mes &&
+            item.codigo_metrica === codigo &&
+            Number.isFinite(Number(item.valor_medio))
+        )
+        .map((item) => Number(item.valor_medio));
+
+      resultado[codigo] = leituras.length
+        ? leituras.reduce((soma, valor) => soma + valor, 0) / leituras.length
+        : null;
+    });
+
+    return resultado;
+  });
+
+  graficoClimaMensalTecnico = new Chart(canvas, {
+    type: "line",
+    data: {
+      labels: dados.map((item) => item.mes),
+      datasets: [
+        {
+          label: "Temperatura (°C)",
+          data: dados.map((item) => item.temperatura),
+          tension: 0.3,
+          borderWidth: 2,
+        },
+        {
+          label: "Chuva (mm)",
+          data: dados.map((item) => item.chuva),
+          tension: 0.3,
+          borderWidth: 2,
+        },
+        {
+          label: "Umidade do ar (%)",
+          data: dados.map((item) => item.umidadeAr),
+          tension: 0.3,
+          borderWidth: 2,
+        },
+        {
+          label: "Umidade do solo (%)",
+          data: dados.map((item) => item.umidadeSolo),
+          tension: 0.3,
+          borderWidth: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+        },
+      },
+    },
+  });
 }
 
 function formatarData(dataISO) {

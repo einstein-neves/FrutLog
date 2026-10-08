@@ -1,337 +1,398 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="css/global.css">
-<link rel="stylesheet" href="css/dashboard.css">
-<link rel="stylesheet" href="css/eng.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<title>FrutLog - Engenheiro Agronomo</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/eng.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <title>FrutLog - Engenheiro Agronomo</title>
 </head>
+
 <body class="layout-dashboard">
-<aside class="sidebar">
-<div class="logo-area">
-  <i class="fa-solid fa-leaf logo-icone" aria-hidden="true"></i>
-  <h2>FrutLog</h2>
-</div>
-
-<nav class="menu" aria-label="Menu do engenheiro">
-  <a href="#monitoramento" class="nav-link active"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> Monitoramento</a>
-  <a href="#telemetria" class="nav-link"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Telemetria</a>
-  <a href="#historico" class="nav-link"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i> Historico</a>
-  <a href="#colheita" class="nav-link"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Colheita</a>
-  <a href="#relatorios-diarios" class="nav-link"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Relatorios</a>
-  <a href="#cadastro-plantio" class="nav-link"><i class="fa-solid fa-seedling" aria-hidden="true"></i> Cadastro</a>
-</nav>
-
-<div class="sidebar-acoes">
-  <button id="btn-logout" class="btn-logout" type="button">
-    <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Sair
-  </button>
-</div>
-</aside>
-
-<main class="conteudo-dashboard">
-<section class="topo" aria-labelledby="titulo-dashboard">
-  <h1 id="titulo-dashboard">Monitoramento da Producão</h1>
-  <p>Acompanhamento dos produtos em desenvolvimento nos talhões.</p>
-</section>
-
-<section id="monitoramento" class="secao-mapa-detalhes" aria-label="Monitoramento dos talhões">
-  <div class="cartao cartao-mapa-wrapper">
-    <div class="mapa-header">
-      <div>
-        <h2>Visao dos Talhões</h2>
-        <p>Selecione um talhão para visualizar seus dados.</p>
-      </div>
-      <div class="botoes-do-talhao" id="botoes-talhao" aria-label="Selecao de talhão"></div>
-      <span class="status-mapa">Monitoramento Ativo</span>
+  <aside class="sidebar">
+    <div class="logo-area">
+      <i class="fa-solid fa-leaf logo-icone" aria-hidden="true"></i>
+      <h2>FrutLog</h2>
     </div>
 
-    <div class="barra-edicao-talhao" aria-label="Ferramentas de edicao de talhões">
-      <button class="btn-filtro" type="button" id="btn-editar-talhoes">Editar Talhões</button>
-      <button class="btn-filtro" type="button" id="btn-criar-talhao" disabled>Criar</button>
-      <button class="btn-filtro" type="button" id="btn-dividir-talhao" disabled>Dividir</button>
-      <button class="btn-filtro" type="button" id="btn-excluir-talhao" disabled>Excluir</button>
-      <button class="btn-filtro" type="button" id="btn-salvar-talhao" disabled>Salvar</button>
-      <button class="btn-filtro" type="button" id="btn-cancelar-talhao" disabled>Cancelar</button>
-      <label for="talhao-area-hectares">Area do talhão (ha)</label>
+    <nav class="menu" aria-label="Menu do engenheiro">
+      <a href="#monitoramento" class="nav-link active"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+        Monitoramento</a>
+      <a href="#telemetria" class="nav-link"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Telemetria</a>
+      <a href="#historico" class="nav-link"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i> Historico</a>
+      <a href="#colheita" class="nav-link"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Colheita</a>
+      <a href="#relatorios-diarios" class="nav-link"><i class="fa-solid fa-file-lines" aria-hidden="true"></i>
+        Relatorios</a>
+      <a href="#cadastro-plantio" class="nav-link"><i class="fa-solid fa-seedling" aria-hidden="true"></i> Cadastro</a>
+    </nav>
 
-      <input id="talhao-area-hectares" class="campo-formulario" type="number" min="0.01" step="0.01" inputmode="decimal" aria-label="Area do talhão em hectares">
-
-      <button class="btn-filtro" type="button" id="btn-aplicar-area-talhao" disabled>Aplicar area</button>
-    </div>
-
-    <p class="mensagem-feedback" id="mensagem-edicao-talhao" aria-live="polite"></p>
-<!-- SVG sao os nosso pontos de referencia pra trilhas  ou criar divisa para talhao . -->
-    <div class="mapa-container">
-      <img src="imagem/mapa-FrutLog.jpg" alt="Mapa aereo dos talhões" class="mapa-imagem">
-     
-      <svg class="camada-talhoes" id="camada-talhoes"
-       viewBox="0 0 500 400"
-        preserveAspectRatio="none" 
-        aria-label="Talhões da fazenda">
-      </svg>
-
-    </div>
-    <p class="texto-ajuda" id="mensagem-geometria-talhoes" aria-live="polite"></p>
-
-    <div class="legenda-mapa">
-      <div class="legenda-item"><span class="legenda-cor legenda-normal"></span><span>Normal</span></div>
-      <div class="legenda-item"><span class="legenda-cor legenda-atencao"></span><span>Atencao</span></div>
-      <div class="legenda-item"><span class="legenda-cor legenda-critico"></span><span>Critico</span></div>
-      <div class="legenda-item"><span class="legenda-cor legenda-selecao"></span><span>Selecionado</span></div>
-    </div>
-  </div>
-
-  <div class="cartao card-detalhes-elegante">
-    <div class="cabecalho-detalhes">
-      <span class="badge-status" id="talhao-status">Normal</span>
-      <h2 class="titulo-talhao" id="titulo-talhao">Detalhes: Talhão A1</h2>
-    </div>
-
-    <div class="info-grid-detalhes">
-
-      <div class="item-detalhe"><span class="label">Area</span>
-        <span class="valor" id="talhao-area">--</span>
-      </div>
-
-      <div class="item-detalhe"><span class="label">Tipo de Solo</span>
-        <span class="valor" id="talhao-solo">--</span>
-      </div>
-
-      <div class="item-detalhe"><span class="label">Data de Plantio</span>
-        <span class="valor" id="talhao-plantio">--</span>
-      </div>
-      
-      <div class="item-detalhe"><span class="label">Previsao de Colheita</span>
-        <span class="valor" id="talhao-colheita">--</span>
-      </div>
-
-      <div class="item-detalhe"><span class="label">Produto</span>
-        <span class="valor" id="talhao-produto">--</span>
-      </div>
-
-      <div class="item-detalhe destaque-fruta">
-        <span class="label">Variedade Cultivada</span>
-        <span class="valor" id="talhao-variedade">--</span>
-      </div>
-
-      <div class="item-detalhe">
-        <span class="label">Temperatura Configurada</span>
-        <span class="valor" id="talhao-temperatura-maxima">--</span>
-      </div>
-
-      <div class="item-detalhe"><span class="label">Ultima Inspecao</span>
-        <span class="valor" id="talhao-inspecao-data">--</span>
-      </div>
-      <div class="item-detalhe"><span class="label">Tecnico Responsavel</span>
-        <span class="valor" id="talhao-inspecao-tecnico">--</span>
-      </div>
-      <div class="item-detalhe destaque-tecnico">
-        <span class="label">Problema Apontado</span>
-        <span class="valor" id="talhao-inspecao-problema">--</span>
-      </div>
-      <div class="item-detalhe destaque-tecnico">
-        <span class="label">Recomendacao Tecnica</span>
-        <span class="valor" id="talhao-inspecao-recomendacao">--</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<div id="telemetria">
-<section class="cartao-full-diario">
-  <div class="titulo-do-cartao"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Telemetria Diaria</div>
-  <div class="tabela-responsiva">
-    <table class="tabela-dados">
-      <thead>
-        <tr>
-          <th>Temperatura (C)</th>
-          <th>Umidade Ar (%)</th>
-          <th>Umidade Solo (%)</th>
-          <th>Chuva (mm)</th>
-        </tr>
-      </thead>
-      <tbody id="tabela-telemetria-diaria"></tbody>
-    </table>
-  </div>
-</section>
-<section class="cartao thingspeak-dashboard" data-thingspeak-panel aria-labelledby="eng-thingspeak-heading">
-  <div class="titulo-cartao" id="eng-thingspeak-heading">ThingSpeak / ESP32 — clima e telemetria</div>
-  <p class="mensagem-feedback" data-thingspeak-status aria-live="polite">Carregando canal ThingSpeak...</p>
-  <div class="thingspeak-summary" data-thingspeak-summary></div>
-  <!-- INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: graficos do ESP32 via Node-RED, um link por grafico, lado a lado -->
-  <div class="thingspeak-embeds" aria-label="Graficos do ESP32 via Node-RED">
-    <article><div class="container-iframe" style="height:300px;"><iframe src="http://localhost:1880/dashboard/temperatura" title="Grafico de temperatura via Node-RED" scrolling="no"></iframe></div></article>
-    <article><div class="container-iframe" style="height:300px;"><iframe src="http://localhost:1880/dashboard/umidade" title="Grafico de umidade via Node-RED" scrolling="no"></iframe></div></article>
-  </div>
-  <!-- FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO -->
-  <div class="thingspeak-chart"><canvas aria-label="Historico recente das metricas do ThingSpeak"></canvas></div>
-  <div class="thingspeak-feed-scroll">
-    <table class="tabela-dados">
-      <thead><tr><th>Data/hora</th><th>Temperatura</th><th>Umidade do ar</th><th>Umidade do solo</th><th>Chuva</th></tr></thead>
-      <tbody data-thingspeak-rows><tr><td colspan="5">Carregando...</td></tr></tbody>
-    </table>
-  </div>
-</section>
-</div>
-
-<section id="historico" class="cartao">
-  <div class="titulo-cartao"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i> Consolidado Mensal</div>
-  <div class="tabela-responsiva">
-    <table class="tabela-dados">
-      <thead>
-        <tr>
-          <th>Temperatura (C)</th>
-          <th>Umidade Ar (%)</th>
-          <th>Umidade Solo (%)</th>
-          <th>Chuva (mm)</th>
-          <th>Previsao Colheita</th>
-          <th>Qtd. Colhida</th>
-        </tr>
-      </thead>
-      <tbody id="tabela-talhao-mensal"></tbody>
-    </table>
-  </div>
-</section>
-
-<section id="colheita" class="cartao">
-  <div class="header-grafico">
-    <div>
-      <h2>Historico Anual de Colheitas</h2>
-      <p class="subtitulo-grafico">Acompanhe o volume de producao acumulado ao longo dos anos.</p>
-    </div>
-    <div class="filtros-grafico" aria-label="Unidade do grafico">
-      <button class="btn-filtro active" type="button" data-unidade="t">Toneladas (t)</button>
-      <button class="btn-filtro" type="button" data-unidade="sc">Sacas (sc)</button>
-      <button class="btn-filtro" type="button" data-unidade="kg">Quilogramas (kg)</button>
-      <button class="btn-filtro" type="button" data-unidade="cx">Caixas (cx)</button>
-    </div>
-  </div>
-
-  <div class="container-grafico">
-    <canvas id="graficoColheita"></canvas>
-  </div>
-  <p id="mensagem-colheita" class="mensagem-feedback" aria-live="polite"></p>
-
-  <div class="grid-resumo-colheita">
-    <div class="card-resumo destaque-vermelho">
-      <span class="titulo-resumo">ULTIMA COLHEITA</span>
-      <div class="dados-resumo"><i class="fa-regular fa-clock icone-resumo" aria-hidden="true"></i><div><strong id="resumo-ultima-data">--</strong><p id="resumo-ultima-valor">--</p></div></div>
-      <span class="rodape-resumo" id="resumo-ultima-media">Media: --</span>
-    </div>
-    <div class="card-resumo destaque-amarelo">
-      <span class="titulo-resumo">MENOR COLHEITA</span>
-      <div class="dados-resumo"><i class="fa-solid fa-circle-arrow-down icone-resumo" aria-hidden="true"></i><div><strong id="resumo-menor-data">--</strong><p id="resumo-menor-valor">--</p></div></div>
-      <span class="rodape-resumo" id="resumo-menor-media">Media: --</span>
-    </div>
-    <div class="card-resumo destaque-azul">
-      <span class="titulo-resumo">MAIOR COLHEITA</span>
-      <div class="dados-resumo"><i class="fa-solid fa-circle-arrow-up icone-resumo" aria-hidden="true"></i><div><strong id="resumo-maior-data">--</strong><p id="resumo-maior-valor">--</p></div></div>
-      <span class="rodape-resumo" id="resumo-maior-media">Media: --</span>
-    </div>
-  </div>
-</section>
-
-<section id="cadastro-plantio" class="cartao card-cadastro-produto">
-  <div class="cabecalho-cadastro">
-    <span class="badge-status">Planejamento Agricola</span>
-    <h2 class="titulo-talhao">Cadastrar Produto</h2>
-    <p class="subtitulo-cadastro">Cadastre um novo produto e vincule-o a um talhao controlado pelo sistema.</p>
-  </div>
-
-  <form id="formulario-plantio">
-    <div class="info-grid-cadastro">
-      <div class="item-detalhe-cadastro">
-        <label class="label" for="produto">Produto</label>
-        <input type="text" id="produto" name="produto" class="campo-formulario" placeholder="Ex.: Manga" required>
-      </div>
-      <div class="item-detalhe-cadastro">
-        <label class="label" for="variedade">Variedade</label>
-        <input type="text" id="variedade" name="variedade" class="campo-formulario" placeholder="Ex.: Palmer" required>
-      </div>
-      <div class="item-detalhe-cadastro">
-        <label class="label" for="talhao">Talhao</label>
-        <select id="talhao" name="talhao" class="campo-formulario" required>
-          <option value="">Nenhum talhao cadastrado</option>
-        </select>
-      </div>
-      <div class="item-detalhe-cadastro">
-        <label class="label" for="solo">Tipo de Solo</label>
-        <select id="solo" name="solo" class="campo-formulario" required>
-          <option value="">Selecione</option>
-          <option value="Arenoso">Arenoso</option>
-          <option value="Franco Arenoso">Franco Arenoso</option>
-          <option value="Argiloso">Argiloso</option>
-        </select>
-      </div>
-      <div class="item-detalhe-cadastro">
-        <label class="label" for="data-plantio">Data de Plantio</label>
-        <input type="date" id="data-plantio" name="dataPlantio" class="campo-formulario" required>
-      </div>
-      <div class="item-detalhe-cadastro">
-        <label class="label" for="data-colheita">Previsao de Colheita</label>
-        <input type="date" id="data-colheita" name="dataColheita" class="campo-formulario" required>
-      </div>
-      <div class="item-detalhe-cadastro">
-        <label class="label" for="temperatura-maxima">Temperatura maxima</label>
-        <div class="campo-com-unidade">
-          <input type="number" id="temperatura-maxima" name="temperaturaMaxima" class="campo-formulario" min="0" step="0.1" placeholder="Ex.: 30" required>
-          <span>C</span>
-        </div>
-      </div>
-      <div class="item-detalhe-cadastro">
-        <label class="label" for="sensor-associado">Sensores cadastrados neste talhão</label>
-        <select id="sensor-associado" class="campo-formulario" disabled>
-          <option>Nenhum sensor ativo cadastrado para este talhão</option>
-        </select>
-      </div>
-    </div>
-
-    <p class="mensagem-feedback" id="mensagem-plantio" aria-live="polite"></p>
-
-    <div class="area-botao-cadastro">
-      <button type="submit" id="btn-cadastrar-plantio" class="btn-primario">
-        <i class="fa-solid fa-plus" aria-hidden="true"></i> Cadastrar Produto
+    <div class="sidebar-acoes">
+      <button id="btn-logout" class="btn-logout" type="button">
+        <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Sair
       </button>
     </div>
-  </form>
-</section>
+  </aside>
 
-<section id="relatorios-diarios" class="cartao">
-  <div class="titulo-cartao"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Relatorios diarios recebidos</div>
-  <div class="filtros-relatorios">
-    <label for="filtro-relatorio-texto">Tecnico ou texto</label>
-    <input id="filtro-relatorio-texto" class="campo-formulario" type="search" placeholder="Buscar relatorio">
-    <label for="filtro-relatorio-data">Data</label>
-    <input id="filtro-relatorio-data" class="campo-formulario" type="date">
-    <label for="filtro-relatorio-status">Status</label>
-    <select id="filtro-relatorio-status" class="campo-formulario">
-      <option value="todos">Todos</option>
-      <option value="enviado">Enviado</option>
-      <option value="em_analise">Em analise</option>
-      <option value="concluido">Concluido</option>
-    </select>
-  </div>
-  <p id="mensagem-relatorios" class="mensagem-feedback" aria-live="polite"></p>
-  <div class="tabela-responsiva">
-    <table class="tabela-dados">
-      <thead><tr><th>Data</th><th>Tecnico</th><th>Relatorio de campo</th><th>Status</th><th>Acompanhamento</th></tr></thead>
-      <tbody id="tabela-relatorios"></tbody>
-    </table>
-  </div>
-</section>
-</main>
+  <main class="conteudo-dashboard">
+    <section class="topo" aria-labelledby="titulo-dashboard">
+      <h1 id="titulo-dashboard">Monitoramento da Producão</h1>
+      <p>Acompanhamento dos produtos em desenvolvimento nos talhões.</p>
+    </section>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/frutlog-talhoes.js"></script>
-<script src="js/mapa-talhoes.js"></script>
-<script src="js/relatorios.js"></script>
-<script src="js/telemetria-thingspeak.js"></script>
-<script src="js/colheitas.js"></script>
-<script src="js/eng.js"></script>
+    <section id="monitoramento" class="secao-mapa-detalhes" aria-label="Monitoramento dos talhões">
+      <div class="cartao cartao-mapa-wrapper">
+        <div class="mapa-header">
+          <div>
+            <h2>Visao dos Talhões</h2>
+            <p>Selecione um talhão para visualizar seus dados.</p>
+          </div>
+          <div class="botoes-do-talhao" id="botoes-talhao" aria-label="Selecao de talhão"></div>
+          <span class="status-mapa">Monitoramento Ativo</span>
+        </div>
+
+        <div class="barra-edicao-talhao" aria-label="Ferramentas de edicao de talhões">
+          <button class="btn-filtro" type="button" id="btn-editar-talhoes">Editar Talhões</button>
+          <button class="btn-filtro" type="button" id="btn-criar-talhao" disabled>Criar</button>
+          <button class="btn-filtro" type="button" id="btn-dividir-talhao" disabled>Dividir</button>
+          <button class="btn-filtro" type="button" id="btn-excluir-talhao" disabled>Excluir</button>
+          <button class="btn-filtro" type="button" id="btn-salvar-talhao" disabled>Salvar</button>
+          <button class="btn-filtro" type="button" id="btn-cancelar-talhao" disabled>Cancelar</button>
+          <label for="talhao-area-hectares">Area do talhão (ha)</label>
+
+          <input id="talhao-area-hectares" class="campo-formulario" type="number" min="0.01" step="0.01"
+            inputmode="decimal" aria-label="Area do talhão em hectares">
+
+          <button class="btn-filtro" type="button" id="btn-aplicar-area-talhao" disabled>Aplicar area</button>
+        </div>
+
+        <p class="mensagem-feedback" id="mensagem-edicao-talhao" aria-live="polite"></p>
+        <!-- SVG sao os nosso pontos de referencia pra trilhas  ou criar divisa para talhao . -->
+        <div class="mapa-container">
+          <img src="imagem/mapa-FrutLog.jpg" alt="Mapa aereo dos talhões" class="mapa-imagem">
+
+          <svg class="camada-talhoes" id="camada-talhoes" viewBox="0 0 500 400" preserveAspectRatio="none"
+            aria-label="Talhões da fazenda">
+          </svg>
+
+        </div>
+        <p class="texto-ajuda" id="mensagem-geometria-talhoes" aria-live="polite"></p>
+
+        <div class="legenda-mapa">
+          <div class="legenda-item"><span class="legenda-cor legenda-normal"></span><span>Normal</span></div>
+          <div class="legenda-item"><span class="legenda-cor legenda-atencao"></span><span>Atencao</span></div>
+          <div class="legenda-item"><span class="legenda-cor legenda-critico"></span><span>Critico</span></div>
+          <div class="legenda-item"><span class="legenda-cor legenda-selecao"></span><span>Selecionado</span></div>
+        </div>
+      </div>
+
+      <div class="cartao card-detalhes-elegante">
+        <div class="cabecalho-detalhes">
+          <span class="badge-status" id="talhao-status">Normal</span>
+          <h2 class="titulo-talhao" id="titulo-talhao">Detalhes: Talhão A1</h2>
+        </div>
+
+        <div class="info-grid-detalhes">
+
+          <div class="item-detalhe"><span class="label">Area</span>
+            <span class="valor" id="talhao-area">--</span>
+          </div>
+
+          <div class="item-detalhe"><span class="label">Tipo de Solo</span>
+            <span class="valor" id="talhao-solo">--</span>
+          </div>
+
+          <div class="item-detalhe"><span class="label">Data de Plantio</span>
+            <span class="valor" id="talhao-plantio">--</span>
+          </div>
+
+          <div class="item-detalhe"><span class="label">Previsao de Colheita</span>
+            <span class="valor" id="talhao-colheita">--</span>
+          </div>
+
+          <div class="item-detalhe"><span class="label">Produto</span>
+            <span class="valor" id="talhao-produto">--</span>
+          </div>
+
+          <div class="item-detalhe destaque-fruta">
+            <span class="label">Variedade Cultivada</span>
+            <span class="valor" id="talhao-variedade">--</span>
+          </div>
+
+          <div class="item-detalhe">
+            <span class="label">Temperatura Configurada</span>
+            <span class="valor" id="talhao-temperatura-maxima">--</span>
+          </div>
+
+          <div class="item-detalhe"><span class="label">Ultima Inspecao</span>
+            <span class="valor" id="talhao-inspecao-data">--</span>
+          </div>
+          <div class="item-detalhe"><span class="label">Tecnico Responsavel</span>
+            <span class="valor" id="talhao-inspecao-tecnico">--</span>
+          </div>
+          <div class="item-detalhe destaque-tecnico">
+            <span class="label">Problema Apontado</span>
+            <span class="valor" id="talhao-inspecao-problema">--</span>
+          </div>
+          <div class="item-detalhe destaque-tecnico">
+            <span class="label">Recomendacao Tecnica</span>
+            <span class="valor" id="talhao-inspecao-recomendacao">--</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div id="telemetria">
+      <section class="cartao-full-diario">
+        <div class="titulo-do-cartao"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Telemetria Diaria</div>
+        <div class="tabela-responsiva">
+          <table class="tabela-dados">
+            <thead>
+              <tr>
+                <th>Temperatura (C)</th>
+                <th>Umidade Ar (%)</th>
+                <th>Umidade Solo (%)</th>
+                <th>Chuva (mm)</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-telemetria-diaria"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="cartao thingspeak-dashboard" data-thingspeak-panel aria-labelledby="eng-thingspeak-heading">
+        <div class="titulo-cartao" id="eng-thingspeak-heading">ThingSpeak / ESP32 — clima e telemetria</div>
+        <p class="mensagem-feedback" data-thingspeak-status aria-live="polite">Carregando canal ThingSpeak...</p>
+        <div class="thingspeak-summary" data-thingspeak-summary></div>
+        <!-- INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: graficos do ESP32 via Node-RED, um link por grafico, lado a lado -->
+        <div class="thingspeak-embeds" aria-label="Graficos do ESP32 via Node-RED">
+          <article>
+            <div class="container-iframe" style="height:300px;"><iframe
+                src="http://localhost:1880/dashboard/temperatura" title="Grafico de temperatura via Node-RED"
+                scrolling="no"></iframe></div>
+          </article>
+          <article>
+            <div class="container-iframe" style="height:300px;"><iframe src="http://localhost:1880/dashboard/umidade"
+                title="Grafico de umidade via Node-RED" scrolling="no"></iframe></div>
+          </article>
+        </div>
+        <!-- FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO -->
+        <div class="thingspeak-chart"><canvas aria-label="Historico recente das metricas do ThingSpeak"></canvas></div>
+        <div class="thingspeak-feed-scroll">
+          <table class="tabela-dados">
+            <thead>
+              <tr>
+                <th>Data/hora</th>
+                <th>Temperatura</th>
+                <th>Umidade do ar</th>
+                <th>Umidade do solo</th>
+                <th>Chuva</th>
+              </tr>
+            </thead>
+            <tbody data-thingspeak-rows>
+              <tr>
+                <td colspan="5">Carregando...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <section id="historico" class="cartao">
+      <div class="titulo-cartao"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i> Consolidado Mensal</div>
+      <div class="tabela-responsiva">
+        <table class="tabela-dados">
+          <thead>
+            <tr>
+              <th>Temperatura (C)</th>
+              <th>Umidade Ar (%)</th>
+              <th>Umidade Solo (%)</th>
+              <th>Chuva (mm)</th>
+              <th>Previsao Colheita</th>
+              <th>Qtd. Colhida</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-talhao-mensal"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="cartao">
+      <div class="titulo-cartao">
+        <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+        Clima Mensal
+      </div>
+
+      <p class="texto-ajuda">
+        Médias mensais das leituras dos sensores.
+      </p>
+
+      <div class="grafico-clima-mensal">
+        <canvas id="grafico-clima-mensal-engenheiro"></canvas>
+      </div>
+    </section>
+
+    <section id="colheita" class="cartao">
+      <div class="header-grafico">
+        <div>
+          <h2>Historico Anual de Colheitas</h2>
+          <p class="subtitulo-grafico">Acompanhe o volume de producao acumulado ao longo dos anos.</p>
+        </div>
+        <div class="filtros-grafico" aria-label="Unidade do grafico">
+          <button class="btn-filtro active" type="button" data-unidade="t">Toneladas (t)</button>
+          <button class="btn-filtro" type="button" data-unidade="sc">Sacas (sc)</button>
+          <button class="btn-filtro" type="button" data-unidade="kg">Quilogramas (kg)</button>
+          <button class="btn-filtro" type="button" data-unidade="cx">Caixas (cx)</button>
+        </div>
+      </div>
+
+      <div class="container-grafico">
+        <canvas id="graficoColheita"></canvas>
+      </div>
+      <p id="mensagem-colheita" class="mensagem-feedback" aria-live="polite"></p>
+
+      <div class="grid-resumo-colheita">
+        <div class="card-resumo destaque-vermelho">
+          <span class="titulo-resumo">ULTIMA COLHEITA</span>
+          <div class="dados-resumo"><i class="fa-regular fa-clock icone-resumo" aria-hidden="true"></i>
+            <div><strong id="resumo-ultima-data">--</strong>
+              <p id="resumo-ultima-valor">--</p>
+            </div>
+          </div>
+          <span class="rodape-resumo" id="resumo-ultima-media">Media: --</span>
+        </div>
+        <div class="card-resumo destaque-amarelo">
+          <span class="titulo-resumo">MENOR COLHEITA</span>
+          <div class="dados-resumo"><i class="fa-solid fa-circle-arrow-down icone-resumo" aria-hidden="true"></i>
+            <div><strong id="resumo-menor-data">--</strong>
+              <p id="resumo-menor-valor">--</p>
+            </div>
+          </div>
+          <span class="rodape-resumo" id="resumo-menor-media">Media: --</span>
+        </div>
+        <div class="card-resumo destaque-azul">
+          <span class="titulo-resumo">MAIOR COLHEITA</span>
+          <div class="dados-resumo"><i class="fa-solid fa-circle-arrow-up icone-resumo" aria-hidden="true"></i>
+            <div><strong id="resumo-maior-data">--</strong>
+              <p id="resumo-maior-valor">--</p>
+            </div>
+          </div>
+          <span class="rodape-resumo" id="resumo-maior-media">Media: --</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="cadastro-plantio" class="cartao card-cadastro-produto">
+      <div class="cabecalho-cadastro">
+        <span class="badge-status">Planejamento Agricola</span>
+        <h2 class="titulo-talhao">Cadastrar Produto</h2>
+        <p class="subtitulo-cadastro">Cadastre um novo produto e vincule-o a um talhao controlado pelo sistema.</p>
+      </div>
+
+      <form id="formulario-plantio">
+        <div class="info-grid-cadastro">
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="produto">Produto</label>
+            <input type="text" id="produto" name="produto" class="campo-formulario" placeholder="Ex.: Manga" required>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="variedade">Variedade</label>
+            <input type="text" id="variedade" name="variedade" class="campo-formulario" placeholder="Ex.: Palmer"
+              required>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="talhao">Talhao</label>
+            <select id="talhao" name="talhao" class="campo-formulario" required>
+              <option value="">Nenhum talhao cadastrado</option>
+            </select>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="solo">Tipo de Solo</label>
+            <select id="solo" name="solo" class="campo-formulario" required>
+              <option value="">Selecione</option>
+              <option value="Arenoso">Arenoso</option>
+              <option value="Franco Arenoso">Franco Arenoso</option>
+              <option value="Argiloso">Argiloso</option>
+            </select>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="data-plantio">Data de Plantio</label>
+            <input type="date" id="data-plantio" name="dataPlantio" class="campo-formulario" required>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="data-colheita">Previsao de Colheita</label>
+            <input type="date" id="data-colheita" name="dataColheita" class="campo-formulario" required>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="temperatura-maxima">Temperatura maxima</label>
+            <div class="campo-com-unidade">
+              <input type="number" id="temperatura-maxima" name="temperaturaMaxima" class="campo-formulario" min="0"
+                step="0.1" placeholder="Ex.: 30" required>
+              <span>C</span>
+            </div>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="sensor-associado">Sensores cadastrados neste talhão</label>
+            <select id="sensor-associado" class="campo-formulario" disabled>
+              <option>Nenhum sensor ativo cadastrado para este talhão</option>
+            </select>
+          </div>
+        </div>
+
+        <p class="mensagem-feedback" id="mensagem-plantio" aria-live="polite"></p>
+
+        <div class="area-botao-cadastro">
+          <button type="submit" id="btn-cadastrar-plantio" class="btn-primario">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i> Cadastrar Produto
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section id="relatorios-diarios" class="cartao">
+      <div class="titulo-cartao"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Relatorios diarios recebidos
+      </div>
+      <div class="filtros-relatorios">
+        <label for="filtro-relatorio-texto">Tecnico ou texto</label>
+        <input id="filtro-relatorio-texto" class="campo-formulario" type="search" placeholder="Buscar relatorio">
+        <label for="filtro-relatorio-data">Data</label>
+        <input id="filtro-relatorio-data" class="campo-formulario" type="date">
+        <label for="filtro-relatorio-status">Status</label>
+        <select id="filtro-relatorio-status" class="campo-formulario">
+          <option value="todos">Todos</option>
+          <option value="enviado">Enviado</option>
+          <option value="em_analise">Em analise</option>
+          <option value="concluido">Concluido</option>
+        </select>
+      </div>
+      <p id="mensagem-relatorios" class="mensagem-feedback" aria-live="polite"></p>
+      <div class="tabela-responsiva">
+        <table class="tabela-dados">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Tecnico</th>
+              <th>Relatorio de campo</th>
+              <th>Status</th>
+              <th>Acompanhamento</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-relatorios"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/frutlog-talhoes.js"></script>
+  <script src="js/mapa-talhoes.js"></script>
+  <script src="js/relatorios.js"></script>
+  <script src="js/telemetria-thingspeak.js"></script>
+  <script src="js/colheitas.js"></script>
+  <script src="js/eng.js"></script>
 </body>
+
 </html>
