@@ -1,0 +1,407 @@
+/* =========================================================
+   FRUTLOG - ADMINISTRADOR
+   Estilos exclusivos da administracao.
+   ========================================================= */
+
+.status-usuario {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 92px;
+  font-weight: 700;
+}
+
+.bolinha-status {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--cor-texto-suave);
+}
+
+.status-usuario.online {
+  color: var(--cor-destaque);
+}
+
+.status-usuario.online .bolinha-status {
+  background-color: var(--cor-destaque);
+  box-shadow: 0 0 0 4px rgba(46, 125, 50, 0.12);
+}
+
+.status-usuario.offline {
+  color: var(--cor-critico);
+}
+
+.status-usuario.offline .bolinha-status {
+  background-color: var(--cor-critico);
+  box-shadow: 0 0 0 4px rgba(198, 40, 40, 0.10);
+}
+
+#mapa-fazenda.cartao-mapa-wrapper {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 20px;
+}
+
+#mapa-fazenda .mapa-container {
+  position: relative;
+  width: 100%;
+  max-width: 860px;
+  /* evita que estique em telas largas */
+  margin: 0 auto;
+  /* centraliza */
+  aspect-ratio: 500 / 400;
+  /* proporção mais natural */
+  overflow: hidden;
+  border-radius: 8px;
+  background-color: transparent;
+  /* cor de fundo caso sobre espaço */
+}
+
+#mapa-fazenda .mapa-imagem {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  object-position: center;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+
+#funcionario-matricula[readonly] {
+  background-color: #f7f4ee;
+  color: var(--cor-texto-suave);
+  cursor: not-allowed;
+}
+
+.texto-ajuda {
+  color: var(--cor-texto-suave);
+  font-size: 0.78rem;
+}
+
+.admin-graficos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.admin-graficos .cartao {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.admin-grafico-container {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: 320px;
+}
+
+.admin-grafico-container canvas {
+  max-width: 100%;
+}
+
+.filtros-admin {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 1fr) auto minmax(140px, 200px);
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.filtros-admin label {
+  font-weight: 600;
+}
+
+.btn-acao-admin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  border: 1px solid #b3261e;
+  border-radius: 999px;
+  padding: 5px 12px;
+  background: #fff;
+  color: #b3261e;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-acao-admin:hover:not(:disabled) {
+  background: #fff1f0;
+}
+
+.btn-acao-admin[data-editar-funcionario] {
+  border-color: #2e7d32;
+  color: #2e7d32;
+}
+
+.btn-acao-admin[data-alternar-funcionario] {
+  border-color: #8a6d00;
+  color: #7a5e00;
+}
+
+.btn-acao-admin[data-alternar-funcionario]:hover:not(:disabled) {
+  background: #fff8dc;
+}
+
+.badge-status.excluido {
+  background-color: rgba(198, 40, 40, 0.14);
+  color: #b3261e;
+}
+
+.badge-status.ativo,
+.badge-status.normal {
+  background-color: rgba(46, 125, 50, 0.15);
+  color: #2e7d32;
+}
+
+.badge-status.inativo,
+.badge-status.sem-comunicacao,
+.badge-status.manutencao {
+  background-color: rgba(251, 192, 45, 0.22);
+  color: #7a5e00;
+}
+
+.badge-status.sem-sensor,
+.badge-status.sensor-inativo,
+.badge-status.sem-leitura {
+  background-color: rgba(117, 117, 117, 0.14);
+  color: #555f66;
+}
+
+.badge-status.critico {
+  background-color: rgba(198, 40, 40, 0.14);
+  color: #b3261e;
+}
+
+.btn-acao-admin[data-editar-funcionario]:hover:not(:disabled) {
+  background: #edf7ee;
+}
+
+.btn-acao-admin:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.lista-funcionarios-scroll {
+  max-height: 360px;
+  overflow: auto;
+}
+
+.lista-funcionarios-scroll thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.resumo-admin {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 12px;
+  margin: 18px 0 24px;
+}
+
+.resumo-admin article {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fafbf8;
+}
+
+.resumo-admin span {
+  color: var(--cor-texto-suave);
+  font-size: 0.85rem;
+}
+
+.resumo-admin strong {
+  color: var(--cor-destaque);
+  font-size: 1.5rem;
+}
+
+.tabelas-consolidadas-admin {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  max-height: 720px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.acoes-senha-provisoria {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.tabelas-consolidadas-admin h3 {
+  margin: 0 0 10px;
+}
+
+.resumo-colheita-admin {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  margin: 12px 0;
+}
+
+.resumo-colheita-admin p {
+  margin: 0;
+}
+
+#mapa-talhoes-admin .talhao-mapa {
+  cursor: pointer;
+}
+
+#mapa-talhoes-admin .talhao-mapa:focus-visible {
+  outline: none;
+}
+
+.chatbot {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1000;
+
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 50%;
+
+  background-color: var(--cor-destaque, #2e7d32);
+  color: #fff;
+  font-size: 1.4rem;
+  cursor: pointer;
+
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.chatbot:hover {
+  transform: scale(1.08);
+}
+
+.painel-chatbot {
+  position: fixed;
+  right: 24px;
+  bottom: 92px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(440px, calc(100vh - 120px));
+  overflow: hidden;
+  border: 1px solid #d8dfd3;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+}
+
+.painel-chatbot[hidden] {
+  display: none;
+}
+
+.cabecalho-chatbot,
+.form-chatbot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+}
+
+.cabecalho-chatbot {
+  justify-content: space-between;
+  background: var(--cor-destaque, #2e7d32);
+  color: #fff;
+}
+
+.cabecalho-chatbot button,
+.form-chatbot button {
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.mensagens-chatbot {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 100px;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.mensagem-chatbot {
+  align-self: flex-start;
+  max-width: 100%;
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: #f1f5ef;
+  color: #243024;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.mensagem-chatbot.pergunta {
+  align-self: flex-end;
+  background: #e5f2e4;
+}
+
+.form-chatbot {
+  border-top: 1px solid #e5e7eb;
+}
+
+.form-chatbot input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #cbd5c0;
+  border-radius: 6px;
+  padding: 9px;
+  font: inherit;
+}
+
+.form-chatbot button {
+  background: #2e7d32;
+  color: #fff;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 900px) {
+  .admin-graficos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .filtros-admin {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .tabelas-consolidadas-admin {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .lista-funcionarios-scroll {
+    max-height: none;
+  }
+}
