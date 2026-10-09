@@ -263,6 +263,14 @@
   outline: none;
 }
 
+<<<<<<< HEAD
+=======
+.admin-map-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }
+.admin-map-tools select { width: auto; min-width: 160px; }
+.admin-map-tools input { width: 145px; }
+.admin-map-editing .camada-talhoes { pointer-events: auto; touch-action: none; cursor: crosshair; }
+.admin-map-vertex { fill: #fff; stroke: #26734d; stroke-width: 2; pointer-events: all; cursor: grab; }
+>>>>>>> master
 .chatbot {
   position: fixed;
   right: 24px;
@@ -271,15 +279,26 @@
 
   width: 56px;
   height: 56px;
+<<<<<<< HEAD
   border: none;
   border-radius: 50%;
 
   background-color: var(--cor-destaque, #2e7d32);
+=======
+  border: 3px solid #fff;
+  border-radius: 50%;
+
+  background-color: #492d03;
+>>>>>>> master
   color: #fff;
   font-size: 1.4rem;
   cursor: pointer;
 
+<<<<<<< HEAD
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+=======
+  box-shadow: 0 0 0 1px rgba(73, 45, 3, 0.18), 0 6px 20px rgba(0, 0, 0, 0.32);
+>>>>>>> master
   transition: transform 0.2s ease;
 }
 
@@ -404,4 +423,8 @@
   .lista-funcionarios-scroll {
     max-height: none;
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> master

@@ -28,24 +28,41 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function responder(pergunta, contexto) {
     if (!Array.isArray(contexto?.sensores) || !Array.isArray(contexto?.ocorrencias)) {
+<<<<<<< HEAD
       throw new Error("A API retornou um contexto operacional invalido.");
+=======
+      throw new Error("A API retornou um contexto operacional inválido.");
+>>>>>>> master
     }
     const texto = normalizar(pergunta);
     if (/\bsensor(es)?\b|\bleitura(s)?\b|\btelemetria\b/.test(texto)) {
       if (!contexto.sensores.length) return "Nenhum sensor foi encontrado no cadastro operacional.";
       return `Status dos sensores:\n${contexto.sensores.slice(0, 8).map((sensor) =>
+<<<<<<< HEAD
         `${sensor.sensor} (${sensor.talhao || "sem talhao"}, ${sensor.metrica}): ${sensor.status}; leitura ${sensor.leitura}.`
+=======
+        `${sensor.sensor} (${sensor.talhao || "sem talhão"}, ${sensor.metrica}): ${sensor.status}; leitura ${sensor.leitura}.`
+>>>>>>> master
       ).join("\n")}`;
     }
 
     if (/\bocorrencia(s)?\b|\bproblema(s)?\b|\bevento(s)?\b/.test(texto)) {
+<<<<<<< HEAD
       if (!contexto.ocorrencias.length) return "Nao ha ocorrencias recentes registradas.";
       return `Ocorrencias recentes:\n${contexto.ocorrencias.slice(0, 8).map((item) =>
+=======
+      if (!contexto.ocorrencias.length) return "Não há ocorrências recentes registradas.";
+      return `Ocorrências recentes:\n${contexto.ocorrencias.slice(0, 8).map((item) =>
+>>>>>>> master
         `${item.data ? new Date(item.data).toLocaleString("pt-BR") : "Data indisponivel"} - Talhao ${item.talhao || "--"}: ${item.tipo}${item.observacao ? ` (${item.observacao})` : ""}.`
       ).join("\n")}`;
     }
 
+<<<<<<< HEAD
     return `Consultei os dados atuais da fazenda (${new Date(contexto.consultado_em).toLocaleString("pt-BR")}): ${contexto.ocorrencias.length} ocorrencia(s) recente(s) e ${contexto.sensores.length} sensor(es) cadastrado(s). Pergunte por "ocorrencias" ou "status dos sensores" para ver detalhes.`;
+=======
+    return `Consultei os dados atuais da fazenda (${new Date(contexto.consultado_em).toLocaleString("pt-BR")}): ${contexto.ocorrencias.length} ocorrência(s) recente(s) e ${contexto.sensores.length} sensor(es) cadastrado(s). Pergunte por "ocorrências" ou "status dos sensores" para ver detalhes.`;
+>>>>>>> master
   }
 
   function alternar(aberto) {
@@ -71,7 +88,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const contexto = await FrutLog.apiFetch("/chatbot/contexto");
       adicionarMensagem(responder(pergunta, contexto));
     } catch (erro) {
+<<<<<<< HEAD
       adicionarMensagem(`Nao foi possivel consultar o contexto da fazenda: ${erro.message}`);
+=======
+      adicionarMensagem(`Não foi possível consultar o contexto da fazenda: ${erro.message}`);
+>>>>>>> master
     } finally {
       campoPergunta.disabled = false;
       if (enviar) enviar.disabled = false;

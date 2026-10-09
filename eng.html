@@ -7,11 +7,23 @@
   <link rel="stylesheet" href="css/global.css">
   <link rel="stylesheet" href="css/dashboard.css">
   <link rel="stylesheet" href="css/eng.css">
+<<<<<<< HEAD
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <title>FrutLog - Engenheiro Agronomo</title>
 </head>
 
 <body class="layout-dashboard">
+=======
+  <link rel="stylesheet" href="css/pulse-frutlog.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <title>FrutLog - Engenheiro Agrônomo</title>
+  <link rel="stylesheet" href="css/formularios.css">
+  <link rel="stylesheet" href="css/vendor/flatpickr.min.css">
+  <link rel="stylesheet" href="css/calendarios.css">
+</head>
+
+<body class="layout-dashboard" data-console-role="engenheiro">
+>>>>>>> master
   <aside class="sidebar">
     <div class="logo-area">
       <i class="fa-solid fa-leaf logo-icone" aria-hidden="true"></i>
@@ -22,10 +34,17 @@
       <a href="#monitoramento" class="nav-link active"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
         Monitoramento</a>
       <a href="#telemetria" class="nav-link"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Telemetria</a>
+<<<<<<< HEAD
       <a href="#historico" class="nav-link"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i> Historico</a>
       <a href="#colheita" class="nav-link"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Colheita</a>
       <a href="#relatorios-diarios" class="nav-link"><i class="fa-solid fa-file-lines" aria-hidden="true"></i>
         Relatorios</a>
+=======
+      <a href="#historico" class="nav-link"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i> Histórico</a>
+      <a href="#colheita" class="nav-link"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Colheita</a>
+      <a href="#relatorios-diarios" class="nav-link"><i class="fa-solid fa-file-lines" aria-hidden="true"></i>
+        Relatórios</a>
+>>>>>>> master
       <a href="#cadastro-plantio" class="nav-link"><i class="fa-solid fa-seedling" aria-hidden="true"></i> Cadastro</a>
     </nav>
 
@@ -38,7 +57,11 @@
 
   <main class="conteudo-dashboard">
     <section class="topo" aria-labelledby="titulo-dashboard">
+<<<<<<< HEAD
       <h1 id="titulo-dashboard">Monitoramento da Producão</h1>
+=======
+      <h1 id="titulo-dashboard">Monitoramento da Produção</h1>
+>>>>>>> master
       <p>Acompanhamento dos produtos em desenvolvimento nos talhões.</p>
     </section>
 
@@ -46,6 +69,7 @@
       <div class="cartao cartao-mapa-wrapper">
         <div class="mapa-header">
           <div>
+<<<<<<< HEAD
             <h2>Visao dos Talhões</h2>
             <p>Selecione um talhão para visualizar seus dados.</p>
           </div>
@@ -56,16 +80,40 @@
         <div class="barra-edicao-talhao" aria-label="Ferramentas de edicao de talhões">
           <button class="btn-filtro" type="button" id="btn-editar-talhoes">Editar Talhões</button>
           <button class="btn-filtro" type="button" id="btn-criar-talhao" disabled>Criar</button>
+=======
+            <h2>Visão dos Talhões</h2>
+            <p>Selecione um talhão para visualizar seus dados.</p>
+          </div>
+          <div class="botoes-do-talhao" id="botoes-talhao" aria-label="Seleção de talhão"></div>
+          <span class="status-mapa">Monitoramento Ativo</span>
+        </div>
+
+        <p class="texto-ajuda">Edição dos limites: clique em Editar Talhões para desenhar, mover pontos e ajustar a área.</p>
+        <div class="barra-edicao-talhao" aria-label="Ferramentas de edição de talhões">
+          <button class="btn-filtro" type="button" id="btn-editar-talhoes">Editar Talhões</button>
+          <button class="btn-filtro" type="button" id="btn-recarregar-mapa">Recarregar mapa</button>
+          <button class="btn-filtro" type="button" id="btn-criar-talhao" disabled>Criar</button>
+          <button class="btn-filtro" type="button" id="btn-concluir-desenho" hidden disabled>Concluir desenho</button>
+>>>>>>> master
           <button class="btn-filtro" type="button" id="btn-dividir-talhao" disabled>Dividir</button>
           <button class="btn-filtro" type="button" id="btn-excluir-talhao" disabled>Excluir</button>
           <button class="btn-filtro" type="button" id="btn-salvar-talhao" disabled>Salvar</button>
           <button class="btn-filtro" type="button" id="btn-cancelar-talhao" disabled>Cancelar</button>
+<<<<<<< HEAD
           <label for="talhao-area-hectares">Area do talhão (ha)</label>
 
           <input id="talhao-area-hectares" class="campo-formulario" type="number" min="0.01" step="0.01"
             inputmode="decimal" aria-label="Area do talhão em hectares">
 
           <button class="btn-filtro" type="button" id="btn-aplicar-area-talhao" disabled>Aplicar area</button>
+=======
+          <label for="talhao-area-hectares">Área do talhão (há)</label>
+
+          <input id="talhao-area-hectares" class="campo-formulario" type="number" min="0.01" step="0.01"
+            inputmode="decimal" aria-label="Área do talhão em hectares">
+
+          <button class="btn-filtro" type="button" id="btn-aplicar-area-talhao" disabled>Aplicar área</button>
+>>>>>>> master
         </div>
 
         <p class="mensagem-feedback" id="mensagem-edicao-talhao" aria-live="polite"></p>
@@ -82,8 +130,13 @@
 
         <div class="legenda-mapa">
           <div class="legenda-item"><span class="legenda-cor legenda-normal"></span><span>Normal</span></div>
+<<<<<<< HEAD
           <div class="legenda-item"><span class="legenda-cor legenda-atencao"></span><span>Atencao</span></div>
           <div class="legenda-item"><span class="legenda-cor legenda-critico"></span><span>Critico</span></div>
+=======
+          <div class="legenda-item"><span class="legenda-cor legenda-atencao"></span><span>Atenção</span></div>
+          <div class="legenda-item"><span class="legenda-cor legenda-critico"></span><span>Crítico</span></div>
+>>>>>>> master
           <div class="legenda-item"><span class="legenda-cor legenda-selecao"></span><span>Selecionado</span></div>
         </div>
       </div>
@@ -96,7 +149,11 @@
 
         <div class="info-grid-detalhes">
 
+<<<<<<< HEAD
           <div class="item-detalhe"><span class="label">Area</span>
+=======
+          <div class="item-detalhe"><span class="label">Área</span>
+>>>>>>> master
             <span class="valor" id="talhao-area">--</span>
           </div>
 
@@ -108,7 +165,11 @@
             <span class="valor" id="talhao-plantio">--</span>
           </div>
 
+<<<<<<< HEAD
           <div class="item-detalhe"><span class="label">Previsao de Colheita</span>
+=======
+          <div class="item-detalhe"><span class="label">Previsão de Colheita</span>
+>>>>>>> master
             <span class="valor" id="talhao-colheita">--</span>
           </div>
 
@@ -126,10 +187,17 @@
             <span class="valor" id="talhao-temperatura-maxima">--</span>
           </div>
 
+<<<<<<< HEAD
           <div class="item-detalhe"><span class="label">Ultima Inspecao</span>
             <span class="valor" id="talhao-inspecao-data">--</span>
           </div>
           <div class="item-detalhe"><span class="label">Tecnico Responsavel</span>
+=======
+          <div class="item-detalhe"><span class="label">Última Inspeção</span>
+            <span class="valor" id="talhao-inspecao-data">--</span>
+          </div>
+          <div class="item-detalhe"><span class="label">Técnico Responsável</span>
+>>>>>>> master
             <span class="valor" id="talhao-inspecao-tecnico">--</span>
           </div>
           <div class="item-detalhe destaque-tecnico">
@@ -137,7 +205,11 @@
             <span class="valor" id="talhao-inspecao-problema">--</span>
           </div>
           <div class="item-detalhe destaque-tecnico">
+<<<<<<< HEAD
             <span class="label">Recomendacao Tecnica</span>
+=======
+            <span class="label">Recomendação Tecnica</span>
+>>>>>>> master
             <span class="valor" id="talhao-inspecao-recomendacao">--</span>
           </div>
         </div>
@@ -146,7 +218,11 @@
 
     <div id="telemetria">
       <section class="cartao-full-diario">
+<<<<<<< HEAD
         <div class="titulo-do-cartao"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Telemetria Diaria</div>
+=======
+        <div class="titulo-do-cartao"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Telemetria Diária</div>
+>>>>>>> master
         <div class="tabela-responsiva">
           <table class="tabela-dados">
             <thead>
@@ -178,7 +254,11 @@
           </article>
         </div>
         <!-- FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO -->
+<<<<<<< HEAD
         <div class="thingspeak-chart"><canvas aria-label="Historico recente das metricas do ThingSpeak"></canvas></div>
+=======
+        <div class="thingspeak-chart"><canvas aria-label="Histórico recente das métricas do ThingSpeak"></canvas></div>
+>>>>>>> master
         <div class="thingspeak-feed-scroll">
           <table class="tabela-dados">
             <thead>
@@ -200,7 +280,12 @@
       </section>
     </div>
 
+<<<<<<< HEAD
     <section id="historico" class="cartao">
+=======
+    <div id="historico" hidden>
+    <section class="cartao">
+>>>>>>> master
       <div class="titulo-cartao"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i> Consolidado Mensal</div>
       <div class="tabela-responsiva">
         <table class="tabela-dados">
@@ -210,7 +295,11 @@
               <th>Umidade Ar (%)</th>
               <th>Umidade Solo (%)</th>
               <th>Chuva (mm)</th>
+<<<<<<< HEAD
               <th>Previsao Colheita</th>
+=======
+              <th>Previsão Colheita</th>
+>>>>>>> master
               <th>Qtd. Colhida</th>
             </tr>
           </thead>
@@ -234,11 +323,21 @@
       </div>
     </section>
 
+<<<<<<< HEAD
     <section id="colheita" class="cartao">
       <div class="header-grafico">
         <div>
           <h2>Historico Anual de Colheitas</h2>
           <p class="subtitulo-grafico">Acompanhe o volume de producao acumulado ao longo dos anos.</p>
+=======
+    </div>
+
+    <section id="colheita" class="cartao">
+      <div class="header-grafico">
+        <div>
+          <h2>Histórico Anual de Colheitas</h2>
+          <p class="subtitulo-grafico">Acompanhe o volume de produção acumulado ao longo dos anos.</p>
+>>>>>>> master
         </div>
         <div class="filtros-grafico" aria-label="Unidade do grafico">
           <button class="btn-filtro active" type="button" data-unidade="t">Toneladas (t)</button>
@@ -255,13 +354,21 @@
 
       <div class="grid-resumo-colheita">
         <div class="card-resumo destaque-vermelho">
+<<<<<<< HEAD
           <span class="titulo-resumo">ULTIMA COLHEITA</span>
+=======
+          <span class="titulo-resumo">ÚLTIMA COLHEITA</span>
+>>>>>>> master
           <div class="dados-resumo"><i class="fa-regular fa-clock icone-resumo" aria-hidden="true"></i>
             <div><strong id="resumo-ultima-data">--</strong>
               <p id="resumo-ultima-valor">--</p>
             </div>
           </div>
+<<<<<<< HEAD
           <span class="rodape-resumo" id="resumo-ultima-media">Media: --</span>
+=======
+          <span class="rodape-resumo" id="resumo-ultima-media">Média: --</span>
+>>>>>>> master
         </div>
         <div class="card-resumo destaque-amarelo">
           <span class="titulo-resumo">MENOR COLHEITA</span>
@@ -270,7 +377,11 @@
               <p id="resumo-menor-valor">--</p>
             </div>
           </div>
+<<<<<<< HEAD
           <span class="rodape-resumo" id="resumo-menor-media">Media: --</span>
+=======
+          <span class="rodape-resumo" id="resumo-menor-media">Média: --</span>
+>>>>>>> master
         </div>
         <div class="card-resumo destaque-azul">
           <span class="titulo-resumo">MAIOR COLHEITA</span>
@@ -279,16 +390,26 @@
               <p id="resumo-maior-valor">--</p>
             </div>
           </div>
+<<<<<<< HEAD
           <span class="rodape-resumo" id="resumo-maior-media">Media: --</span>
+=======
+          <span class="rodape-resumo" id="resumo-maior-media">Média: --</span>
+>>>>>>> master
         </div>
       </div>
     </section>
 
     <section id="cadastro-plantio" class="cartao card-cadastro-produto">
       <div class="cabecalho-cadastro">
+<<<<<<< HEAD
         <span class="badge-status">Planejamento Agricola</span>
         <h2 class="titulo-talhao">Cadastrar Produto</h2>
         <p class="subtitulo-cadastro">Cadastre um novo produto e vincule-o a um talhao controlado pelo sistema.</p>
+=======
+        <span class="badge-status">Planejamento Agrícola</span>
+        <h2 class="titulo-talhao">Cadastrar Produto</h2>
+        <p class="subtitulo-cadastro">Cadastre um novo produto e vincule-o a um talhão controlado pelo sistema.</p>
+>>>>>>> master
       </div>
 
       <form id="formulario-plantio">
@@ -303,9 +424,15 @@
               required>
           </div>
           <div class="item-detalhe-cadastro">
+<<<<<<< HEAD
             <label class="label" for="talhao">Talhao</label>
             <select id="talhao" name="talhao" class="campo-formulario" required>
               <option value="">Nenhum talhao cadastrado</option>
+=======
+            <label class="label" for="talhao">Talhão</label>
+            <select id="talhao" name="talhao" class="campo-formulario" required>
+              <option value="">Nenhum talhão cadastrado</option>
+>>>>>>> master
             </select>
           </div>
           <div class="item-detalhe-cadastro">
@@ -322,7 +449,11 @@
             <input type="date" id="data-plantio" name="dataPlantio" class="campo-formulario" required>
           </div>
           <div class="item-detalhe-cadastro">
+<<<<<<< HEAD
             <label class="label" for="data-colheita">Previsao de Colheita</label>
+=======
+            <label class="label" for="data-colheita">Previsão de Colheita</label>
+>>>>>>> master
             <input type="date" id="data-colheita" name="dataColheita" class="campo-formulario" required>
           </div>
           <div class="item-detalhe-cadastro">
@@ -352,11 +483,19 @@
     </section>
 
     <section id="relatorios-diarios" class="cartao">
+<<<<<<< HEAD
       <div class="titulo-cartao"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Relatorios diarios recebidos
       </div>
       <div class="filtros-relatorios">
         <label for="filtro-relatorio-texto">Tecnico ou texto</label>
         <input id="filtro-relatorio-texto" class="campo-formulario" type="search" placeholder="Buscar relatorio">
+=======
+      <div class="titulo-cartao"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Relatórios diários recebidos
+      </div>
+      <div class="filtros-relatorios">
+        <label for="filtro-relatorio-texto">Técnico ou texto</label>
+        <input id="filtro-relatorio-texto" class="campo-formulario" type="search" placeholder="Buscar relatório">
+>>>>>>> master
         <label for="filtro-relatorio-data">Data</label>
         <input id="filtro-relatorio-data" class="campo-formulario" type="date">
         <label for="filtro-relatorio-status">Status</label>
@@ -373,8 +512,13 @@
           <thead>
             <tr>
               <th>Data</th>
+<<<<<<< HEAD
               <th>Tecnico</th>
               <th>Relatorio de campo</th>
+=======
+              <th>Técnico</th>
+              <th>Relatório de campo</th>
+>>>>>>> master
               <th>Status</th>
               <th>Acompanhamento</th>
             </tr>
@@ -393,6 +537,16 @@
   <script src="js/telemetria-thingspeak.js"></script>
   <script src="js/colheitas.js"></script>
   <script src="js/eng.js"></script>
+<<<<<<< HEAD
 </body>
 
 </html>
+=======
+  <script src="js/pulse-frutlog.js"></script>
+  <script src="js/vendor/flatpickr.min.js"></script>
+  <script src="js/vendor/flatpickr-pt.js"></script>
+  <script src="js/calendarios.js"></script>
+</body>
+
+</html>
+>>>>>>> master

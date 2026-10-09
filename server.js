@@ -49,7 +49,11 @@ function sendStatic(req, res) {
   fs.readFile(target, (error, data) => {
     if (error) {
       res.writeHead(error.code === "ENOENT" ? 404 : 500, { "Content-Type": "text/plain; charset=utf-8" });
+<<<<<<< HEAD
       res.end(error.code === "ENOENT" ? "Arquivo nao encontrado" : "Erro ao ler arquivo");
+=======
+      res.end(error.code === "ENOENT" ? "Arquivo não encontrado" : "Erro ao ler arquivo");
+>>>>>>> master
       return;
     }
     res.writeHead(200, {

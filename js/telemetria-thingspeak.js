@@ -44,7 +44,11 @@ document.addEventListener("DOMContentLoaded", () => {
   function mostrarErro(mensagem) {
     status.textContent = mensagem;
     status.className = "mensagem-feedback erro";
+<<<<<<< HEAD
     corpoTabela.innerHTML = '<tr><td colspan="5">Nao foi possivel atualizar as leituras.</td></tr>';
+=======
+    corpoTabela.innerHTML = '<tr><td colspan="5">Não foi possível atualizar as leituras.</td></tr>';
+>>>>>>> master
   }
 
   async function atualizar() {
@@ -77,7 +81,11 @@ document.addEventListener("DOMContentLoaded", () => {
             ${Object.keys(nomes).map((chave) => `<td>${escapar(feed.values[chave] ?? "--")}</td>`).join("")}
           </tr>
         `).join("")
+<<<<<<< HEAD
         : '<tr><td colspan="5">O canal ainda nao possui leituras.</td></tr>';
+=======
+        : '<tr><td colspan="5">O canal ainda não possui leituras.</td></tr>';
+>>>>>>> master
 
       if (grafico) grafico.destroy();
       grafico = null;

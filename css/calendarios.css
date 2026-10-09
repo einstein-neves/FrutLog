@@ -1,0 +1,21 @@
+.flatpickr-calendar { border: 1px solid #dce3df; border-radius: 16px; padding: 10px; width: 328px; max-width: calc(100vw - 16px); background: #fff; box-shadow: 0 12px 36px rgb(25 50 35 / 16%); font-family: inherit; }
+.flatpickr-calendar::before, .flatpickr-calendar::after { display: none; }
+.flatpickr-months { padding: 0 0 8px; }
+.flatpickr-months .flatpickr-month { height: 44px; }
+.flatpickr-current-month { display: flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0; font-size: 15px; font-weight: 600; color: #263c30; }
+.flatpickr-current-month span.cur-month { margin: 0; }
+.flatpickr-current-month .numInputWrapper { width: 65px; }
+.flatpickr-current-month .flatpickr-monthDropdown-months { min-height: 0; padding: 0 4px; border: 0; border-radius: 6px; background: transparent; font: inherit; box-shadow: none; }
+body .flatpickr-current-month input.cur-year { min-height: 28px !important; height: 28px; padding: 0 0 0 4px !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; font: inherit; box-shadow: none !important; }
+.flatpickr-months .flatpickr-prev-month, .flatpickr-months .flatpickr-next-month { top: 13px; padding: 8px; border-radius: 8px; }
+.flatpickr-months .flatpickr-prev-month:hover svg, .flatpickr-months .flatpickr-next-month:hover svg { fill: #26734d; }
+span.flatpickr-weekday { color: #738279; font-size: 11px; font-weight: 600; }
+.flatpickr-day { border-radius: 10px; color: #304a3a; font-size: 13px; }
+.flatpickr-day:hover, .flatpickr-day:focus { border-color: #eef5f0; background: #eef5f0; }
+.flatpickr-day.today { border-color: #92b99f; }
+.flatpickr-day.selected, .flatpickr-day.selected:hover, .flatpickr-day.selected:focus,
+.flatpickr-day.today:hover, .flatpickr-day.today:focus { border-color: #26734d; background: #26734d; color: #fff; }
+.calendar-actions { display: flex; justify-content: space-between; border-top: 1px solid #e7ede9; margin-top: 8px; padding-top: 8px; }
+.calendar-actions button { border: 0; border-radius: 7px; padding: 8px 12px; background: #eef5f0; color: #26734d; font-size: 12px; font-weight: 600; cursor: pointer; }
+.calendar-actions button:hover { background: #e1efe5; }
+.calendar-actions button:focus-visible { outline: 2px solid #26734d; outline-offset: 2px; }

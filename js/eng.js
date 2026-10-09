@@ -17,6 +17,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   const filtrosGrafico = document.querySelectorAll(".btn-filtro[data-unidade]");
   const btnEditar = document.getElementById("btn-editar-talhoes");
   const btnCriar = document.getElementById("btn-criar-talhao");
+<<<<<<< HEAD
+=======
+  const btnConcluirDesenho = document.getElementById("btn-concluir-desenho");
+>>>>>>> master
   const btnDividir = document.getElementById("btn-dividir-talhao");
   const btnExcluir = document.getElementById("btn-excluir-talhao");
   const btnSalvar = document.getElementById("btn-salvar-talhao");
@@ -102,7 +106,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const pendentes = talhoes.filter((feature) => feature.properties.geometriaPendente).length;
     preencherTexto(
       "mensagem-geometria-talhoes",
+<<<<<<< HEAD
       pendentes ? `${pendentes} talhao(es) ainda sem geometria. Selecione cada um e use Criar para desenhar seus limites.` : ""
+=======
+      pendentes ? `${pendentes} talhão(es) ainda sem geometria. Selecione cada um e use Criar para desenhar seus limites.` : ""
+>>>>>>> master
     );
 
     FrutLogMapaTalhoes.renderizarMapaTalhoes(svgMapa, talhoes, {
@@ -191,7 +199,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         return `<option value="${codigo}">${codigo}</option>`;
       })
       .join("");
+<<<<<<< HEAD
     select.innerHTML = `<option value="">${opcoes ? "Selecione o talhao" : "Nenhum talhao carregado"}</option>${opcoes}`;
+=======
+    select.innerHTML = `<option value="">${opcoes ? "Selecione o talhão" : "Nenhum talhão carregado"}</option>${opcoes}`;
+>>>>>>> master
     if (talhoes.some((feature) => feature.properties.codigo === atual)) select.value = atual;
     atualizarSensoresDoTalhao();
   }
@@ -202,7 +214,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const codigoTalhao = document.getElementById("talhao")?.value;
     const sensores = sensoresDoPainel.filter((sensor) => sensor.talhao === codigoTalhao && sensor.ativo);
     if (!sensores.length) {
+<<<<<<< HEAD
       select.innerHTML = '<option>Nenhum sensor ativo cadastrado para este talhao</option>';
+=======
+      select.innerHTML = '<option value="Nenhum sensor ativo cadastrado para este talhao">Nenhum sensor ativo cadastrado para este talhão</option>';
+>>>>>>> master
       select.disabled = true;
       return;
     }
@@ -222,11 +238,23 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     btnEditar?.classList.toggle("active", modoEdicao);
     if (btnEditar) btnEditar.disabled = !mapaApiPronto;
+<<<<<<< HEAD
     if (btnEditar) btnEditar.textContent = modoEdicao ? "Encerrar Edicao" : "Editar Talhoes";
     if (btnAplicarArea) btnAplicarArea.disabled = !modoEdicao || !talhaoSelecionado;
     btnCriar?.classList.toggle("active", modoCriacao);
     btnDividir?.classList.toggle("active", modoDivisao);
     if (btnDividir) btnDividir.textContent = modoDivisao ? "Divisao Ativa" : "Dividir";
+=======
+    if (btnEditar) btnEditar.textContent = modoEdicao ? "Encerrar Edição" : "Editar Talhões";
+    if (btnAplicarArea) btnAplicarArea.disabled = !modoEdicao || !talhaoSelecionado;
+    btnCriar?.classList.toggle("active", modoCriacao);
+    if (btnConcluirDesenho) {
+      btnConcluirDesenho.hidden = !modoCriacao;
+      btnConcluirDesenho.disabled = pontosCriacao.length < 3;
+    }
+    btnDividir?.classList.toggle("active", modoDivisao);
+    if (btnDividir) btnDividir.textContent = modoDivisao ? "Divisão Ativa" : "Dividir";
+>>>>>>> master
     mapaContainer?.classList.toggle("modo-edicao", modoEdicao);
     mapaContainer?.classList.toggle("modo-divisao", modoDivisao);
   }
@@ -246,7 +274,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const status = atualizarStatusTalhao(feature);
     if (campoAreaTalhao) campoAreaTalhao.value = String(obterAreaHectares(feature) || "");
 
+<<<<<<< HEAD
     preencherTexto("titulo-talhao", `Detalhes: Talhao ${codigo}`);
+=======
+    preencherTexto("titulo-talhao", `Detalhes: Talhão ${codigo}`);
+>>>>>>> master
     preencherTexto("talhao-area", props.area);
     preencherTexto("talhao-solo", props.solo);
     preencherTexto("talhao-plantio", props.plantio);
@@ -261,7 +293,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const badge = document.getElementById("talhao-status");
     if (badge) {
+<<<<<<< HEAD
       badge.textContent = status;
+=======
+      badge.textContent = FrutLog.textoInterface(status);
+>>>>>>> master
       badge.className = `badge-status ${classeStatus(status)}`;
     }
 
@@ -291,7 +327,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!tabela) return;
 
     if (!dadosMensais.length) {
+<<<<<<< HEAD
       tabela.innerHTML = '<tr><td colspan="6">Sem consolidado mensal para este talhao.</td></tr>';
+=======
+      tabela.innerHTML = '<tr><td colspan="6">Sem consolidado mensal para este talhão.</td></tr>';
+>>>>>>> master
       return;
     }
 
@@ -465,7 +505,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function concluirCriacao() {
     if (!modoCriacao || pontosCriacao.length < 3) {
+<<<<<<< HEAD
       exibirMensagemEdicao("Adicione pelo menos tres pontos para criar um talhao.", "erro");
+=======
+      exibirMensagemEdicao("Adicione pelo menos três pontos para criar um talhão.", "erro");
+>>>>>>> master
       return;
     }
 
@@ -491,8 +535,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     pontosCriacao = [];
     codigoGeometriaPendente = "";
     selecionarTalhao(codigo);
+<<<<<<< HEAD
     atualizarSelectCadastro();
     exibirMensagemEdicao(`Geometria do talhao ${codigo} atualizada. Clique em Salvar para persistir.`);
+=======
+    atualizarControlesEdicao();
+    atualizarSelectCadastro();
+    exibirMensagemEdicao(`Geometria do talhão ${codigo} atualizada. Clique em Salvar para persistir.`);
+>>>>>>> master
   }
 
   function ativarOuDesativarEdicao() {
@@ -506,7 +556,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     talhaoArrastado = null;
     atualizarControlesEdicao();
     renderizarMapa();
+<<<<<<< HEAD
     exibirMensagemEdicao(modoEdicao ? "Modo de edicao ativado." : "Modo de edicao desativado.");
+=======
+    exibirMensagemEdicao(modoEdicao ? "Arraste os pontos para alterar a forma ou o interior para mover o talhão. Use Criar para desenhar um novo limite e Aplicar área para ajustar o tamanho. Clique em Salvar ao terminar." : "Modo de edição desativado.");
+>>>>>>> master
   }
 
   function iniciarCriacao() {
@@ -523,7 +577,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderizarMapa();
     exibirMensagemEdicao(
       codigoGeometriaPendente
+<<<<<<< HEAD
         ? `Desenhe os limites do talhao ${codigoGeometriaPendente}. Dê dois cliques para finalizar.`
+=======
+        ? `Desenhe os limites do talhão ${codigoGeometriaPendente}. Dê dois cliques para finalizar.`
+>>>>>>> master
         : "Clique no mapa para adicionar pontos. Dê dois cliques para finalizar."
     );
   }
@@ -540,8 +598,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderizarMapa();
     exibirMensagemEdicao(
       modoDivisao
+<<<<<<< HEAD
         ? `Clique em dois pontos atravessando o talhao ${talhaoSelecionado} para dividir.`
         : "Divisao cancelada."
+=======
+        ? `Clique em dois pontos atravessando o talhão ${talhaoSelecionado} para dividir.`
+        : "Divisão cancelada."
+>>>>>>> master
     );
   }
 
@@ -602,7 +665,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!feature) return;
 
     if (linhaInicio[0] === linhaFim[0] && linhaInicio[1] === linhaFim[1]) {
+<<<<<<< HEAD
       exibirMensagemEdicao("Escolha dois pontos diferentes para dividir o talhao.", "erro");
+=======
+      exibirMensagemEdicao("Escolha dois pontos diferentes para dividir o talhão.", "erro");
+>>>>>>> master
       pontosDivisao = [];
       renderizarMapa();
       return;
@@ -613,7 +680,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const atravessaTalhao = lados.some((lado) => lado > 0) && lados.some((lado) => lado < 0);
 
     if (!atravessaTalhao) {
+<<<<<<< HEAD
       exibirMensagemEdicao("A linha precisa atravessar o interior do talhao selecionado.", "erro");
+=======
+      exibirMensagemEdicao("A linha precisa atravessar o interior do talhão selecionado.", "erro");
+>>>>>>> master
       pontosDivisao = [];
       renderizarMapa();
       return;
@@ -623,18 +694,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     const parteDois = recortarPoligonoPorLinha(pontos, linhaInicio, linhaFim, false);
 
     if (parteUm.length < 3 || parteDois.length < 3) {
+<<<<<<< HEAD
       exibirMensagemEdicao("A linha precisa atravessar o talhao para gerar duas areas.", "erro");
+=======
+      exibirMensagemEdicao("A linha precisa atravessar o talhão para gerar duas áreas.", "erro");
+>>>>>>> master
       return;
     }
 
     const propriedadesBase = {
       ...feature.properties,
+<<<<<<< HEAD
       sensor: "Nao associado",
       apontamentoTecnico: {
         data: "--",
         tecnico: "--",
         problema: "Talhao dividido. Sensor ainda nao associado.",
         recomendacao: "Associar sensor ao novo talhao.",
+=======
+      sensor: "Não associado",
+      apontamentoTecnico: {
+        data: "--",
+        tecnico: "--",
+        problema: "Talhão dividido. Sensor ainda não associado.",
+        recomendacao: "Associar sensor ao novo talhão.",
+>>>>>>> master
       },
       prioridade: "Associar sensor",
     };
@@ -687,7 +771,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     talhaoSelecionado = talhoes[0]?.properties.codigo || "";
     selecionarTalhao(talhaoSelecionado);
     atualizarSelectCadastro();
+<<<<<<< HEAD
     exibirMensagemEdicao("Talhao removido do rascunho. Clique em Salvar para confirmar.");
+=======
+    exibirMensagemEdicao("Talhão removido do rascunho. Clique em Salvar para confirmar.");
+>>>>>>> master
   }
 
   function obterAreaHectares(feature) {
@@ -709,14 +797,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     const feature = obterFeature(talhaoSelecionado);
     const area = Number(campoAreaTalhao?.value);
     if (!feature || !Number.isFinite(area) || area <= 0) {
+<<<<<<< HEAD
       exibirMensagemEdicao("Informe uma area valida, maior que zero hectares.", "erro");
+=======
+      exibirMensagemEdicao("Informe uma área valida, maior que zero hectares.", "erro");
+>>>>>>> master
       campoAreaTalhao?.focus();
       return;
     }
     feature.properties.area_hectares = area;
     feature.properties.area = `${area} hectares`;
     preencherTexto("talhao-area", feature.properties.area);
+<<<<<<< HEAD
     exibirMensagemEdicao(`Area do talhao ${talhaoSelecionado} atualizada no rascunho.`);
+=======
+    exibirMensagemEdicao(`Área do talhão ${talhaoSelecionado} atualizada no rascunho.`);
+>>>>>>> master
   }
 
   async function salvarAlteracoesMapa() {
@@ -734,14 +830,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     }));
 
     if (dadosTalhoes.some((feature) => !feature.properties.area_hectares)) {
+<<<<<<< HEAD
       exibirMensagemEdicao("Defina a area em hectares de todos os talhoes antes de salvar.", "erro");
+=======
+      exibirMensagemEdicao("Defina a área em hectares de todos os talhões antes de salvar.", "erro");
+>>>>>>> master
       return;
     }
 
     const botao = btnSalvar;
     if (botao) botao.disabled = true;
     try {
+<<<<<<< HEAD
       if (!mapaApiPronto) throw new Error("As geometrias do servidor ainda nao foram carregadas.");
+=======
+      if (!mapaApiPronto) throw new Error("As geometrias do servidor ainda não foram carregadas.");
+>>>>>>> master
       const resposta = await FrutLog.apiFetch("/talhoes/geometrias", {
         method: "PUT",
         body: JSON.stringify({
@@ -757,7 +861,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       atualizarControlesEdicao();
       renderizarBotoesTalhao();
       renderizarMapa();
+<<<<<<< HEAD
       exibirMensagemEdicao("Geometrias e areas salvas no banco. Os demais paineis receberao a atualizacao automaticamente.");
+=======
+      exibirMensagemEdicao("Geometrias e áreas salvas no banco. Os demais paineis receberao a atualizacao automaticamente.");
+>>>>>>> master
       FrutLog.notificarAtualizacaoTalhoes();
     } catch (erro) {
       exibirMensagemEdicao(erro.message, "erro");
@@ -777,7 +885,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     atualizarControlesEdicao();
     selecionarTalhao(talhaoSelecionado);
     atualizarSelectCadastro();
+<<<<<<< HEAD
     exibirMensagemEdicao("Alteracoes nao salvas foram descartadas.");
+=======
+    exibirMensagemEdicao("Alteracoes não salvas foram descartadas.");
+>>>>>>> master
   }
 
   async function registrarPlantio(evento) {
@@ -834,7 +946,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       colheitas = resultadoColheitas.value.colheitas || [];
     } else {
       colheitas = [];
+<<<<<<< HEAD
       erros.push(`Historico de colheitas: ${resultadoColheitas.reason?.message || resultadoColheitas.reason}`);
+=======
+      erros.push(`Histórico de colheitas: ${resultadoColheitas.reason?.message || resultadoColheitas.reason}`);
+>>>>>>> master
     }
     try {
       telemetriaMensalEsp32 = (await FrutLog.apiFetch("/telemetria/esp32-mensal")).mensal || [];
@@ -879,7 +995,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           ...feature.properties,
           status: resumo?.situacao || "Sem leitura",
           prioridade: resumo?.prioridade || "Sem leitura registrada.",
+<<<<<<< HEAD
           sensor: resumo?.sensor || sensores[0]?.sensor || "Nao associado",
+=======
+          sensor: resumo?.sensor || sensores[0]?.sensor || "Não associado",
+>>>>>>> master
           produto: ciclo?.produto || "--",
           variedade: ciclo?.variedade || "--",
           solo: ciclo?.solo || "--",
@@ -895,7 +1015,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           apontamentoTecnico: {
             data: leituraCampo?.data || "--",
             tecnico: "--",
+<<<<<<< HEAD
             problema: leituraCampo?.problemas || "Nenhuma inspecao registrada.",
+=======
+            problema: leituraCampo?.problemas || "Nenhuma inspeção registrada.",
+>>>>>>> master
             recomendacao: leituraCampo?.observacoes || "--",
           },
           monitoramento: {
@@ -918,7 +1042,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     else renderizarMapa();
     carregarGraficoColheita();
     if (erros.length) {
+<<<<<<< HEAD
       exibirMensagemEdicao(`Talhoes carregados. ${erros.join(" | ")}`, "erro");
+=======
+      exibirMensagemEdicao(`Talhões carregados. ${erros.join(" | ")}`, "erro");
+>>>>>>> master
     }
   }
 
@@ -953,7 +1081,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const mensagem = document.getElementById("mensagem-colheita");
     if (!dados.length) {
       graficoColheita = null;
+<<<<<<< HEAD
       if (mensagem) mensagem.textContent = "Ainda nao ha dados de colheita para esta unidade.";
+=======
+      if (mensagem) mensagem.textContent = "Ainda não há dados de colheita para esta unidade.";
+>>>>>>> master
       atualizarResumoColheita();
       return;
     }
@@ -982,7 +1114,30 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   btnEditar?.addEventListener("click", ativarOuDesativarEdicao);
+<<<<<<< HEAD
   btnCriar?.addEventListener("click", iniciarCriacao);
+=======
+  document.getElementById("btn-recarregar-mapa")?.addEventListener("click", async (evento) => {
+    if (modoEdicao) {
+      exibirMensagemEdicao("Salve ou cancele a edição antes de recarregar o mapa.", "erro");
+      return;
+    }
+    const botao = evento.currentTarget;
+    botao.disabled = true;
+    exibirMensagemEdicao("Carregando talhões do servidor...");
+    try {
+      await carregarDadosPainel();
+      exibirMensagemEdicao("Mapa carregado. Clique em Editar Talhões para ajustar os limites.");
+    } catch (erro) {
+      exibirMensagemEdicao(`Falha ao carregar o mapa: ${erro.message}`, "erro");
+    } finally {
+      botao.disabled = false;
+      atualizarControlesEdicao();
+    }
+  });
+  btnCriar?.addEventListener("click", iniciarCriacao);
+  btnConcluirDesenho?.addEventListener("click", concluirCriacao);
+>>>>>>> master
   btnDividir?.addEventListener("click", iniciarDivisao);
   btnExcluir?.addEventListener("click", excluirTalhaoSelecionado);
   btnSalvar?.addEventListener("click", salvarAlteracoesMapa);
@@ -1003,11 +1158,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       renderizarMapa();
+<<<<<<< HEAD
       exibirMensagemEdicao("Agora clique no segundo ponto da linha de divisao.");
+=======
+      exibirMensagemEdicao("Agora clique no segundo ponto da linha de divisão.");
+>>>>>>> master
       return;
     }
 
     pontosCriacao.push(ponto);
+<<<<<<< HEAD
+=======
+    atualizarControlesEdicao();
+>>>>>>> master
     renderizarMapa();
   });
 
@@ -1048,7 +1211,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       await carregarDadosPainel();
     } catch (erro) {
+<<<<<<< HEAD
       exibirMensagemEdicao(`Falha ao sincronizar talhoes: ${erro.message}`, "erro");
+=======
+      exibirMensagemEdicao(`Falha ao sincronizar talhões: ${erro.message}`, "erro");
+>>>>>>> master
     }
   });
 
@@ -1056,8 +1223,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       await carregarDadosPainel();
     } catch (erro) {
+<<<<<<< HEAD
       mapaApiPronto = false;
       exibirMensagemEdicao(`Nao foi possivel carregar os dados do servidor: ${erro.message}`, "erro");
+=======
+      // A failure in other dashboard data must not disable an already loaded map.
+      exibirMensagemEdicao(`Não foi possível carregar os dados do servidor: ${erro.message}`, "erro");
+>>>>>>> master
     }
   }
 

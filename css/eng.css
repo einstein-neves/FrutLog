@@ -56,6 +56,21 @@
 .mapa-container.modo-edicao {
   cursor: crosshair;
 }
+<<<<<<< HEAD
+=======
+.mapa-container.modo-edicao .camada-talhoes {
+  pointer-events: auto;
+  touch-action: none;
+}
+.mapa-container.modo-edicao .ponto-arrastavel {
+  fill: #fff;
+  stroke: var(--cor-destaque);
+  stroke-width: 2;
+  pointer-events: all;
+  cursor: grab;
+}
+.mapa-container.modo-edicao .ponto-arrastavel:active { cursor: grabbing; }
+>>>>>>> master
 
 .mapa-container.modo-divisao {
   cursor: cell;

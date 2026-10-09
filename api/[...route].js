@@ -8,7 +8,11 @@ function config() {
   const missing = required.filter((key) => !process.env[key]);
   const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key) missing.push("SUPABASE_SECRET_KEY");
+<<<<<<< HEAD
   if (missing.length) throw new Error(`Configuracao ausente: ${missing.join(", ")}`);
+=======
+  if (missing.length) throw new Error(`Configuração ausente: ${missing.join(", ")}`);
+>>>>>>> master
   if (process.env.JWT_SECRET.length < 32) throw new Error("JWT_SECRET inseguro.");
   const origins = process.env.FRONTEND_ORIGIN.split(",").map((v) => v.trim()).filter(Boolean);
   origins.push(`http://localhost:${process.env.PORT || 3000}`, `http://127.0.0.1:${process.env.PORT || 3000}`);
@@ -62,7 +66,11 @@ function parseBody(req, maximum = 16384) {
       try {
         resolve(raw ? JSON.parse(raw) : {});
       } catch {
+<<<<<<< HEAD
         reject(new Error("JSON invalido."));
+=======
+        reject(new Error("JSON inválido."));
+>>>>>>> master
       }
     });
     req.on("error", reject);
@@ -190,6 +198,7 @@ module.exports = async (req, res) => {
     c = config();
   } catch (error) {
     console.error(error.message);
+<<<<<<< HEAD
     return reply(res, 503, { mensagem: "API ainda nao configurada." });
   }
 
@@ -197,6 +206,15 @@ module.exports = async (req, res) => {
   if (req.headers.origin && !origin) return reply(res, 403, { mensagem: "Origem nao permitida." });
   if (req.method === "OPTIONS") {
     if (!origin) return reply(res, 403, { mensagem: "Origem nao permitida." });
+=======
+    return reply(res, 503, { mensagem: "API ainda não configurada." });
+  }
+
+  const origin = originFor(req, c);
+  if (req.headers.origin && !origin) return reply(res, 403, { mensagem: "Origem não permitida." });
+  if (req.method === "OPTIONS") {
+    if (!origin) return reply(res, 403, { mensagem: "Origem não permitida." });
+>>>>>>> master
     res.writeHead(204, {
       "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Headers": "Content-Type, Authorization, X-IoT-Key",
@@ -227,7 +245,11 @@ module.exports = async (req, res) => {
             sucesso: false,
             banco: false,
             esquema: false,
+<<<<<<< HEAD
             mensagem: "Nao foi possivel consultar public.organizacao. Verifique SUPABASE_URL, a chave de servico e schema.sql."
+=======
+            mensagem: "Não foi possível consultar public.organizacao. Verifique SUPABASE_URL, a chave de serviço e schema.sql."
+>>>>>>> master
           },
           origin
         );
@@ -237,7 +259,11 @@ module.exports = async (req, res) => {
         await db(c, "usuario", "GET", undefined, "?select=id&limit=1");
         return reply(res, 200, { sucesso: true, banco: true, esquema: true }, origin);
       } catch (error) {
+<<<<<<< HEAD
         console.error("Health check: usuario unavailable:", error.message);
+=======
+        console.error("Health check: usuário unavailable:", error.message);
+>>>>>>> master
         return reply(
           res,
           503,
@@ -245,7 +271,11 @@ module.exports = async (req, res) => {
             sucesso: false,
             banco: true,
             esquema: false,
+<<<<<<< HEAD
             mensagem: "Banco conectado, mas public.usuario nao esta disponivel na API do Supabase. Confira supabase/schema_oficial_atualizado.sql e recarregue o cache PostgREST."
+=======
+            mensagem: "Banco conectado, mas public.usuario não está disponível na API do Supabase. Confira supabase/schema_oficial_atualizado.sql e recarregue o cache PostgREST."
+>>>>>>> master
           },
           origin
         );
@@ -258,7 +288,11 @@ module.exports = async (req, res) => {
       const matricula = text(d.matricula, 40);
       const senha = typeof d.senha === "string" ? d.senha : "";
       if (!matricula || senha.length < 8 || senha.length > 10) {
+<<<<<<< HEAD
         return reply(res, 401, { mensagem: "Matricula ou senha invalida." }, origin);
+=======
+        return reply(res, 401, { mensagem: "Matrícula ou senha inválida." }, origin);
+>>>>>>> master
       }
 
       const users = await db(
@@ -270,7 +304,11 @@ module.exports = async (req, res) => {
       );
       const user = users[0];
       if (!user || user.status !== "ativo" || !passwordOk(senha, user.senha_hash)) {
+<<<<<<< HEAD
         return reply(res, 401, { mensagem: "Matricula ou senha invalida." }, origin);
+=======
+        return reply(res, 401, { mensagem: "Matrícula ou senha inválida." }, origin);
+>>>>>>> master
       }
 
       const safe = {
@@ -292,19 +330,34 @@ module.exports = async (req, res) => {
       const supplied = Buffer.from(String(req.headers["x-iot-key"] || ""));
       const expected = Buffer.from(c.iot);
       if (supplied.length !== expected.length || !crypto.timingSafeEqual(supplied, expected)) {
+<<<<<<< HEAD
         return reply(res, 401, { mensagem: "Credencial IoT invalida." }, origin);
       }
 
       const d = await parseBody(req);
       if (!telemetryValid(d)) return reply(res, 400, { mensagem: "Telemetria invalida." }, origin);
+=======
+        return reply(res, 401, { mensagem: "Credencial IoT inválida." }, origin);
+      }
+
+      const d = await parseBody(req);
+      if (!telemetryValid(d)) return reply(res, 400, { mensagem: "Telemetria inválida." }, origin);
+>>>>>>> master
 
       const device = (
         await db(c, "dispositivo", "GET", undefined, `?id_externo=eq.${encodeURIComponent(d.sensorId)}&status=neq.desativado&select=id,talhao_id&limit=1`)
       )[0];
+<<<<<<< HEAD
       if (!device) return reply(res, 403, { mensagem: "Dispositivo nao autorizado." }, origin);
 
       const plot = (await db(c, "talhao", "GET", undefined, `?id=eq.${device.talhao_id}&select=codigo&limit=1`))[0];
       if (!plot || plot.codigo !== d.talhao) return reply(res, 403, { mensagem: "Dispositivo nao pertence ao talhao." }, origin);
+=======
+      if (!device) return reply(res, 403, { mensagem: "Dispositivo não autorizado." }, origin);
+
+      const plot = (await db(c, "talhao", "GET", undefined, `?id=eq.${device.talhao_id}&select=codigo&limit=1`))[0];
+      if (!plot || plot.codigo !== d.talhao) return reply(res, 403, { mensagem: "Dispositivo não pertence ao talhão." }, origin);
+>>>>>>> master
 
       const sensor = (
         await db(
@@ -315,7 +368,11 @@ module.exports = async (req, res) => {
           `?dispositivo_id=eq.${device.id}&codigo_metrica=eq.${encodeURIComponent(d.tipo)}&status=eq.ativo&select=id,unidade&limit=1`
         )
       )[0];
+<<<<<<< HEAD
       if (!sensor) return reply(res, 403, { mensagem: "Sensor ou metrica nao autorizada." }, origin);
+=======
+      if (!sensor) return reply(res, 403, { mensagem: "Sensor ou métrica não autorizada." }, origin);
+>>>>>>> master
 
       const when = d.timestamp || new Date().toISOString();
       await db(c, "leitura_sensor", "POST", {
@@ -332,7 +389,11 @@ module.exports = async (req, res) => {
 
     // Validação de Sessão para Rotas Protegidas
     const user = authenticated(req, c.jwt);
+<<<<<<< HEAD
     if (!user) return reply(res, 401, { mensagem: "Nao autorizado." }, origin);
+=======
+    if (!user) return reply(res, 401, { mensagem: "Não autorizado." }, origin);
+>>>>>>> master
 
     if (req.method === "GET" && route === "/chatbot/contexto") {
       const farms = await farmsForOrganization(c);
@@ -447,7 +508,11 @@ module.exports = async (req, res) => {
         `?id=eq.${encodeURIComponent(user.sub)}&select=id,matricula,nome_completo,perfil,senha_hash,status&limit=1`
       ))[0];
       if (!current || current.status !== "ativo" || !passwordOk(d.senhaAtual, current.senha_hash)) {
+<<<<<<< HEAD
         return reply(res, 401, { mensagem: "Senha atual invalida." }, origin);
+=======
+        return reply(res, 401, { mensagem: "Senha atual inválida." }, origin);
+>>>>>>> master
       }
 
       await db(c, `usuario?id=eq.${encodeURIComponent(user.sub)}`, "PATCH", {
@@ -471,7 +536,11 @@ module.exports = async (req, res) => {
 
     if (user.mustChangePassword) {
       return reply(res, 403, {
+<<<<<<< HEAD
         mensagem: "Altere sua senha provisoria antes de continuar.",
+=======
+        mensagem: "Altere sua senha provisória antes de continuar.",
+>>>>>>> master
         codigo: "SENHA_PROVISORIA"
       }, origin);
     }
@@ -479,7 +548,11 @@ module.exports = async (req, res) => {
     if (req.method === "GET" && route === "/telemetria/thingspeak") {
       if (!c.thingSpeak.channelId) {
         return reply(res, 503, {
+<<<<<<< HEAD
           mensagem: "ThingSpeak nao configurado. Defina THINGSPEAK_CHANNEL_ID no servidor.",
+=======
+          mensagem: "ThingSpeak não configurado. Defina THINGSPEAK_CHANNEL_ID no servidor.",
+>>>>>>> master
           codigo: "THINGSPEAK_NAO_CONFIGURADO"
         }, origin);
       }
@@ -495,7 +568,11 @@ module.exports = async (req, res) => {
         feedResponse = await fetch(feedUrl, { signal: AbortSignal.timeout(10000) });
       } catch (error) {
         console.error("Falha ao consultar ThingSpeak:", error.message);
+<<<<<<< HEAD
         return reply(res, 502, { mensagem: "ThingSpeak indisponivel no momento." }, origin);
+=======
+        return reply(res, 502, { mensagem: "ThingSpeak indisponível no momento." }, origin);
+>>>>>>> master
       }
       if (!feedResponse.ok) {
         console.error(`ThingSpeak respondeu HTTP ${feedResponse.status}.`);
@@ -503,7 +580,11 @@ module.exports = async (req, res) => {
       }
       const feed = await feedResponse.json();
       if (!Array.isArray(feed.feeds)) {
+<<<<<<< HEAD
         return reply(res, 502, { mensagem: "Resposta invalida do canal ThingSpeak." }, origin);
+=======
+        return reply(res, 502, { mensagem: "Resposta inválida do canal ThingSpeak." }, origin);
+>>>>>>> master
       }
       return reply(res, 200, {
         channel: {
@@ -527,7 +608,11 @@ module.exports = async (req, res) => {
 
     if (req.method === "GET" && route === "/colheitas/anual") {
       if (!["engenheiro", "admin"].includes(user.perfil)) {
+<<<<<<< HEAD
         return reply(res, 403, { mensagem: "Sem permissao." }, origin);
+=======
+        return reply(res, 403, { mensagem: "Sem permissão." }, origin);
+>>>>>>> master
       }
       const harvests = await db(
         c,
@@ -585,7 +670,11 @@ module.exports = async (req, res) => {
         }));
         return reply(res, 200, { mensal }, origin);
       } catch (error) {
+<<<<<<< HEAD
         console.error("ThingSpeak mensal indisponivel:", error.message);
+=======
+        console.error("ThingSpeak mensal indisponível:", error.message);
+>>>>>>> master
         return reply(res, 200, { mensal: [] }, origin);
       }
     }
@@ -645,7 +734,11 @@ module.exports = async (req, res) => {
 
     if (req.method === "POST" && route === "/colheitas") {
       if (!["engenheiro", "admin"].includes(user.perfil)) {
+<<<<<<< HEAD
         return reply(res, 403, { mensagem: "Somente Engenharia e Administracao podem registrar colheitas." }, origin);
+=======
+        return reply(res, 403, { mensagem: "Somente Engenharia e Administração podem registrar colheitas." }, origin);
+>>>>>>> master
       }
       const d = await parseBody(req);
       const colhidoEm = date(d.colhidoEm);
@@ -657,7 +750,11 @@ module.exports = async (req, res) => {
         quantidade <= 0 ||
         !["kg", "t", "sc", "cx"].includes(d.unidade)
       ) {
+<<<<<<< HEAD
         return reply(res, 400, { mensagem: "Informe talhao, data, quantidade positiva e unidade valida." }, origin);
+=======
+        return reply(res, 400, { mensagem: "Informe talhão, data, quantidade positiva e unidade valida." }, origin);
+>>>>>>> master
       }
       const plot = (await db(
         c,
@@ -666,7 +763,11 @@ module.exports = async (req, res) => {
         undefined,
         `?codigo=eq.${encodeURIComponent(d.talhao)}&select=id&limit=1`
       ))[0];
+<<<<<<< HEAD
       if (!plot) return reply(res, 404, { mensagem: "Talhao nao encontrado." }, origin);
+=======
+      if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
+>>>>>>> master
 
       const created = await db(c, "colheita", "POST", {
         ciclo_cultura_id: (await db(
@@ -685,7 +786,11 @@ module.exports = async (req, res) => {
       });
       const harvest = Array.isArray(created) ? created[0] : created;
       if (!harvest?.id) {
+<<<<<<< HEAD
         throw new Error("O banco nao confirmou a gravacao da colheita. Atualize o esquema e tente novamente.");
+=======
+        throw new Error("O banco não confirmou a gravacao da colheita. Atualize o esquema e tente novamente.");
+>>>>>>> master
       }
       return reply(res, 201, { sucesso: true, colheita: harvest }, origin);
     }
@@ -696,7 +801,11 @@ module.exports = async (req, res) => {
 
       if (req.method === "GET" && !reportId) {
         if (!["engenheiro", "admin"].includes(user.perfil)) {
+<<<<<<< HEAD
           return reply(res, 403, { mensagem: "Apenas Engenharia e Administracao podem consultar relatorios recebidos." }, origin);
+=======
+          return reply(res, 403, { mensagem: "Apenas Engenharia e Administração podem consultar relatórios recebidos." }, origin);
+>>>>>>> master
         }
         const reports = await db(
           c,
@@ -709,12 +818,20 @@ module.exports = async (req, res) => {
       }
 
       if (req.method === "POST" && !reportId) {
+<<<<<<< HEAD
         if (user.perfil !== "tecnico") return reply(res, 403, { mensagem: "Somente o Tecnico pode enviar relatorios diarios." }, origin);
+=======
+        if (user.perfil !== "tecnico") return reply(res, 403, { mensagem: "Somente o Técnico pode enviar relatórios diários." }, origin);
+>>>>>>> master
         const d = await parseBody(req);
         const dataRelatorio = date(d.data);
         const conteudo = text(d.conteudo, 6000);
         if (!dataRelatorio || !conteudo) {
+<<<<<<< HEAD
           return reply(res, 400, { mensagem: "Informe uma data valida e um relatorio de campo (ate 6000 caracteres)." }, origin);
+=======
+          return reply(res, 400, { mensagem: "Informe uma data valida e um relatório de campo (até 6000 caracteres)." }, origin);
+>>>>>>> master
         }
 
         const existente = (await db(
@@ -724,7 +841,11 @@ module.exports = async (req, res) => {
           undefined,
           `?usuario_id=eq.${encodeURIComponent(user.sub)}&data_relatorio=eq.${dataRelatorio}&select=id&limit=1`
         ))[0];
+<<<<<<< HEAD
         if (existente) return reply(res, 409, { mensagem: "Ja existe um relatorio enviado para esta data." }, origin);
+=======
+        if (existente) return reply(res, 409, { mensagem: "Já existe um relatório enviado para esta data." }, origin);
+>>>>>>> master
 
         const created = await db(c, "relatorio_campo_diario", "POST", {
           usuario_id: user.sub,
@@ -739,11 +860,19 @@ module.exports = async (req, res) => {
 
       if (req.method === "PATCH" && reportId) {
         if (!["engenheiro", "admin"].includes(user.perfil)) {
+<<<<<<< HEAD
           return reply(res, 403, { mensagem: "Apenas Engenharia e Administracao podem acompanhar relatorios." }, origin);
         }
         const d = await parseBody(req);
         if (!["em_analise", "concluido"].includes(d.status)) {
           return reply(res, 400, { mensagem: "Status de acompanhamento invalido." }, origin);
+=======
+          return reply(res, 403, { mensagem: "Apenas Engenharia e Administração podem acompanhar relatórios." }, origin);
+        }
+        const d = await parseBody(req);
+        if (!["em_analise", "concluido"].includes(d.status)) {
+          return reply(res, 400, { mensagem: "Status de acompanhamento inválido." }, origin);
+>>>>>>> master
         }
         const report = (await db(
           c,
@@ -752,18 +881,30 @@ module.exports = async (req, res) => {
           undefined,
           `?id=eq.${encodeURIComponent(reportId)}&select=id&limit=1`
         ))[0];
+<<<<<<< HEAD
         if (!report) return reply(res, 404, { mensagem: "Relatorio nao encontrado." }, origin);
+=======
+        if (!report) return reply(res, 404, { mensagem: "Relatório não encontrado." }, origin);
+>>>>>>> master
         await db(c, `relatorio_campo_diario?id=eq.${encodeURIComponent(reportId)}`, "PATCH", { status: d.status });
         return reply(res, 200, { sucesso: true }, origin);
       }
 
+<<<<<<< HEAD
       return reply(res, 405, { mensagem: "Metodo nao permitido para esta rota." }, origin);
+=======
+      return reply(res, 405, { mensagem: "Método não permitido para esta rota." }, origin);
+>>>>>>> master
     }
 
     // 4. Rotas Granulares: Talhões
     if (req.method === "GET" && route === "/talhoes") {
       const farms = await farmsForOrganization(c);
+<<<<<<< HEAD
       if (!farms.length) return reply(res, 503, { mensagem: "Fazenda nao configurada." }, origin);
+=======
+      if (!farms.length) return reply(res, 503, { mensagem: "Fazenda não configurada." }, origin);
+>>>>>>> master
       const plots = await db(
         c,
         "talhao",
@@ -775,10 +916,17 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === "PUT" && route === "/talhoes/geometrias") {
+<<<<<<< HEAD
       if (user.perfil !== "engenheiro") return reply(res, 403, { mensagem: "Somente o Engenheiro pode alterar geometrias e areas dos talhoes." }, origin);
       const d = await parseBody(req, 1048576);
       if (!Array.isArray(d.talhoes) || d.talhoes.length > 500 || !Array.isArray(d.removidos)) {
         return reply(res, 400, { mensagem: "Colecao de talhoes invalida." }, origin);
+=======
+      if (!["engenheiro", "admin"].includes(user.perfil)) return reply(res, 403, { mensagem: "Somente Engenharia e Administração podem alterar geometrias e áreas dos talhões." }, origin);
+      const d = await parseBody(req, 1048576);
+      if (!Array.isArray(d.talhoes) || d.talhoes.length > 500 || !Array.isArray(d.removidos)) {
+        return reply(res, 400, { mensagem: "Colecao de talhões inválida." }, origin);
+>>>>>>> master
       }
 
       const codigos = new Set();
@@ -797,7 +945,11 @@ module.exports = async (req, res) => {
           pontos.length < 4 ||
           pontos.length > 1001
         ) {
+<<<<<<< HEAD
           return reply(res, 400, { mensagem: `Geometria ou area invalida para o talhao ${codigo || "(sem codigo)"}.` }, origin);
+=======
+          return reply(res, 400, { mensagem: `Geometria ou área inválida para o talhão ${codigo || "(sem codigo)"}.` }, origin);
+>>>>>>> master
         }
         codigos.add(codigo);
         for (const ponto of pontos) {
@@ -808,11 +960,19 @@ module.exports = async (req, res) => {
             ponto[0] < 0 || ponto[0] > 500 ||
             ponto[1] < 0 || ponto[1] > 400
           ) {
+<<<<<<< HEAD
             return reply(res, 400, { mensagem: `Coordenadas invalidas para o talhao ${codigo}.` }, origin);
           }
         }
         if (pontos[0][0] !== pontos[pontos.length - 1][0] || pontos[0][1] !== pontos[pontos.length - 1][1]) {
           return reply(res, 400, { mensagem: `O contorno do talhao ${codigo} deve ser fechado.` }, origin);
+=======
+            return reply(res, 400, { mensagem: `Coordenadas inválidas para o talhão ${codigo}.` }, origin);
+          }
+        }
+        if (pontos[0][0] !== pontos[pontos.length - 1][0] || pontos[0][1] !== pontos[pontos.length - 1][1]) {
+          return reply(res, 400, { mensagem: `O contorno do talhão ${codigo} deve ser fechado.` }, origin);
+>>>>>>> master
         }
         feature.properties.codigo = codigo;
         feature.properties.area_hectares = area;
@@ -820,11 +980,19 @@ module.exports = async (req, res) => {
 
       const removidos = d.removidos.map((codigo) => text(codigo, 40));
       if (removidos.some((codigo) => !codigo || codigos.has(codigo)) || new Set(removidos).size !== removidos.length) {
+<<<<<<< HEAD
         return reply(res, 400, { mensagem: "Lista de talhoes removidos invalida." }, origin);
       }
 
       const farms = await farmsForOrganization(c);
       if (!farms.length) return reply(res, 503, { mensagem: "Fazenda nao configurada." }, origin);
+=======
+        return reply(res, 400, { mensagem: "Lista de talhões removidos inválida." }, origin);
+      }
+
+      const farms = await farmsForOrganization(c);
+      if (!farms.length) return reply(res, 503, { mensagem: "Fazenda não configurada." }, origin);
+>>>>>>> master
 
       const candidateCodes = [...new Set([
         ...d.talhoes.map((feature) => feature.properties.codigo),
@@ -844,7 +1012,11 @@ module.exports = async (req, res) => {
         return reply(
           res,
           409,
+<<<<<<< HEAD
           { mensagem: "Os talhoes enviados pertencem a mais de uma fazenda. Edite e salve uma fazenda por vez." },
+=======
+          { mensagem: "Os talhões enviados pertencem a mais de uma fazenda. Edite e salve uma fazenda por vez." },
+>>>>>>> master
           origin
         );
       }
@@ -874,7 +1046,11 @@ module.exports = async (req, res) => {
         return reply(
           res,
           502,
+<<<<<<< HEAD
           { mensagem: "O banco nao confirmou todas as geometrias. As alteracoes nao foram consideradas salvas; atualize os dados e tente novamente." },
+=======
+          { mensagem: "O banco não confirmou todas as geometrias. As alteracoes não foram consideradas salvas; atualize os dados e tente novamente." },
+>>>>>>> master
           origin
         );
       }
@@ -1026,11 +1202,19 @@ module.exports = async (req, res) => {
         (route === "/painel-tecnico" && !["tecnico", "admin"].includes(user.perfil)) ||
         (route === "/painel-engenheiro" && !["engenheiro", "admin"].includes(user.perfil))
       ) {
+<<<<<<< HEAD
         return reply(res, 403, { mensagem: "Sem permissao." }, origin);
       }
 
       const farms = await farmsForOrganization(c);
       if (!farms.length) return reply(res, 503, { mensagem: "Fazenda nao configurada." }, origin);
+=======
+        return reply(res, 403, { mensagem: "Sem permissão." }, origin);
+      }
+
+      const farms = await farmsForOrganization(c);
+      if (!farms.length) return reply(res, 503, { mensagem: "Fazenda não configurada." }, origin);
+>>>>>>> master
       const [plots, devices, sensors, readings, inspections, cycles, occurrences, sensorProblems, alerts, cultivars, cultures] = await Promise.all([
         db(c, "talhao", "GET", undefined, `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&select=id,codigo,nome,area_hectares,coordenadas&order=codigo`),
         db(c, "dispositivo", "GET", undefined, "?select=id,id_externo,talhao_id,status,ultimo_sinal_em"),
@@ -1114,14 +1298,22 @@ module.exports = async (req, res) => {
           leitura: s?.leitura || "Sem leitura",
           situacao: semSensor ? "Sem sensor"
             : semSensorAtivo ? "Sensor inativo"
+<<<<<<< HEAD
               : semComunicacao ? "Sem comunicacao"
+=======
+              : semComunicacao ? "Sem comunicação"
+>>>>>>> master
                 : critical ? "Critico"
                   : semLeitura ? "Sem leitura"
                     : attention ? "Atencao"
                       : "Normal",
           prioridade: semSensor ? "Cadastre um sensor para habilitar o monitoramento"
             : semSensorAtivo ? "Ative um sensor para habilitar o monitoramento"
+<<<<<<< HEAD
               : semComunicacao ? "Verifique a comunicacao do sensor"
+=======
+              : semComunicacao ? "Verifique a comunicação do sensor"
+>>>>>>> master
                 : critical ? "Umidade do solo abaixo de 30%"
                   : semLeitura ? "Aguardando leitura de sensor"
                     : attention ? "Verifique a umidade do solo"
@@ -1184,13 +1376,18 @@ module.exports = async (req, res) => {
 
     // 12. Cadastro de Plantio (Engenheiro / Admin)
     if (req.method === "POST" && route === "/plantios") {
+<<<<<<< HEAD
       if (!["engenheiro", "admin"].includes(user.perfil)) return reply(res, 403, { mensagem: "Sem permissao." }, origin);
+=======
+      if (!["engenheiro", "admin"].includes(user.perfil)) return reply(res, 403, { mensagem: "Sem permissão." }, origin);
+>>>>>>> master
       const d = await parseBody(req);
       if (
         !["produto", "variedade", "talhao", "solo"].every((k) => text(d[k])) ||
         !date(d.dataPlantio) ||
         !date(d.dataColheita)
       ) {
+<<<<<<< HEAD
         return reply(res, 400, { mensagem: "Dados de plantio invalidos." }, origin);
       }
 
@@ -1199,6 +1396,16 @@ module.exports = async (req, res) => {
       const areaPlantada = Number(plot.area_hectares);
       if (!Number.isFinite(areaPlantada) || areaPlantada <= 0) {
         return reply(res, 409, { mensagem: "Defina uma area valida para o talhao antes de cadastrar o produto." }, origin);
+=======
+        return reply(res, 400, { mensagem: "Dados de plantio inválidos." }, origin);
+      }
+
+      const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&select=id,area_hectares&limit=1`))[0];
+      if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
+      const areaPlantada = Number(plot.area_hectares);
+      if (!Number.isFinite(areaPlantada) || areaPlantada <= 0) {
+        return reply(res, 409, { mensagem: "Defina uma área valida para o talhão antes de cadastrar o produto." }, origin);
+>>>>>>> master
       }
 
       let cultura = (await db(c, "cultura", "GET", undefined, `?nome_comum=eq.${encodeURIComponent(d.produto)}&select=id&limit=1`))[0];
@@ -1230,21 +1437,36 @@ module.exports = async (req, res) => {
 
     // 13. Registros de Campo do Técnico (Inspeções, Ocorrências, Problemas em Sensores)
     if (req.method === "POST" && ["/inspecoes", "/ocorrencias", "/sensores/problemas"].includes(route)) {
+<<<<<<< HEAD
       if (!["tecnico", "admin"].includes(user.perfil)) return reply(res, 403, { mensagem: "Sem permissao." }, origin);
+=======
+      if (!["tecnico", "admin"].includes(user.perfil)) return reply(res, 403, { mensagem: "Sem permissão." }, origin);
+>>>>>>> master
       const d = await parseBody(req);
 
       if (route === "/inspecoes") {
         if (!text(d.talhao) || !date(d.data) || !["Normal", "Atencao", "Critico"].includes(d.situacao)) {
+<<<<<<< HEAD
           return reply(res, 400, { mensagem: "Dados de inspecao invalidos." }, origin);
         }
         const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&select=id&limit=1`))[0];
         if (!plot) return reply(res, 404, { mensagem: "Talhao nao encontrado." }, origin);
+=======
+          return reply(res, 400, { mensagem: "Dados de inspeção inválidos." }, origin);
+        }
+        const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&select=id&limit=1`))[0];
+        if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
+>>>>>>> master
 
         const sensorId = text(d.sensor_id, 80);
         let linkedSensorId = null;
         if (sensorId) {
           if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sensorId)) {
+<<<<<<< HEAD
             return reply(res, 400, { mensagem: "Identificador do sensor invalido." }, origin);
+=======
+            return reply(res, 400, { mensagem: "Identificador do sensor inválido." }, origin);
+>>>>>>> master
           }
           const sensor = (await db(
             c,
@@ -1253,7 +1475,11 @@ module.exports = async (req, res) => {
             undefined,
             `?id=eq.${encodeURIComponent(sensorId)}&status=eq.ativo&select=id,dispositivo_id&limit=1`
           ))[0];
+<<<<<<< HEAD
           if (!sensor) return reply(res, 404, { mensagem: "O sensor selecionado nao esta ativo ou nao existe." }, origin);
+=======
+          if (!sensor) return reply(res, 404, { mensagem: "O sensor selecionado não está ativo ou não existe." }, origin);
+>>>>>>> master
           const device = (await db(
             c,
             "dispositivo",
@@ -1262,7 +1488,11 @@ module.exports = async (req, res) => {
             `?id=eq.${encodeURIComponent(sensor.dispositivo_id)}&select=talhao_id&limit=1`
           ))[0];
           if (!device || device.talhao_id !== plot.id) {
+<<<<<<< HEAD
             return reply(res, 400, { mensagem: "O sensor selecionado nao pertence ao talhao informado." }, origin);
+=======
+            return reply(res, 400, { mensagem: "O sensor selecionado não pertence ao talhão informado." }, origin);
+>>>>>>> master
           }
           linkedSensorId = sensor.id;
         }
@@ -1281,10 +1511,17 @@ module.exports = async (req, res) => {
 
       if (route === "/ocorrencias") {
         if (!text(d.talhao) || !text(d.tipo)) {
+<<<<<<< HEAD
           return reply(res, 400, { mensagem: "Dados de ocorrencia invalidos." }, origin);
         }
         const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&select=id&limit=1`))[0];
         if (!plot) return reply(res, 404, { mensagem: "Talhao nao encontrado." }, origin);
+=======
+          return reply(res, 400, { mensagem: "Dados de ocorrência inválidos." }, origin);
+        }
+        const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&select=id&limit=1`))[0];
+        if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
+>>>>>>> master
 
         await db(c, "rpc/registrar_ocorrencia_com_alerta", "POST", {
           p_talhao_id: plot.id,
@@ -1298,19 +1535,33 @@ module.exports = async (req, res) => {
 
       if (route === "/sensores/problemas") {
         if (!text(d.talhao) || !date(d.data) || !text(d.problema)) {
+<<<<<<< HEAD
           return reply(res, 400, { mensagem: "Dados de problema de sensor invalidos." }, origin);
         }
         const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&select=id&limit=1`))[0];
         if (!plot) return reply(res, 404, { mensagem: "Talhao nao encontrado." }, origin);
+=======
+          return reply(res, 400, { mensagem: "Dados de problema de sensor inválidos." }, origin);
+        }
+        const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&select=id&limit=1`))[0];
+        if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
+>>>>>>> master
 
         const sensorCodigo = text(d.sensor, 80);
         let sensor = null;
         if (sensorCodigo) {
           sensor = (await db(c, "sensor", "GET", undefined, `?id_externo=eq.${encodeURIComponent(sensorCodigo)}&status=eq.ativo&select=id,dispositivo_id&limit=1`))[0];
+<<<<<<< HEAD
           if (!sensor) return reply(res, 404, { mensagem: "Sensor nao encontrado." }, origin);
           const device = (await db(c, "dispositivo", "GET", undefined, `?id=eq.${encodeURIComponent(sensor.dispositivo_id)}&select=talhao_id&limit=1`))[0];
           if (!device || device.talhao_id !== plot.id) {
             return reply(res, 400, { mensagem: "O sensor selecionado nao pertence ao talhao informado." }, origin);
+=======
+          if (!sensor) return reply(res, 404, { mensagem: "Sensor não encontrado." }, origin);
+          const device = (await db(c, "dispositivo", "GET", undefined, `?id=eq.${encodeURIComponent(sensor.dispositivo_id)}&select=talhao_id&limit=1`))[0];
+          if (!device || device.talhao_id !== plot.id) {
+            return reply(res, 400, { mensagem: "O sensor selecionado não pertence ao talhão informado." }, origin);
+>>>>>>> master
           }
         }
         await db(c, "rpc/registrar_problema_sensor_com_alerta", "POST", {
@@ -1318,7 +1569,11 @@ module.exports = async (req, res) => {
           p_talhao_id: plot.id,
           p_usuario_id: user.sub,
           p_talhao_codigo: text(d.talhao),
+<<<<<<< HEAD
           p_sensor_codigo: sensorCodigo || "nao cadastrado",
+=======
+          p_sensor_codigo: sensorCodigo || "não cadastrado",
+>>>>>>> master
           p_data: d.data,
           p_problema: text(d.problema),
           p_observacao: text(d.observacao) || null
@@ -1330,10 +1585,17 @@ module.exports = async (req, res) => {
     // 14. Gestão Administrativa de Funcionários (Admin)
     const employeeMatch = route.match(/^\/funcionarios\/([^/]+)$/);
     if (employeeMatch && ["PUT", "PATCH", "DELETE"].includes(req.method)) {
+<<<<<<< HEAD
       if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissao." }, origin);
       const employeeId = decodeURIComponent(employeeMatch[1]);
       if (employeeId === String(user.sub)) {
         return reply(res, 400, { mensagem: "Nao e permitido alterar ou excluir o proprio usuario." }, origin);
+=======
+      if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissão." }, origin);
+      const employeeId = decodeURIComponent(employeeMatch[1]);
+      if (employeeId === String(user.sub)) {
+        return reply(res, 400, { mensagem: "Não e permitido alterar ou excluir o proprio usuário." }, origin);
+>>>>>>> master
       }
       const employee = (await db(
         c,
@@ -1342,7 +1604,11 @@ module.exports = async (req, res) => {
         undefined,
         `?id=eq.${encodeURIComponent(employeeId)}&select=id&limit=1`
       ))[0];
+<<<<<<< HEAD
       if (!employee) return reply(res, 404, { mensagem: "Funcionario nao encontrado." }, origin);
+=======
+      if (!employee) return reply(res, 404, { mensagem: "Funcionário não encontrado." }, origin);
+>>>>>>> master
       if (req.method === "PUT") {
         const d = await parseBody(req);
         if (
@@ -1353,7 +1619,11 @@ module.exports = async (req, res) => {
           !["ativo", "inativo"].includes(d.status) ||
           (d.senha !== undefined && d.senha !== "" && (typeof d.senha !== "string" || d.senha.length < 8 || d.senha.length > 10))
         ) {
+<<<<<<< HEAD
           return reply(res, 400, { mensagem: "Dados invalidos para atualizar funcionario." }, origin);
+=======
+          return reply(res, 400, { mensagem: "Dados inválidos para atualizar funcionário." }, origin);
+>>>>>>> master
         }
         const updates = {
           nome_completo: text(d.nome),
@@ -1372,7 +1642,11 @@ module.exports = async (req, res) => {
       if (req.method === "PATCH") {
         const d = await parseBody(req);
         if (!["ativo", "inativo"].includes(d.status)) {
+<<<<<<< HEAD
           return reply(res, 400, { mensagem: "Status de funcionario invalido." }, origin);
+=======
+          return reply(res, 400, { mensagem: "Status de funcionário inválido." }, origin);
+>>>>>>> master
         }
         await db(c, `usuario?id=eq.${encodeURIComponent(employeeId)}`, "PATCH", { status: d.status });
         return reply(res, 200, { sucesso: true, status: d.status }, origin);
@@ -1383,7 +1657,11 @@ module.exports = async (req, res) => {
 
     if (["/funcionarios", "/admin/usuarios"].includes(route)) {
       if (req.method === "GET") {
+<<<<<<< HEAD
         if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissao." }, origin);
+=======
+        if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissão." }, origin);
+>>>>>>> master
         const rows = await db(
           c,
           "usuario",
@@ -1412,7 +1690,11 @@ module.exports = async (req, res) => {
       }
 
       if (req.method === "POST") {
+<<<<<<< HEAD
         if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissao." }, origin);
+=======
+        if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissão." }, origin);
+>>>>>>> master
         const d = await parseBody(req);
         const perfil = d.perfil === undefined ? "tecnico" : d.perfil;
         if (
@@ -1425,16 +1707,28 @@ module.exports = async (req, res) => {
           d.senha.length < 8 ||
           d.senha.length > 10
         ) {
+<<<<<<< HEAD
           return reply(res, 400, { mensagem: "Dados invalidos: senha temporaria deve possuir entre 8 e 10 caracteres." }, origin);
         }
 
         const org = (await db(c, "organizacao", "GET", undefined, "?select=id&order=criado_em&limit=1"))[0];
         if (!org) return reply(res, 503, { mensagem: "Organizacao nao configurada." }, origin);
+=======
+          return reply(res, 400, { mensagem: "Dados inválidos: senha temporaria deve possuir entre 8 e 10 caracteres." }, origin);
+        }
+
+        const org = (await db(c, "organizacao", "GET", undefined, "?select=id&order=criado_em&limit=1"))[0];
+        if (!org) return reply(res, 503, { mensagem: "Organizacao não configurada." }, origin);
+>>>>>>> master
 
         const matriculaResponse = await db(c, "rpc/proxima_matricula_funcionario", "POST", {});
         const matricula = typeof matriculaResponse === "string" ? matriculaResponse : matriculaResponse?.matricula;
         if (!text(matricula, 40)) {
+<<<<<<< HEAD
           throw new Error("Falha ao gerar matricula para o funcionario.");
+=======
+          throw new Error("Falha ao gerar matrícula para o funcionário.");
+>>>>>>> master
         }
 
         const created = await db(c, "usuario", "POST", {
@@ -1450,7 +1744,11 @@ module.exports = async (req, res) => {
         });
         const employee = Array.isArray(created) ? created[0] : created;
         if (!employee?.id) {
+<<<<<<< HEAD
           throw new Error("O banco nao confirmou a gravacao do funcionario. Atualize o esquema e tente novamente.");
+=======
+          throw new Error("O banco não confirmou a gravacao do funcionário. Atualize o esquema e tente novamente.");
+>>>>>>> master
         }
         return reply(res, 201, { sucesso: true, matricula, id: employee?.id }, origin);
       }
@@ -1458,7 +1756,11 @@ module.exports = async (req, res) => {
 
     const sensorMatch = route.match(/^\/sensores\/([^/]+)$/);
     if (sensorMatch && ["PATCH", "DELETE"].includes(req.method)) {
+<<<<<<< HEAD
       if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissao." }, origin);
+=======
+      if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissão." }, origin);
+>>>>>>> master
       const sensorId = decodeURIComponent(sensorMatch[1]);
       const sensor = (await db(
         c,
@@ -1467,11 +1769,19 @@ module.exports = async (req, res) => {
         undefined,
         `?id=eq.${encodeURIComponent(sensorId)}&select=id&limit=1`
       ))[0];
+<<<<<<< HEAD
       if (!sensor) return reply(res, 404, { mensagem: "Sensor nao encontrado." }, origin);
       if (req.method === "PATCH") {
         const d = await parseBody(req);
         if (!["ativo", "inativo"].includes(d.status)) {
           return reply(res, 400, { mensagem: "Status de sensor invalido." }, origin);
+=======
+      if (!sensor) return reply(res, 404, { mensagem: "Sensor não encontrado." }, origin);
+      if (req.method === "PATCH") {
+        const d = await parseBody(req);
+        if (!["ativo", "inativo"].includes(d.status)) {
+          return reply(res, 400, { mensagem: "Status de sensor inválido." }, origin);
+>>>>>>> master
         }
         await db(c, `sensor?id=eq.${encodeURIComponent(sensorId)}`, "PATCH", { status: d.status });
         return reply(res, 200, { sucesso: true }, origin);
@@ -1481,14 +1791,22 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === "POST" && route === "/sensores") {
+<<<<<<< HEAD
       if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissao." }, origin);
+=======
+      if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissão." }, origin);
+>>>>>>> master
       const d = await parseBody(req);
       const idExterno = text(d.sensor, 80);
       const codigoMetrica = d.tipo;
       const unidade = text(d.unidade, 20);
       const codigoTalhao = text(d.talhao, 40);
       if (!idExterno || !unidade || !codigoTalhao || !TYPES.includes(codigoMetrica)) {
+<<<<<<< HEAD
         return reply(res, 400, { mensagem: "Dados invalidos para cadastro do sensor." }, origin);
+=======
+        return reply(res, 400, { mensagem: "Dados inválidos para cadastro do sensor." }, origin);
+>>>>>>> master
       }
 
       const plot = (await db(
@@ -1498,10 +1816,17 @@ module.exports = async (req, res) => {
         undefined,
         `?codigo=eq.${encodeURIComponent(codigoTalhao)}&select=id&limit=1`
       ))[0];
+<<<<<<< HEAD
       if (!plot) return reply(res, 404, { mensagem: "Talhao nao encontrado." }, origin);
 
       const org = (await db(c, "organizacao", "GET", undefined, "?select=id&order=criado_em&limit=1"))[0];
       if (!org) return reply(res, 503, { mensagem: "Organizacao nao configurada." }, origin);
+=======
+      if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
+
+      const org = (await db(c, "organizacao", "GET", undefined, "?select=id&order=criado_em&limit=1"))[0];
+      if (!org) return reply(res, 503, { mensagem: "Organizacao não configurada." }, origin);
+>>>>>>> master
 
       let device = (await db(
         c,
@@ -1511,7 +1836,11 @@ module.exports = async (req, res) => {
         `?organizacao_id=eq.${encodeURIComponent(org.id)}&id_externo=eq.${encodeURIComponent(idExterno)}&select=id,talhao_id&limit=1`
       ))[0];
       if (device && device.talhao_id !== plot.id) {
+<<<<<<< HEAD
         return reply(res, 409, { mensagem: "O identificador do dispositivo ja esta associado a outro talhao." }, origin);
+=======
+        return reply(res, 409, { mensagem: "O identificador do dispositivo já está associado a outro talhão." }, origin);
+>>>>>>> master
       }
       if (!device) {
         const created = await db(c, "dispositivo", "POST", {
@@ -1530,7 +1859,11 @@ module.exports = async (req, res) => {
         undefined,
         `?dispositivo_id=eq.${encodeURIComponent(device.id)}&id_externo=eq.${encodeURIComponent(idExterno)}&select=id&limit=1`
       ))[0];
+<<<<<<< HEAD
       if (duplicate) return reply(res, 409, { mensagem: "Ja existe um sensor com esse identificador." }, origin);
+=======
+      if (duplicate) return reply(res, 409, { mensagem: "Já existe um sensor com esse identificador." }, origin);
+>>>>>>> master
 
       const createdSensor = await db(c, "sensor", "POST", {
         dispositivo_id: device.id,
@@ -1543,7 +1876,11 @@ module.exports = async (req, res) => {
       return reply(res, 201, { sucesso: true, sensor: savedSensor }, origin);
     }
 
+<<<<<<< HEAD
     return reply(res, 404, { mensagem: "Rota nao encontrada." }, origin);
+=======
+    return reply(res, 404, { mensagem: "Rota não encontrada." }, origin);
+>>>>>>> master
   } catch (error) {
     console.error(`Erro ${req.method} ${route}:`, error.message);
     const isDbError = error.message.startsWith("Falha no banco de dados:");

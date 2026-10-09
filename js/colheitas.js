@@ -30,7 +30,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     opcoes = await optionsTalhoes();
   } catch (erro) {
     formularios.forEach((formulario) => {
+<<<<<<< HEAD
       formulario.elements.talhao.innerHTML = '<option value="">Falha ao carregar talhoes</option>';
+=======
+      formulario.elements.talhao.innerHTML = '<option value="">Falha ao carregar talhões</option>';
+>>>>>>> master
       exibirMensagem(formulario, erro.message, "erro");
     });
     return;
@@ -38,7 +42,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   for (const formulario of formularios) {
     const selectTalhao = formulario.elements.talhao;
+<<<<<<< HEAD
     selectTalhao.innerHTML = '<option value="">Selecione o talhao</option>' + opcoes;
+=======
+    selectTalhao.innerHTML = '<option value="">Selecione o talhão</option>' + opcoes;
+>>>>>>> master
 
     formulario.addEventListener("submit", async (evento) => {
       evento.preventDefault();

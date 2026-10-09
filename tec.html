@@ -7,11 +7,23 @@
   <link rel="stylesheet" href="css/global.css">
   <link rel="stylesheet" href="css/dashboard.css">
   <link rel="stylesheet" href="css/tec.css">
+<<<<<<< HEAD
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <title>FrutLog - Tecnico Agricola</title>
 </head>
 
 <body class="layout-dashboard">
+=======
+  <link rel="stylesheet" href="css/pulse-frutlog.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <title>FrutLog - Técnico Agrícola</title>
+  <link rel="stylesheet" href="css/formularios.css">
+  <link rel="stylesheet" href="css/vendor/flatpickr.min.css">
+  <link rel="stylesheet" href="css/calendarios.css">
+</head>
+
+<body class="layout-dashboard" data-console-role="tecnico">
+>>>>>>> master
   <aside class="sidebar">
     <div class="logo-area">
       <i class="fa-solid fa-leaf logo-icone" aria-hidden="true"></i>
@@ -99,13 +111,21 @@
                   id="tecnico-talhao-produto">--</span></div>
               <div class="item-detalhe"><span class="label">Variedade</span><span class="valor"
                   id="tecnico-talhao-variedade">--</span></div>
+<<<<<<< HEAD
               <div class="item-detalhe"><span class="label">Area</span><span class="valor"
+=======
+              <div class="item-detalhe"><span class="label">Área</span><span class="valor"
+>>>>>>> master
                   id="tecnico-talhao-area">--</span></div>
               <div class="item-detalhe"><span class="label">Tipo de solo</span><span class="valor"
                   id="tecnico-talhao-solo">--</span></div>
               <div class="item-detalhe"><span class="label">Data de plantio</span><span class="valor"
                   id="tecnico-talhao-plantio">--</span></div>
+<<<<<<< HEAD
               <div class="item-detalhe"><span class="label">Previsao de colheita</span><span class="valor"
+=======
+              <div class="item-detalhe"><span class="label">Previsão de colheita</span><span class="valor"
+>>>>>>> master
                   id="tecnico-talhao-colheita">--</span></div>
               <div class="item-detalhe"><span class="label">Sensor principal</span><span class="valor"
                   id="tecnico-talhao-sensor">--</span></div>
@@ -203,7 +223,11 @@
       <section id="inspecao" class="cartao">
         <div class="cabecalho-cadastro">
           <span class="badge-status">Campo</span>
+<<<<<<< HEAD
           <h2 class="titulo-talhao">Inspecao de Campo</h2>
+=======
+          <h2 class="titulo-talhao">Inspeção de Campo</h2>
+>>>>>>> master
         </div>
         <form id="form-inspecao">
           <div class="info-grid-cadastro">
@@ -212,7 +236,11 @@
               <select id="inspecao-talhao" name="talhao" class="campo-formulario" required></select>
             </div>
             <div class="item-detalhe-cadastro">
+<<<<<<< HEAD
               <label class="label" for="inspecao-data">Data da inspecao</label>
+=======
+              <label class="label" for="inspecao-data">Data da inspeção</label>
+>>>>>>> master
               <input type="date" id="inspecao-data" name="data" class="campo-formulario" required>
             </div>
             <div class="item-detalhe-cadastro">
@@ -227,7 +255,11 @@
                 <option value="">Selecione</option>
                 <option value="Normal">Normal</option>
                 <option value="Atencao">Atenção</option>
+<<<<<<< HEAD
                 <option value="Critico">Critico</option>
+=======
+                <option value="Critico">Crítico</option>
+>>>>>>> master
               </select>
             </div>
             <div class="item-detalhe-cadastro">
@@ -291,11 +323,39 @@
     </div>
 
     <div id="aba-telemetria" class="painel-aba-tecnico" role="tabpanel" aria-labelledby="tab-telemetria" hidden>
+<<<<<<< HEAD
+=======
+      <section class="cartao">
+        <div class="titulo-cartao">Telemetria diária — médias por talhão</div>
+        <div class="tabela-responsiva">
+          <table class="tabela-dados">
+            <thead><tr><th>Data</th><th>Talhão</th><th>Temperatura (°C)</th><th>Umidade do ar (%)</th><th>Umidade do solo (%)</th><th>Chuva (mm)</th></tr></thead>
+            <tbody id="tabela-telemetria-diaria"></tbody>
+          </table>
+        </div>
+      </section>
+>>>>>>> master
       <section class="cartao thingspeak-dashboard" data-thingspeak-panel aria-labelledby="tec-thingspeak-heading">
         <div class="titulo-cartao" id="tec-thingspeak-heading">ThingSpeak / ESP32 — clima e telemetria</div>
         <p class="mensagem-feedback" data-thingspeak-status aria-live="polite">Carregando canal ThingSpeak...</p>
         <div class="thingspeak-summary" data-thingspeak-summary></div>
+<<<<<<< HEAD
         <div class="thingspeak-chart"><canvas aria-label="Historico recente das metricas do ThingSpeak"></canvas></div>
+=======
+        <div class="thingspeak-embeds" aria-label="Graficos do ESP32 via Node-RED">
+          <article>
+            <div class="container-iframe" style="height:300px;"><iframe loading="lazy"
+                src="http://localhost:1880/dashboard/temperatura" title="Grafico de temperatura via Node-RED"
+                scrolling="no"></iframe></div>
+          </article>
+          <article>
+            <div class="container-iframe" style="height:300px;"><iframe loading="lazy" src="http://localhost:1880/dashboard/umidade"
+                title="Grafico de umidade via Node-RED" scrolling="no"></iframe></div>
+          </article>
+        </div>
+
+        <div class="thingspeak-chart"><canvas aria-label="Histórico recente das métricas do ThingSpeak"></canvas></div>
+>>>>>>> master
         <div class="thingspeak-feed-scroll">
           <table class="tabela-dados">
             <thead>
@@ -376,8 +436,13 @@
     <div id="aba-ocorrencias" class="painel-aba-tecnico" role="tabpanel" aria-labelledby="tab-ocorrencias" hidden>
       <section id="ocorrencias" class="cartao">
         <div class="cabecalho-cadastro">
+<<<<<<< HEAD
           <span class="badge-status atencao">Ocorrencias</span>
           <h2 class="titulo-talhao">Registrar Ocorrencia</h2>
+=======
+          <span class="badge-status atencao">Ocorrências</span>
+          <h2 class="titulo-talhao">Registrar Ocorrência</h2>
+>>>>>>> master
         </div>
         <form id="form-ocorrencia">
           <div class="info-grid-cadastro">
@@ -390,9 +455,15 @@
               <select id="ocorrencia-tipo" name="tipo" class="campo-formulario" required>
                 <option value="">Selecione</option>
                 <option>Pragas</option>
+<<<<<<< HEAD
                 <option>Doencas</option>
                 <option>Falta de agua</option>
                 <option>Excesso de agua</option>
+=======
+                <option value="Doencas">Doenças</option>
+                <option value="Falta de agua">Falta de água</option>
+                <option value="Excesso de agua">Excesso de água</option>
+>>>>>>> master
                 <option>Desenvolvimento irregular</option>
                 <option>Problema no sensor</option>
                 <option>Outro</option>
@@ -432,6 +503,16 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="js/telemetria-thingspeak.js"></script>
   <script src="js/tec.js"></script>
+<<<<<<< HEAD
 </body>
 
 </html>
+=======
+  <script src="js/pulse-frutlog.js"></script>
+  <script src="js/vendor/flatpickr.min.js"></script>
+  <script src="js/vendor/flatpickr-pt.js"></script>
+  <script src="js/calendarios.js"></script>
+</body>
+
+</html>
+>>>>>>> master
