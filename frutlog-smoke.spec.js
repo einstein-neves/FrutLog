@@ -1,0 +1,37 @@
+const { test, expect } = require("playwright/test");
+
+const paginas = [
+  { arquivo: "login.html", titulo: "FrutLog - Login" },
+  { arquivo: "eng.html", titulo: "FrutLog - Engenheiro Agrônomo", perfil: "engenheiro" },
+  { arquivo: "tec.html", titulo: "FrutLog - Técnico Agrícola", perfil: "tecnico" },
+  { arquivo: "admin.html", titulo: "FrutLog - Administração", perfil: "admin" },
+];
+
+for (const pagina of paginas) {
+  test(`carrega ${pagina.arquivo}`, async ({ page }) => {
+    const erros = [];
+
+    page.on("console", (msg) => {
+      if (msg.type() === "error") {
+        erros.push(msg.text());
+      }
+    });
+
+    page.on("pageerror", (erro) => erros.push(erro.message));
+
+    if (pagina.perfil) {
+      await page.addInitScript((perfil) => {
+        sessionStorage.setItem("frutlog_sessao", JSON.stringify({
+          id: 1,
+          matricula: "teste",
+          nome: "Teste",
+          perfil,
+        }));
+      }, pagina.perfil);
+    }
+
+    await page.goto(`http://localhost:5500/${pagina.arquivo}`, { waitUntil: "networkidle" });
+    await expect(page).toHaveTitle(pagina.titulo);
+    expect(erros).toEqual([]);
+  });
+}
