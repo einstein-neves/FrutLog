@@ -53,6 +53,8 @@ let graficoLeituras = null;
 let unidadeColheita = "t";
 let graficoClima = null;
 let telemetriaDiariaAdmin = [];
+let telemetriaMensalAdmin = [];
+let telemetriaMensalEsp32 = [];
 
 function escaparHtml(valor) {
   return String(valor ?? "").replace(/[&<>"']/g, (caractere) => ({
@@ -692,100 +694,77 @@ function renderizarGraficoClima() {
     graficoClima.destroy();
   }
 
-  const meses = [
+  const nomesMeses = [
     "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
     "Jul", "Ago", "Set", "Out", "Nov", "Dez"
   ];
 
-  const dadosMensais = meses.map((mes) => ({
-    mes,
-    temperatura: null,
-    chuva: null,
-    umidade: null,
-    solo: null,
-  }));
+  const dadosMensais = [...telemetriaMensalAdmin, ...telemetriaMensalEsp32];
 
-  const numeroMeses = {
-    Jan: 0,
-    Fev: 1,
-    Mar: 2,
-    Abr: 3,
-    Mai: 4,
-    Jun: 5,
-    Jul: 6,
-    Ago: 7,
-    Set: 8,
-    Out: 9,
-    Nov: 10,
-    Dez: 11,
+  // "2026-10" -> "Out/2026"
+  const rotuloMes = (mes) => {
+    const [ano, numero] = String(mes).split("-");
+    return `${nomesMeses[Number(numero) - 1] || numero}/${ano}`;
   };
 
-  telemetriaDiariaAdmin.forEach((item) => {
-    const data = new Date(item.dia);
+  // Consolidado mensal vindo da API (os valores diarios do ESP32 ja foram agrupados por mes).
+  const meses = [...new Set(
+    dadosMensais.map((item) => item.mes).filter(Boolean)
+  )].sort();
 
-    if (Number.isNaN(data.getTime())) return;
+  // Media do mes para a metrica (media entre as fontes/talhoes que mediram naquele mes).
+  const mediaDoMes = (mes, codigo) => {
+      const valores = dadosMensais
+      .filter((item) =>
+        item.mes === mes &&
+        item.codigo_metrica === codigo &&
+        Number.isFinite(Number(item.valor_medio)))
+      .map((item) => Number(item.valor_medio));
 
-    const indiceMes = data.getMonth();
-    const dadosMes = dadosMensais[indiceMes];
+    return valores.length
+      ? Number((valores.reduce((soma, valor) => soma + valor, 0) / valores.length).toFixed(2))
+      : null;
+  };
 
-    if (!dadosMes) return;
-
-    const valor = Number(item.valor_medio);
-
-    if (!Number.isFinite(valor)) return;
-
-    switch (item.codigo_metrica) {
-      case "temperatura":
-        dadosMes.temperatura = valor;
-        break;
-
-      case "chuva":
-        dadosMes.chuva = valor;
-        break;
-
-      case "umidadeAr":
-        dadosMes.umidade = valor;
-        break;
-
-      case "umidadeSolo":
-        dadosMes.solo = valor;
-        break;
-    }
-  });
+  const serie = (codigo) => meses.map((mes) => mediaDoMes(mes, codigo));
 
   graficoClima = new Chart(canvas, {
     type: "line",
     data: {
-      labels: dadosMensais.map((item) => item.mes),
+      labels: meses.map(rotuloMes),
 
       datasets: [
         {
           label: "Temperatura (°C)",
-          data: dadosMensais.map((item) => item.temperatura),
+          data: serie("temperatura"),
           borderColor: "#c62828",
           backgroundColor: "rgba(198, 40, 40, 0.12)",
           tension: 0.35,
+          spanGaps: true,
         },
         {
           label: "Chuva (mm)",
-          data: dadosMensais.map((item) => item.chuva),
+          data: serie("chuva"),
           borderColor: "#f9a825",
           backgroundColor: "rgba(249, 168, 37, 0.12)",
           tension: 0.35,
+          spanGaps: true,
         },
         {
           label: "Umidade do ar (%)",
-          data: dadosMensais.map((item) => item.umidade),
+          data: serie("umidadeAr"),
           borderColor: "#1565c0",
           backgroundColor: "rgba(21, 101, 192, 0.12)",
           tension: 0.35,
+          spanGaps: true,
         },
         {
           label: "Umidade do solo (%)",
-          data: dadosMensais.map((item) => item.solo),
+          data: serie("umidadeSolo"),
           borderColor: "#388e3c",
           backgroundColor: "rgba(56, 142, 60, 0.12)",
           tension: 0.35,
+          spanGaps: true,
         },
       ],
     },
@@ -845,6 +824,7 @@ async function carregarDadosConectados() {
   }
   if (resultados[4].status === "fulfilled") {
     telemetriaDiariaAdmin = resultados[4].value.leituras || [];
+    telemetriaMensalAdmin = resultados[4].value.mensal || [];
     renderizarTelemetriaDiariaAdmin();
     renderizarGraficoClima();
   } else {
@@ -861,8 +841,19 @@ async function carregarDadosConectados() {
   }
 
   if (!window.sincronizacaoAdminIniciada) {
+    carregarEsp32Mensal();
     window.sincronizacaoAdminIniciada = true;
     window.setInterval(atualizarDadosCampoConectados, 15000);
+  }
+}
+
+async function carregarEsp32Mensal() {
+  try {
+    const resposta = await FrutLog.apiFetch("/telemetria/esp32-mensal");
+    telemetriaMensalEsp32 = resposta.mensal || [];
+    renderizarGraficoClima();
+  } catch (erro) {
+    console.error("ESP32 mensal:", erro.message);
   }
 }
 
@@ -909,6 +900,7 @@ async function atualizarDadosCampoConectados() {
 
   if (resultados[3].status === "fulfilled") {
     telemetriaDiariaAdmin = resultados[3].value.leituras || [];
+    telemetriaMensalAdmin = resultados[3].value.mensal || [];
     renderizarTelemetriaDiariaAdmin();
     renderizarGraficoClima();
   } else {

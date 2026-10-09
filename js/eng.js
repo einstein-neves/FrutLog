@@ -41,6 +41,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   let unidadeAtual = "t";
   let sensoresDoPainel = [];
   let telemetriaMensalEngenheiro = [];
+  let telemetriaMensalEsp32 = [];
 
   let colheitas = [];
 
@@ -314,6 +315,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (graficoClimaMensalEngenheiro) {
       graficoClimaMensalEngenheiro.destroy();
     }
+    const dadosMensais = [...telemetriaMensalEngenheiro, ...telemetriaMensalEsp32];
 
     const metricas = {
       temperatura: {
@@ -332,7 +334,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const meses = [
       ...new Set(
-        telemetriaMensalEngenheiro
+        dadosMensais
           .map((item) => item.mes)
           .filter(Boolean)
       ),
@@ -342,7 +344,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const resultado = { mes };
 
       Object.keys(metricas).forEach((codigo) => {
-        const leituras = telemetriaMensalEngenheiro
+        const leituras = dadosMensais
           .filter(
             (item) =>
               item.mes === mes &&
@@ -833,6 +835,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else {
       colheitas = [];
       erros.push(`Historico de colheitas: ${resultadoColheitas.reason?.message || resultadoColheitas.reason}`);
+    }
+    try {
+      telemetriaMensalEsp32 = (await FrutLog.apiFetch("/telemetria/esp32-mensal")).mensal || [];
+    } catch (erro) {
+      telemetriaMensalEsp32 = [];
     }
     if (resultadoTelemetria.status === "fulfilled") {
       telemetriaMensalEngenheiro = resultadoTelemetria.value.mensal || [];

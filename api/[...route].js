@@ -551,6 +551,45 @@ module.exports = async (req, res) => {
       );
     }
 
+        if (req.method === "GET" && route === "/telemetria/esp32-mensal") {
+      if (!c.thingSpeak.channelId) return reply(res, 200, { mensal: [] }, origin);
+      try {
+        const agora = new Date();
+        const inicio = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth() - 11, 1)).toISOString().slice(0, 10);
+        const fim = agora.toISOString().slice(0, 19).replace("T", " ");
+        const consulta = `average=daily&start=${encodeURIComponent(`${inicio} 00:00:00`)}&end=${encodeURIComponent(fim)}`
+          + (c.thingSpeak.readApiKey ? `&api_key=${encodeURIComponent(c.thingSpeak.readApiKey)}` : "");
+        const resposta = await fetch(
+          `https://api.thingspeak.com/channels/${encodeURIComponent(c.thingSpeak.channelId)}/feeds.json?${consulta}`,
+          { signal: AbortSignal.timeout(10000) }
+        );
+        if (!resposta.ok) return reply(res, 200, { mensal: [] }, origin);
+        const corpo = await resposta.json();
+        const meses = new Map();
+        (corpo.feeds || []).forEach((feed) => {
+          const mes = String(feed.created_at).slice(0, 7);
+          Object.entries(c.thingSpeak.fields).forEach(([metrica, campo]) => {
+            const bruto = feed[`field${campo}`];
+            if (bruto === null || bruto === undefined || !Number.isFinite(Number(bruto))) return;
+            const chave = `${metrica}:${mes}`;
+            const item = meses.get(chave) || { mes, codigo_metrica: metrica, soma: 0, n: 0 };
+            item.soma += Number(bruto);
+            item.n += 1;
+            meses.set(chave, item);
+          });
+        });
+        const mensal = [...meses.values()].map(({ mes, codigo_metrica, soma, n }) => ({
+          mes,
+          codigo_metrica,
+          valor_medio: Number((soma / n).toFixed(2))
+        }));
+        return reply(res, 200, { mensal }, origin);
+      } catch (error) {
+        console.error("ThingSpeak mensal indisponivel:", error.message);
+        return reply(res, 200, { mensal: [] }, origin);
+      }
+    }
+
     if (req.method === "GET" && route === "/telemetria/diaria") {
       const agora = new Date();
       const desde = `${agora.getUTCFullYear()}-${String(agora.getUTCMonth() + 1).padStart(2, "0")}-01`;

@@ -79,6 +79,7 @@ let graficoClimaMensalTecnico = null;
 let telemetriaDiaria = [];
 let telemetriaMensal = [];
 let talhaoSelecionadoId = null;
+let telemetriaMensalEsp32 = [];
 
 function dataLocalISO() {
   const hoje = new Date();
@@ -263,6 +264,11 @@ async function carregarTelemetriaDiaria() {
     const resposta = await FrutLog.apiFetch("/telemetria/diaria");
     telemetriaDiaria = resposta.leituras || [];
     telemetriaMensal = resposta.mensal || [];
+    try {
+      telemetriaMensalEsp32 = (await FrutLog.apiFetch("/telemetria/esp32-mensal")).mensal || [];
+    } catch (erro) {
+      telemetriaMensalEsp32 = [];
+    }
     renderizarTelemetriaDiaria();
     renderizarTelemetriaMensal();
     renderizarGraficoClimaMensalTecnico();
@@ -340,6 +346,8 @@ function renderizarGraficoClimaMensalTecnico() {
     graficoClimaMensalTecnico.destroy();
   }
 
+  const dadosMensais = [...telemetriaMensal, ...telemetriaMensalEsp32];
+
   const metricas = {
     temperatura: {
       nome: "Temperatura",
@@ -360,7 +368,7 @@ function renderizarGraficoClimaMensalTecnico() {
   };
 
   const meses = [...new Set(
-    telemetriaMensal
+    dadosMensais
       .map((item) => item.mes)
       .filter(Boolean)
   )].sort();
@@ -369,7 +377,7 @@ function renderizarGraficoClimaMensalTecnico() {
     const resultado = { mes };
 
     Object.keys(metricas).forEach((codigo) => {
-      const leituras = telemetriaMensal
+      const leituras = dadosMensais
         .filter(
           (item) =>
             item.mes === mes &&
