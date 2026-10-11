@@ -3,6 +3,7 @@
    Sidebar, cards, mapa, tabelas, badges e responsividade.
    ========================================================= */
 
+/* Estrutura principal e navegacao lateral. */
 .layout-dashboard {
   display: flex;
   min-height: 100vh;
@@ -147,6 +148,7 @@
   font-weight: 600;
 }
 
+/* Resumos e historico de telemetria. */
 .thingspeak-dashboard {
   min-width: 0;
 }
@@ -222,6 +224,7 @@
   overflow: auto;
 }
 
+/* Mapa interativo e legenda dos talhoes. */
 .secao-mapa-detalhes {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
@@ -413,6 +416,7 @@
 .legenda-critico { background: rgba(198, 40, 40, 0.65); }
 .legenda-selecao { background: rgba(123, 31, 162, 0.75); }
 
+/* Cartoes de detalhe, campos e indicadores de status. */
 .card-detalhes-elegante {
   display: flex;
   flex-direction: column;
@@ -519,6 +523,7 @@
   border-color: #e5d0e5;
 }
 
+/* Filtros e conteudo dos relatorios de campo. */
 .filtros-relatorios {
   display: grid;
   grid-template-columns: auto minmax(180px, 1fr) auto minmax(150px, 220px) auto minmax(140px, 180px);
@@ -695,6 +700,7 @@ textarea.campo-formulario {
   font-size: 0.85rem;
 }
 
+/* Graficos e cartoes de resumo. */
 .container-grafico {
   position: relative;
   width: 100%;
@@ -762,6 +768,7 @@ textarea.campo-formulario {
   font-size: 0.85rem;
 }
 
+/* Reorganiza navegacao, formularios e cartoes em telas menores. */
 @media (max-width: 1100px) {
   .secao-mapa-detalhes {
     grid-template-columns: 1fr;

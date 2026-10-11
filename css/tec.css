@@ -11,6 +11,7 @@
   margin-bottom: 20px;
 }
 
+/* Cartoes de tarefas e talhoes monitorados. */
 .lista-tarefas {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -79,6 +80,7 @@
   grid-column: span 2;
 }
 
+/* Etiquetas visuais do estado dos sensores. */
 .status-sensor {
   display: inline-flex;
   padding: 4px 8px;
@@ -112,6 +114,7 @@
   color: var(--cor-critico);
 }
 
+/* Alertas e historico de atividades do tecnico. */
 .lista-alertas {
   display: grid;
   gap: 12px;
@@ -175,6 +178,7 @@
   outline-offset: -2px;
 }
 
+/* Conteudo das abas e graficos de metricas. */
 .painel-aba-tecnico[hidden] {
   display: none;
 }
@@ -189,6 +193,7 @@
   margin-top: 12px;
 }
 
+/* Empilha tarefas e campos largos em telas pequenas. */
 @media (max-width: 760px) {
   .lista-tarefas {
     grid-template-columns: 1fr;

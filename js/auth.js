@@ -52,11 +52,7 @@ const FrutLog = (() => {
       }
       return sessao;
     } catch (erro) {
-<<<<<<< HEAD
-      console.error("Sessao invalida no navegador:", erro);
-=======
       console.error("Sessão inválida no navegador:", erro);
->>>>>>> master
       sessionStorage.removeItem(CHAVE_SESSAO);
       sessionStorage.removeItem(CHAVE_TOKEN);
       return null;
@@ -98,11 +94,7 @@ const FrutLog = (() => {
     }
 
     if (perfisPermitidos.length > 0 && !perfisPermitidos.includes(sessao.perfil)) {
-<<<<<<< HEAD
-      alert("Seu perfil nao possui acesso a esta pagina.");
-=======
       alert("Seu perfil não possui acesso a esta página.");
->>>>>>> master
       redirecionarPorPerfil(sessao.perfil);
       return null;
     }
@@ -133,11 +125,7 @@ const FrutLog = (() => {
         headers,
       });
     } catch (erro) {
-<<<<<<< HEAD
-      throw new Error("Servidor offline ou indisponivel.");
-=======
       throw new Error("Servidor offline ou indisponível.");
->>>>>>> master
     }
 
     let dados = null;
@@ -149,30 +137,18 @@ const FrutLog = (() => {
         const tipo = resposta.headers.get("content-type") || "desconhecido";
         throw new Error(
           `A API respondeu sem JSON (HTTP ${resposta.status}; ${tipo}). ` +
-<<<<<<< HEAD
-          "Abra o sistema pela URL do servidor FrutLog, nao pelo Live Server."
-=======
           "Abra o sistema pela URL do servidor FrutLog, não pelo Live Server."
->>>>>>> master
         );
       }
     }
 
     if (resposta.status === 401 && caminho !== "/login") {
       encerrarSessao();
-<<<<<<< HEAD
-      throw new Error("Sessao expirada. Faca login novamente.");
-    }
-
-    if (!resposta.ok) {
-      throw new Error(dados?.mensagem || "Resposta HTTP invalida.");
-=======
       throw new Error("Sessão expirada. Faca login novamente.");
     }
 
     if (!resposta.ok) {
       throw new Error(dados?.mensagem || "Resposta HTTP inválida.");
->>>>>>> master
     }
 
     return dados;
@@ -229,10 +205,7 @@ const FrutLog = (() => {
   }
 
   return {
-<<<<<<< HEAD
-=======
     textoInterface: (valor) => ({ Atencao: 'Atenção', Critico: 'Crítico', Critica: 'Crítica', Tecnico: 'Técnico', tecnico: 'Técnico', engenheiro: 'Engenheiro', admin: 'Administrador', 'Nao associado': 'Não associado' }[String(valor)] || valor),
->>>>>>> master
     API_BASE_URL,
     AUTENTICACAO_API_ATIVA,
     obterSessao,

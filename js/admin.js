@@ -51,10 +51,7 @@ let painelTecnico = {
 let graficoColheita = null;
 let graficoLeituras = null;
 let unidadeColheita = "t";
-let graficoClima = null;
 let telemetriaDiariaAdmin = [];
-let telemetriaMensalAdmin = [];
-let telemetriaMensalEsp32 = [];
 
 function escaparHtml(valor) {
   return String(valor ?? "").replace(/[&<>"']/g, (caractere) => ({
@@ -131,15 +128,9 @@ function configurarFormularioFuncionario() {
   botaoCopiarSenha?.addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(campoSenha.value);
-<<<<<<< HEAD
       exibirMensagem("mensagem-funcionario", "Senha provisoria copiada.", "sucesso");
     } catch (erro) {
       exibirMensagem("mensagem-funcionario", `Nao foi possivel copiar a senha: ${erro.message}`, "erro");
-=======
-      exibirMensagem("mensagem-funcionario", "Senha provisória copiada.", "sucesso");
-    } catch (erro) {
-      exibirMensagem("mensagem-funcionario", `Não foi possível copiar a senha: ${erro.message}`, "erro");
->>>>>>> master
     }
   });
   botaoCancelar?.addEventListener("click", () => {
@@ -152,11 +143,7 @@ function configurarFormularioFuncionario() {
     campoSenha.placeholder = "8 a 10 caracteres";
     campoSenha.value = gerarSenhaTemporaria();
     botaoCancelar.hidden = true;
-<<<<<<< HEAD
     botaoSalvar.innerHTML = '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Cadastrar Funcionario';
-=======
-    botaoSalvar.innerHTML = '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Cadastrar Funcionário';
->>>>>>> master
     exibirMensagem("mensagem-funcionario", "");
   });
 
@@ -168,11 +155,7 @@ function configurarFormularioFuncionario() {
     const editando = Boolean(dados.id);
     const senhaProvisoriaUsada = dados.senha;
     if ((!editando || dados.senha) && (typeof dados.senha !== "string" || dados.senha.length < 8 || dados.senha.length > 10)) {
-<<<<<<< HEAD
       exibirMensagem(mensagemId, "A senha provisoria deve possuir entre 8 e 10 caracteres.", "erro");
-=======
-      exibirMensagem(mensagemId, "A senha provisória deve possuir entre 8 e 10 caracteres.", "erro");
->>>>>>> master
       campoSenha?.focus();
       return;
     }
@@ -185,26 +168,21 @@ function configurarFormularioFuncionario() {
         cargo: dados.cargo,
         profissao: dados.profissao,
         perfil: dados.perfil,
-        status: dados.status,
+        senha: dados.senha,
       };
-      if (dados.senha) payload.senha = dados.senha;
       if (editando) {
         await FrutLog.apiFetch(`/funcionarios/${encodeURIComponent(dados.id)}`, {
           method: "PUT",
           body: JSON.stringify(payload),
         });
         funcionarios = funcionarios.map((item) => String(item.id) === String(dados.id)
-          ? { ...item, ...payload, status: payload.status, ativo: payload.status === "ativo" }
+          ? { ...item, ...payload, status: payload.status || item.status, ativo: (payload.status || item.status) === "ativo" }
           : item);
-<<<<<<< HEAD
         exibirMensagem(mensagemId, "Funcionario atualizado.", "sucesso");
-=======
-        exibirMensagem(mensagemId, "Funcionário atualizado.", "sucesso");
->>>>>>> master
       } else {
         const resposta = await FrutLog.apiFetch("/funcionarios", {
           method: "POST",
-          body: JSON.stringify({ ...payload, senha: dados.senha }),
+          body: JSON.stringify({ ...payload, status: dados.status || "ativo" }),
         });
         const novoFuncionario = {
           id: resposta.id,
@@ -213,15 +191,11 @@ function configurarFormularioFuncionario() {
           cargo: dados.cargo,
           profissao: dados.profissao,
           perfil: dados.perfil,
-          status: dados.status,
-          ativo: dados.status === "ativo",
+          status: dados.status || "ativo",
+          ativo: (dados.status || "ativo") === "ativo",
         };
         funcionarios.push(novoFuncionario);
-<<<<<<< HEAD
         exibirMensagem(mensagemId, `Funcionario cadastrado. Matricula: ${novoFuncionario.matricula}. A senha devera ser alterada no primeiro acesso.`, "sucesso");
-=======
-        exibirMensagem(mensagemId, `Funcionário cadastrado. Matrícula: ${novoFuncionario.matricula}. A senha deverá ser alterada no primeiro acesso.`, "sucesso");
->>>>>>> master
       }
       renderizarFuncionarios();
       formulario.reset();
@@ -233,15 +207,9 @@ function configurarFormularioFuncionario() {
       campoSenha.type = "text";
       botaoMostrarSenha.textContent = "Ocultar senha";
       botaoCancelar.hidden = true;
-<<<<<<< HEAD
       botaoSalvar.innerHTML = '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Cadastrar Funcionario';
       if (!editando) {
         exibirMensagem(mensagemId, "Funcionario cadastrado. A senha provisoria usada continua visivel abaixo para ser copiada; o funcionario devera altera-la no primeiro acesso.", "sucesso");
-=======
-      botaoSalvar.innerHTML = '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Cadastrar Funcionário';
-      if (!editando) {
-        exibirMensagem(mensagemId, "Funcionário cadastrado. A senha provisória usada continua visivel abaixo para ser copiada; o funcionário deverá altera-la no primeiro acesso.", "sucesso");
->>>>>>> master
       }
     } catch (erro) {
       exibirMensagem(mensagemId, erro.message, "erro");
@@ -281,11 +249,7 @@ function carregarFuncionarios() {
         <td>${escaparHtml(funcionario.nome)}</td>
         <td>${escaparHtml(funcionario.cargo)}</td>
         <td>${escaparHtml(funcionario.profissao || "--")}</td>
-<<<<<<< HEAD
         <td>${escaparHtml(funcionario.perfil)}</td>
-=======
-        <td>${escaparHtml(FrutLog.textoInterface(funcionario.perfil))}</td>
->>>>>>> master
         <td><span class="badge-status ${status}">${textoStatus}</span></td>
         <td>
           <button class="btn-acao-admin" type="button" data-alternar-funcionario="${escaparHtml(funcionario.id)}" ${String(funcionario.id) === String(FrutLog.obterSessao()?.id) ? "disabled" : ""} aria-label="${ativo ? "Desativar" : "Ativar"} ${escaparHtml(funcionario.nome)}">${ativo ? "Desativar" : "Ativar"}</button>
@@ -322,11 +286,7 @@ function configurarAcoesTabelas() {
           ? { ...item, status, ativo: status === "ativo" }
           : item);
         renderizarFuncionarios();
-<<<<<<< HEAD
         exibirMensagem("mensagem-funcionario", `Funcionario ${status === "ativo" ? "ativado" : "desativado"}.`, "sucesso");
-=======
-        exibirMensagem("mensagem-funcionario", `Funcionário ${status === "ativo" ? "ativado" : "desativado"}.`, "sucesso");
->>>>>>> master
       } catch (erro) {
         botaoStatus.disabled = false;
         exibirMensagem("mensagem-funcionario", erro.message, "erro");
@@ -344,7 +304,6 @@ function configurarAcoesTabelas() {
       document.getElementById("funcionario-cargo").value = funcionario.cargo;
       document.getElementById("funcionario-profissao").value = funcionario.profissao || "";
       document.getElementById("funcionario-perfil").value = funcionario.perfil;
-      document.getElementById("funcionario-status").value = funcionario.status || (funcionario.ativo ? "ativo" : "inativo");
       document.getElementById("funcionario-senha").value = "";
       document.getElementById("funcionario-senha").required = false;
       document.getElementById("funcionario-senha").type = "text";
@@ -352,11 +311,7 @@ function configurarAcoesTabelas() {
       document.getElementById("funcionario-senha").placeholder = "Deixe vazio para manter a senha atual";
       document.getElementById("btn-cancelar-edicao-funcionario").hidden = false;
       document.getElementById("btn-salvar-funcionario").innerHTML = '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Salvar Alteracoes';
-<<<<<<< HEAD
       exibirMensagem("mensagem-funcionario", "Opcionalmente, defina uma nova senha provisoria; o funcionario precisara troca-la no proximo acesso.");
-=======
-      exibirMensagem("mensagem-funcionario", "Opcionalmente, defina uma nova senha provisória; o funcionário precisara troca-la no próximo acesso.");
->>>>>>> master
       document.getElementById("form-funcionario").scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
@@ -364,22 +319,14 @@ function configurarAcoesTabelas() {
     if (!botao) return;
     const id = botao.dataset.excluirFuncionario;
     const funcionario = funcionarios.find((item) => String(item.id) === String(id));
-<<<<<<< HEAD
     if (!funcionario || !window.confirm(`Excluir ${funcionario.nome} do sistema? Esta acao nao pode ser desfeita.`)) return;
-=======
-    if (!funcionario || !window.confirm(`Excluir ${funcionario.nome} do sistema? Esta ação não pode ser desfeita.`)) return;
->>>>>>> master
 
     botao.disabled = true;
     try {
       await FrutLog.apiFetch(`/funcionarios/${encodeURIComponent(id)}`, { method: "DELETE" });
       funcionarios = funcionarios.filter((item) => String(item.id) !== String(id));
       renderizarFuncionarios();
-<<<<<<< HEAD
       exibirMensagem("mensagem-funcionario", "Funcionario excluido.", "sucesso");
-=======
-      exibirMensagem("mensagem-funcionario", "Funcionário excluido.", "sucesso");
->>>>>>> master
     } catch (erro) {
       botao.disabled = false;
       exibirMensagem("mensagem-funcionario", erro.message, "erro");
@@ -413,11 +360,7 @@ function configurarAcoesTabelas() {
     if (!botao) return;
     const id = botao.dataset.excluirSensor;
     const sensor = sensores.find((item) => String(item.id) === String(id));
-<<<<<<< HEAD
     if (!sensor || !window.confirm(`Excluir o sensor ${sensor.sensor}? O historico de leituras associado tambem sera apagado.`)) return;
-=======
-    if (!sensor || !window.confirm(`Excluir o sensor ${sensor.sensor}? O histórico de leituras associado também será apagado.`)) return;
->>>>>>> master
 
     botao.disabled = true;
     try {
@@ -493,11 +436,7 @@ function preencherSelectTalhoes() {
   for (const talhao of painelTecnico.talhoes || []) {
     if (talhao.id && !codigos.includes(talhao.id)) codigos.push(talhao.id);
   }
-<<<<<<< HEAD
   select.innerHTML = '<option value="">Selecione o talhao</option>' + codigos
-=======
-  select.innerHTML = '<option value="">Selecione o talhão</option>' + codigos
->>>>>>> master
     .map((codigo) => `<option value="${escaparHtml(codigo)}">${escaparHtml(codigo)}</option>`)
     .join("");
   if (codigos.includes(selecionado)) select.value = selecionado;
@@ -520,11 +459,7 @@ function renderizarSensores() {
         <td>${escaparHtml(sensor.talhao || "--")}</td>
         <td>${escaparHtml(sensor.tipo || sensor.codigo_metrica)}</td>
         <td>${escaparHtml(sensor.leitura || "Sem leitura")}</td>
-<<<<<<< HEAD
         <td><span class="badge-status ${statusClasse}">${escaparHtml(status)}</span></td>
-=======
-        <td><span class="badge-status ${statusClasse}">${escaparHtml(FrutLog.textoInterface(status))}</span></td>
->>>>>>> master
         <td>
           <button class="btn-acao-admin" type="button" data-alternar-sensor="${escaparHtml(sensor.id)}" aria-label="${sensor.ativo ? "Desativar" : "Ativar"} sensor ${escaparHtml(sensor.sensor || sensor.id_externo)}">${sensor.ativo ? "Desativar" : "Ativar"}</button>
           <button class="btn-acao-admin btn-excluir-admin" type="button" data-excluir-sensor="${escaparHtml(sensor.id)}" aria-label="Excluir sensor ${escaparHtml(sensor.sensor || sensor.id_externo)}">Excluir</button>
@@ -565,24 +500,14 @@ function renderizarPainelTecnico() {
       <td>${escaparHtml(talhao.area || "--")}</td>
       <td>${escaparHtml(talhao.sensor || "--")}</td>
       <td>${escaparHtml(talhao.leitura || "--")}</td>
-<<<<<<< HEAD
       <td><span class="badge-status ${normalizarStatus(talhao.situacao || talhao.status)}">${escaparHtml(talhao.situacao || talhao.status || "--")}</span></td>
       <td>${escaparHtml(talhao.prioridade || "--")}</td>
-=======
-      <td><span class="badge-status ${normalizarStatus(talhao.situacao || talhao.status)}">${escaparHtml(FrutLog.textoInterface(talhao.situacao || talhao.status || "--"))}</span></td>
-      <td>${escaparHtml(FrutLog.textoInterface(talhao.prioridade || "--"))}</td>
->>>>>>> master
     </tr>`));
   preencherTabela("tabela-inspecoes-admin", 6, inspecoes.map((item) => `
     <tr><td>${formatarData(item.data)}</td><td>${escaparHtml(item.talhao)}</td>
       <td>${escaparHtml(item.sensor || "--")}</td>
-<<<<<<< HEAD
       <td><span class="badge-status ${normalizarStatus(item.situacao)}">${escaparHtml(item.situacao)}</span></td>
       <td>${escaparHtml(item.problemas || "Sem ocorrencia")}</td><td>${escaparHtml(item.observacoes || "--")}</td></tr>`));
-=======
-      <td><span class="badge-status ${normalizarStatus(item.situacao)}">${escaparHtml(FrutLog.textoInterface(item.situacao))}</span></td>
-      <td>${escaparHtml(item.problemas || "Sem ocorrência")}</td><td>${escaparHtml(item.observacoes || "--")}</td></tr>`));
->>>>>>> master
   preencherTabela("tabela-plantios-admin", 5, plantios.map((item) => `
     <tr><td>${escaparHtml(item.talhao || item.talhao_id || "--")}</td>
       <td>${escaparHtml([item.produto || item.cultura, item.variedade].filter(Boolean).join(" / ") || "--")}</td>
@@ -598,23 +523,14 @@ function renderizarPainelTecnico() {
       <td>${escaparHtml(item.observacao || "--")}</td></tr>`));
 
   const linhasAlertas = [
-<<<<<<< HEAD
     ...tarefas.map((item) => `<tr><td>${escaparHtml(item.talhao || "--")}</td><td>${escaparHtml(item.prioridade || "Tarefa")}</td><td>${escaparHtml(item.atividade || "--")}</td><td>Pendente</td></tr>`),
     ...alertas.map((item) => `<tr><td>${escaparHtml(item.titulo || item.talhao || "--")}</td><td>${escaparHtml(item.severidade || item.nivel || "--")}</td><td>${escaparHtml(item.mensagem || item.texto || item.titulo || "--")}</td><td>${escaparHtml(item.status || "Aberto")}</td></tr>`),
-=======
-    ...tarefas.map((item) => `<tr><td>${escaparHtml(item.talhao || "--")}</td><td>${escaparHtml(FrutLog.textoInterface(item.prioridade || "Tarefa"))}</td><td>${escaparHtml(item.atividade || "--")}</td><td>Pendente</td></tr>`),
-    ...alertas.map((item) => `<tr><td>${escaparHtml(item.titulo || item.talhao || "--")}</td><td>${escaparHtml(FrutLog.textoInterface(item.severidade || item.nivel || "--"))}</td><td>${escaparHtml(item.mensagem || item.texto || item.titulo || "--")}</td><td>${escaparHtml(FrutLog.textoInterface(item.status || "Aberto"))}</td></tr>`),
->>>>>>> master
   ];
   preencherTabela("tabela-alertas-admin", 4, linhasAlertas);
   preencherSelectTalhoes();
 }
 
 function renderizarMapaAdmin() {
-<<<<<<< HEAD
-=======
-  if (window.FrutLogEditorAdmin?.ativo()) return;
->>>>>>> master
   const mapa = document.getElementById("mapa-talhoes-admin");
   if (!mapa || typeof FrutLogTalhoes === "undefined") return;
   const features = FrutLogTalhoes.obterTalhoes();
@@ -622,13 +538,8 @@ function renderizarMapaAdmin() {
   exibirMensagem(
     "mensagem-mapa-admin",
     features.length
-<<<<<<< HEAD
       ? `${features.length} talhao(es) carregado(s) do servidor.`
       : "Nenhum talhao retornado pelo servidor. Verifique os cadastros e a fazenda vinculada."
-=======
-      ? `${features.length} talhão(es) carregado(s) do servidor.`
-      : "Nenhum talhão retornado pelo servidor. Verifique os cadastros e a fazenda vinculada."
->>>>>>> master
   );
   const renderizados = FrutLogMapaTalhoes.renderizarMapaTalhoes(mapa, features, {
     statusFor: (feature) => estados.get(feature.properties.codigo) || feature.properties.status,
@@ -637,25 +548,15 @@ function renderizarMapaAdmin() {
       mapa.querySelectorAll(".talhao-mapa").forEach((item) => item.classList.toggle("selecionado", item === poligono));
       const dados = (painelTecnico.talhoes || []).find((item) => item.id === codigo);
       exibirMensagem("mensagem-dados-tecnicos", dados
-<<<<<<< HEAD
         ? `Talhao ${codigo}: ${dados.situacao || "sem situacao"}; leitura ${dados.leitura || "indisponivel"}.`
         : `Talhao ${codigo} selecionado.`);
-=======
-        ? `Talhão ${codigo}: ${dados.situacao || "sem situacao"}; leitura ${dados.leitura || "indisponivel"}.`
-        : `Talhão ${codigo} selecionado.`);
->>>>>>> master
     },
   });
   exibirMensagem(
     "mensagem-mapa-admin",
     renderizados
-<<<<<<< HEAD
       ? `${renderizados} divisao(oes) de talhao renderizada(s) com dados do servidor.`
       : "Os talhoes foram carregados, mas nenhum possui coordenadas validas para desenhar."
-=======
-      ? `${renderizados} divisão(oes) de talhão renderizada(s) com dados do servidor.`
-      : "Os talhões foram carregados, mas nenhum possui coordenadas validas para desenhar."
->>>>>>> master
   );
 }
 
@@ -694,7 +595,6 @@ function configurarGraficos() {
       renderizarGraficoColheita();
     });
   });
-  renderizarGraficoClima();
 }
 
 function definirColheitasAnuais(colheitas) {
@@ -717,11 +617,7 @@ function renderizarGraficoColheita() {
   const mensagem = document.getElementById("mensagem-colheita-admin");
   if (!dados.length) {
     graficoColheita = null;
-<<<<<<< HEAD
     if (mensagem) mensagem.textContent = "Ainda nao ha registros de colheita para esta unidade.";
-=======
-    if (mensagem) mensagem.textContent = "Ainda não há registros de colheita para esta unidade.";
->>>>>>> master
     ["resumo-colheita-ultima", "resumo-colheita-menor", "resumo-colheita-maior"].forEach((id) => {
       document.getElementById(id).textContent = "--";
     });
@@ -766,11 +662,7 @@ function renderizarGraficoLeituras() {
     data: {
       labels: dados.map((item) => item.sensor || item.id_externo),
       datasets: [{
-<<<<<<< HEAD
         label: "Ultima leitura",
-=======
-        label: "Última leitura",
->>>>>>> master
         data: dados.map((item) => Number(item.valor)),
         backgroundColor: "#1976d2",
         borderRadius: 6,
@@ -781,105 +673,6 @@ function renderizarGraficoLeituras() {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: { y: { beginAtZero: true } },
-    },
-  });
-}
-
-function renderizarGraficoClima() {
-  const canvas = document.getElementById("grafico-clima-mensal");
-
-  if (!canvas || typeof Chart === "undefined") {
-    return;
-  }
-
-  if (graficoClima) {
-    graficoClima.destroy();
-  }
-
-  const nomesMeses = [
-    "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-    "Jul", "Ago", "Set", "Out", "Nov", "Dez"
-  ];
-
-  const dadosMensais = [...telemetriaMensalAdmin, ...telemetriaMensalEsp32];
-
-  // "2026-10" -> "Out/2026"
-  const rotuloMes = (mes) => {
-    const [ano, numero] = String(mes).split("-");
-    return `${nomesMeses[Number(numero) - 1] || numero}/${ano}`;
-  };
-
-  // Consolidado mensal vindo da API (os valores diarios do ESP32 ja foram agrupados por mes).
-  const meses = [...new Set(
-    dadosMensais.map((item) => item.mes).filter(Boolean)
-  )].sort();
-
-  // Media do mes para a metrica (media entre as fontes/talhoes que mediram naquele mes).
-  const mediaDoMes = (mes, codigo) => {
-      const valores = dadosMensais
-      .filter((item) =>
-        item.mes === mes &&
-        item.codigo_metrica === codigo &&
-        Number.isFinite(Number(item.valor_medio)))
-      .map((item) => Number(item.valor_medio));
-
-    return valores.length
-      ? Number((valores.reduce((soma, valor) => soma + valor, 0) / valores.length).toFixed(2))
-      : null;
-  };
-
-  const serie = (codigo) => meses.map((mes) => mediaDoMes(mes, codigo));
-
-  graficoClima = new Chart(canvas, {
-    type: "line",
-    data: {
-      labels: meses.map(rotuloMes),
-
-      datasets: [
-        {
-          label: "Temperatura (°C)",
-          data: serie("temperatura"),
-          borderColor: "#c62828",
-          backgroundColor: "rgba(198, 40, 40, 0.12)",
-          tension: 0.35,
-          spanGaps: true,
-        },
-        {
-          label: "Chuva (mm)",
-          data: serie("chuva"),
-          borderColor: "#f9a825",
-          backgroundColor: "rgba(249, 168, 37, 0.12)",
-          tension: 0.35,
-          spanGaps: true,
-        },
-        {
-          label: "Umidade do ar (%)",
-          data: serie("umidadeAr"),
-          borderColor: "#1565c0",
-          backgroundColor: "rgba(21, 101, 192, 0.12)",
-          tension: 0.35,
-          spanGaps: true,
-        },
-        {
-          label: "Umidade do solo (%)",
-          data: serie("umidadeSolo"),
-          borderColor: "#388e3c",
-          backgroundColor: "rgba(56, 142, 60, 0.12)",
-          tension: 0.35,
-          spanGaps: true,
-        },
-      ],
-    },
-
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-
-      scales: {
-        y: {
-          beginAtZero: true,
-        },
-      },
     },
   });
 }
@@ -898,19 +691,14 @@ async function carregarDadosConectados() {
     funcionarios = resultados[0].value.usuarios || [];
     renderizarFuncionarios();
   } else {
-<<<<<<< HEAD
     erros.push(`Funcionarios: ${resultados[0].reason.message}`);
     mostrarLinhasVazias("tabela-funcionarios", 7, "Falha ao carregar funcionarios.");
-=======
-    erros.push(`Funcionários: ${resultados[0].reason.message}`);
-    mostrarLinhasVazias("tabela-funcionarios", 7, "Falha ao carregar funcionários.");
->>>>>>> master
   }
 
   if (resultados[1].status === "fulfilled") {
     sensores = resultados[1].value.sensores || [];
     renderizarSensores();
-    renderizarGraficoClima();
+    renderizarGraficoLeituras();
   } else {
     erros.push(`Sensores: ${resultados[1].reason.message}`);
     mostrarLinhasVazias("tabela-sensores-admin", 6, "Falha ao carregar sensores.");
@@ -931,21 +719,13 @@ async function carregarDadosConectados() {
   }
   if (resultados[4].status === "fulfilled") {
     telemetriaDiariaAdmin = resultados[4].value.leituras || [];
-    telemetriaMensalAdmin = resultados[4].value.mensal || [];
     renderizarTelemetriaDiariaAdmin();
-    renderizarGraficoClima();
   } else {
-<<<<<<< HEAD
     erros.push(`Telemetria diaria: ${resultados[4].reason.message}`);
     mostrarLinhasVazias("tabela-telemetria-admin", 7, "Falha ao carregar telemetria diaria.");
-=======
-    erros.push(`Telemetria diária: ${resultados[4].reason.message}`);
-    mostrarLinhasVazias("tabela-telemetria-admin", 7, "Falha ao carregar telemetria diária.");
->>>>>>> master
   }
 
   renderizarGraficoColheita();
-  renderizarGraficoClima();
   if (erros.length) {
     exibirMensagem("mensagem-carregamento-admin", erros.join(" | "), "erro");
   } else {
@@ -953,27 +733,12 @@ async function carregarDadosConectados() {
   }
 
   if (!window.sincronizacaoAdminIniciada) {
-    carregarEsp32Mensal();
     window.sincronizacaoAdminIniciada = true;
     window.setInterval(atualizarDadosCampoConectados, 15000);
   }
 }
 
-async function carregarEsp32Mensal() {
-  try {
-    const resposta = await FrutLog.apiFetch("/telemetria/esp32-mensal");
-    telemetriaMensalEsp32 = resposta.mensal || [];
-    renderizarGraficoClima();
-  } catch (erro) {
-    console.error("ESP32 mensal:", erro.message);
-  }
-}
-
 async function carregarMapaAdmin() {
-<<<<<<< HEAD
-=======
-  if (window.FrutLogEditorAdmin?.ativo()) return;
->>>>>>> master
   await FrutLogMapaTalhoes.carregarMapaTalhoes("admin");
   preencherSelectTalhoes();
   renderizarMapaAdmin();
@@ -1002,7 +767,7 @@ async function atualizarDadosCampoConectados() {
   if (resultados[1].status === "fulfilled") {
     sensores = resultados[1].value.sensores || [];
     renderizarSensores();
-    renderizarGraficoClima();
+    renderizarGraficoLeituras();
   } else {
     erros.push(`Sensores: ${resultados[1].reason.message}`);
   }
@@ -1016,15 +781,9 @@ async function atualizarDadosCampoConectados() {
 
   if (resultados[3].status === "fulfilled") {
     telemetriaDiariaAdmin = resultados[3].value.leituras || [];
-    telemetriaMensalAdmin = resultados[3].value.mensal || [];
     renderizarTelemetriaDiariaAdmin();
-    renderizarGraficoClima();
   } else {
-<<<<<<< HEAD
     erros.push(`Telemetria diaria: ${resultados[3].reason.message}`);
-=======
-    erros.push(`Telemetria diária: ${resultados[3].reason.message}`);
->>>>>>> master
   }
 
   if (resultados[4].status === "rejected") {

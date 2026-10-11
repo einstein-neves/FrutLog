@@ -44,11 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function mostrarErro(mensagem) {
     status.textContent = mensagem;
     status.className = "mensagem-feedback erro";
-<<<<<<< HEAD
-    corpoTabela.innerHTML = '<tr><td colspan="5">Nao foi possivel atualizar as leituras.</td></tr>';
-=======
     corpoTabela.innerHTML = '<tr><td colspan="5">Não foi possível atualizar as leituras.</td></tr>';
->>>>>>> master
   }
 
   async function atualizar() {
@@ -74,18 +70,19 @@ document.addEventListener("DOMContentLoaded", () => {
         url.searchParams.set("type", "line");
         iframe.src = url.toString();
       });
+
+      // Tabela de registros corrigida e estruturada
       corpoTabela.innerHTML = feeds.length
         ? feeds.slice(-12).reverse().map((feed) => `
           <tr>
             <td>${escapar(formatarDataHora(feed.created_at))}</td>
-            ${Object.keys(nomes).map((chave) => `<td>${escapar(feed.values[chave] ?? "--")}</td>`).join("")}
+            <td>${escapar(feed.values.temperatura ?? "--")}</td>
+            <td>${escapar(feed.values.umidadeAr ?? "--")}</td>
+            <td>${escapar(feed.values.umidadeSolo ?? "--")}</td>
+            <td>${escapar(feed.values.chuva ?? "--")}</td>
           </tr>
         `).join("")
-<<<<<<< HEAD
-        : '<tr><td colspan="5">O canal ainda nao possui leituras.</td></tr>';
-=======
         : '<tr><td colspan="5">O canal ainda não possui leituras.</td></tr>';
->>>>>>> master
 
       if (grafico) grafico.destroy();
       grafico = null;
@@ -93,14 +90,18 @@ document.addEventListener("DOMContentLoaded", () => {
         status.textContent += " · Graficos indisponiveis neste navegador.";
         return;
       }
+//exemplo para os outros graficos // 
+      // Filtra o array para pegar 1 a cada 15 pontos e limpar o gráfico
+      const feedsParaGrafico = feeds.filter((_, indice) => indice % 15 === 0);
+
       grafico = new Chart(canvas, {
         type: "line",
         data: {
-          labels: feeds.map((feed) => formatarDataHora(feed.created_at)),
+          labels: feedsParaGrafico.map((feed) => formatarDataHora(feed.created_at)),
           datasets: metricas.map(([chave, nome], indice) => ({
             label: nome,
-            data: feeds.map((feed) => feed.values[chave]),
-            borderColor: ["#2e7d32", "#1976d2", "#ef6c00", "#6a1b9a"][indice],
+            data: feedsParaGrafico.map((feed) => feed.values[chave]),
+            borderColor: ["#2e7d32", "#061b61", "#ef6c00", "#6a1b9a"][indice],
             spanGaps: true,
             tension: 0.25,
           })),

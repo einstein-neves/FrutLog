@@ -52,6 +52,7 @@ img {
   max-width: 100%;
 }
 
+/* Utilitarios de acessibilidade e mensagens de estado. */
 .sr-only {
   position: absolute;
   width: 1px;

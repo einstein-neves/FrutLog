@@ -90,8 +90,8 @@ if (formularioLogin) {
         return;
       }
 
-      if (senha.length < 8 || senha.length > 10) {
-        exibirMensagem("A senha deve possuir entre 8 e 10 caracteres.", "erro");
+      if (senha.length < 8 || senha.length > 20) {
+        exibirMensagem("A senha deve possuir entre 8 e 20 caracteres.", "erro");
         campoSenha.focus();
         return;
       }

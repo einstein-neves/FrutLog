@@ -3,6 +3,7 @@
    Estilos exclusivos da tela do Engenheiro.
    ========================================================= */
 
+/* Realce do cadastro e ferramentas de edição dos talhões. */
 .card-cadastro-produto {
   border-top: 6px solid var(--cor-destaque);
 }
@@ -56,8 +57,6 @@
 .mapa-container.modo-edicao {
   cursor: crosshair;
 }
-<<<<<<< HEAD
-=======
 .mapa-container.modo-edicao .camada-talhoes {
   pointer-events: auto;
   touch-action: none;
@@ -70,7 +69,6 @@
   cursor: grab;
 }
 .mapa-container.modo-edicao .ponto-arrastavel:active { cursor: grabbing; }
->>>>>>> master
 
 .mapa-container.modo-divisao {
   cursor: cell;
@@ -93,76 +91,71 @@
   pointer-events: none;
 }
 
-/* =========================================================
-   THINGSPEAK & IFRAMES (AJUSTADO PARA LADO A LADO E RESPONSIVO)
-   ========================================================= */
-
 .thingspeak-embeds {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: space-between;
-  align-items: stretch;
-  width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Cria exatamente 2 colunas iguais */
+    gap: 20px; /* Espaçamento agradável entre os cartões */
+    margin-top: 20px;
 }
 
+/* Estilo individual de cada cartão de gráfico */
+.thingspeak-embeds article {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Efeito leve ao passar o mouse por cima do gráfico */
+.thingspeak-embeds article:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+}
+
+/* Garante que o iframe preencha o espaço interno perfeitamente */
 .thingspeak-embeds .container-iframe {
-  flex: 1;
-  min-width: calc(50% - 10px); /* Garante que ocupem 50% menos a margem de gap em desktop */
-  height: auto;
-  aspect-ratio: auto;
-  overflow: visible;
-  border-radius: 8px;
+    width: 100%;
+    height: 300px;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
-.thingspeak-embeds .container-iframe iframe {
-  width: 100%;
-  height: 620px; /* Altura unificada e ideal para os gráficos do Node-RED e ThingSpeak */
-  overflow: hidden;
-  border: none;
-  display: block;
+.thingspeak-embeds iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
 }
 
-.card-grafico-thingspeak { 
+.card-grafico-thingspeak {
   width: 100%;
-  margin: 0 0 20px 0;
+  margin: 0 0 20px;
 }
 
 .card-grafico-thingspeak > h1 {
-  margin: 0 0 20px 0
-}
-.card-grafico-thingspeak{ 
-
-  width: 100%;
-  margin:0 0 20px 0;
-
-}
-
-.container-iframe{
-   width: 100%;
-   aspect-ratio: 16/9;
-   height: 300px;
-   overflow: hidden;
-   border-radius: 8px;
-}
-.container-iframe iframe{
-  width: 100%;
-  height: 90%; 
-  overflow: hidden;
-  border:none;
-  display: block;
-  justify-content: center;
-  align-items: center;
-}
-
-
-.card-grafico-thingspeak >h1{
-  margin:  0 0 20px 0;
-
+  margin: 0 0 20px;
   font-size: 1.5rem;
   color: black;
 }
 
+.container-iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: 300px;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.container-iframe iframe {
+  width: 100%;
+  height: 90%;
+  overflow: hidden;
+  border: none;
+  display: block;
+  justify-content: center;
+  align-items: center;
+}
 
 .graficos-thingspeak {
   display: grid;
@@ -172,39 +165,24 @@
 }
 
 .graficos-thingspeak-item {
-
- .graficos-thingspeak{
-  display: grid;
-  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-  gap: 20px;
-  width: 100%;
- }
-
- .graficos-thingspeak-item{
-
   min-width: 0;
   padding: 18px;
   background-color: var(--cor-card);
   border-radius: 10px;
-  box-shadow: var(--sombra-car);
+  box-shadow: var(--sombra-card);
   display: flex;
   flex-direction: column;
   justify-content: center;
   box-sizing: border-box;
   overflow: hidden;
   align-items: center;
-
 }
 
-}
-
- .graficos-thingspeak-item h2{
-
-  margin: 0 0 15px 0;
+.graficos-thingspeak-item h2 {
+  margin: 0 0 15px;
   font-size: 1rem;
   color: var(--cor-texto-escuro);
   width: 100%;
-
 }
 
 .grafico-clima-mensal {
@@ -213,10 +191,7 @@
   height: 350px;
 }
 
-/* =========================================================
-   RESPONSIVIDADE
-   ========================================================= */
-
+/* Ajustes de largura para tablets e celulares. */
 @media (max-width: 900px) {
   #cadastro-plantio .info-grid-cadastro {
     grid-template-columns: 1fr;
@@ -227,9 +202,6 @@
     min-width: 100%;
   }
 }
-
-
- 
 
 @media (max-width: 760px) {
   #cadastro-plantio .info-grid-cadastro {
@@ -246,10 +218,8 @@
   }
 }
 
-
-@media (max-width: 900px) {
-  #cadastro-plantio .info-grid-cadastro {
-    grid-template-columns: 1fr;
-  }
+@media (max-width: 1024px) {
+    .thingspeak-embeds {
+        grid-template-columns: 1fr;
+    }
 }
-

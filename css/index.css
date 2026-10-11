@@ -13,6 +13,7 @@
     url("../imagem/fotinha.png") no-repeat center center / cover;
 }
 
+/* Cartao central e identidade visual da pagina inicial. */
 .entrada-sistema {
   width: min(420px, 100%);
   padding: 32px;
@@ -39,6 +40,7 @@
   color: var(--cor-texto-suave);
 }
 
+/* Acao principal para abrir o login. */
 .btn-acessar {
   display: inline-flex;
   align-items: center;

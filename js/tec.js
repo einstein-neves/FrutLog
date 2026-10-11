@@ -14,11 +14,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       await carregarPainelTecnico();
       await carregarTelemetriaDiaria();
     } catch (erro) {
-<<<<<<< HEAD
-      console.error("Falha ao carregar o painel do tecnico:", erro);
-=======
       console.error("Falha ao carregar o painel do técnico:", erro);
->>>>>>> master
       exibirMensagem("mensagem-dados-tecnicos", erro.message, "erro");
     }
   }
@@ -49,11 +45,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         carregarGraficoMetricas();
         selecionarTalhao(document.querySelector(".btn-talhao.active")?.dataset.talhao || talhoes[0]?.properties.codigo);
       } catch (erro) {
-<<<<<<< HEAD
-        console.error("Falha ao sincronizar o painel do tecnico:", erro);
-=======
         console.error("Falha ao sincronizar o painel do técnico:", erro);
->>>>>>> master
         exibirMensagem("mensagem-dados-tecnicos", erro.message, "erro");
       }
     }, 15000);
@@ -134,14 +126,10 @@ function configurarAbas() {
     ativar(aba);
     history.replaceState(null, "", link.hash);
   }));
-<<<<<<< HEAD
-  if (abas.length) ativar(abas[0]);
-=======
   if (abas.length) {
     const abaInicial = abas.find((aba) => `#${aba.getAttribute("aria-controls")}` === window.location.hash);
     ativar(abaInicial || abas[0]);
   }
->>>>>>> master
 }
 
 function configurarRelatorioDiario() {
@@ -153,11 +141,7 @@ function configurarRelatorioDiario() {
     if (botao) botao.disabled = true;
     try {
       if (!FrutLog.AUTENTICACAO_API_ATIVA) {
-<<<<<<< HEAD
-        throw new Error("O envio de relatorios requer a API autenticada.");
-=======
         throw new Error("O envio de relatórios requer a API autenticada.");
->>>>>>> master
       }
       const resposta = await FrutLog.apiFetch("/relatorios-diarios", {
         method: "POST",
@@ -241,11 +225,7 @@ async function carregarPainelTecnico() {
       plantio: plantio?.plantado_em || feature.properties.plantio || "--",
       colheita: plantio?.previsao_colheita || feature.properties.colheita || "--",
       area: `${feature.properties.area_hectares ?? feature.properties.area ?? "--"}${feature.properties.area_hectares ? " hectares" : ""}`,
-<<<<<<< HEAD
-      sensor: estado?.sensor || sensores[0]?.sensor || "Nao associado",
-=======
       sensor: estado?.sensor || sensores[0]?.sensor || "Não associado",
->>>>>>> master
       status: estado?.situacao || "Sem leitura",
       prioridade: estado?.prioridade || "Aguardando leitura de sensor.",
       diaria: {
@@ -274,11 +254,7 @@ function preencherFiltroTelemetria() {
   if (!select) return;
   const selecionado = select.value;
   const codigos = talhoes.map((feature) => feature.properties.codigo);
-<<<<<<< HEAD
-  select.innerHTML = '<option value="">Todos os talhoes</option>' +
-=======
   select.innerHTML = '<option value="">Todos os talhões</option>' +
->>>>>>> master
     codigos.map((codigo) => `<option value="${escaparHtml(codigo)}">${escaparHtml(codigo)}</option>`).join("");
   if (codigos.includes(selecionado)) select.value = selecionado;
 }
@@ -313,20 +289,13 @@ async function carregarTelemetriaDiaria() {
 }
 
 function renderizarTelemetriaDiaria() {
-<<<<<<< HEAD
-=======
   renderizarResumoTelemetriaDiaria();
->>>>>>> master
   const tabela = document.getElementById("tabela-telemetria-tecnico");
   if (!tabela) return;
   const talhaoSelecionado = document.getElementById("filtro-talhao-telemetria")?.value || "";
   const linhas = telemetriaDiaria.filter((item) => !talhaoSelecionado || item.talhao === talhaoSelecionado);
   if (!linhas.length) {
-<<<<<<< HEAD
-    tabela.innerHTML = '<tr><td colspan="6">Ainda nao ha telemetria diaria para o filtro selecionado.</td></tr>';
-=======
     tabela.innerHTML = '<tr><td colspan="6">Ainda não há telemetria diária para o filtro selecionado.</td></tr>';
->>>>>>> master
     return;
   }
   const metricas = {
@@ -347,8 +316,6 @@ function renderizarTelemetriaDiaria() {
   `).join("");
 }
 
-<<<<<<< HEAD
-=======
 function renderizarResumoTelemetriaDiaria() {
   const tabela = document.getElementById("tabela-telemetria-diaria");
   if (!tabela) return;
@@ -366,16 +333,11 @@ function renderizarResumoTelemetriaDiaria() {
   `).join("") : '<tr><td colspan="6">Ainda não há telemetria diária para o filtro selecionado.</td></tr>';
 }
 
->>>>>>> master
 function renderizarTelemetriaMensal() {
   const tabela = document.getElementById("tabela-telemetria-mensal-tecnico");
   if (!tabela) return;
   if (!telemetriaMensal.length) {
-<<<<<<< HEAD
-    tabela.innerHTML = '<tr><td colspan="6">Ainda nao ha consolidado mensal de telemetria.</td></tr>';
-=======
     tabela.innerHTML = '<tr><td colspan="6">Ainda não há consolidado mensal de telemetria.</td></tr>';
->>>>>>> master
     return;
   }
   const metricas = {
@@ -519,15 +481,9 @@ function obterSensores() {
     const monitoramento = props.monitoramento || {};
 
     return {
-<<<<<<< HEAD
-      sensor: props.sensor || "Nao associado",
-      talhao: props.codigo,
-      status: props.sensor === "Nao associado" ? "Atencao" : monitoramento.status || props.status,
-=======
       sensor: props.sensor || "Não associado",
       talhao: props.codigo,
       status: props.sensor === "Não associado" ? "Atencao" : monitoramento.status || props.status,
->>>>>>> master
       comunicacao: props.apontamentoTecnico?.data || "--",
       leitura: monitoramento.temperaturaAtual !== null && monitoramento.temperaturaAtual !== undefined
         ? `${monitoramento.temperaturaAtual} C`
@@ -541,19 +497,11 @@ function obterTarefasDia() {
   atualizarTalhoesMonitorados();
 
   return talhoes
-<<<<<<< HEAD
-    .filter((feature) => feature.properties.status !== "Normal" || feature.properties.sensor === "Nao associado")
-    .map((feature) => ({
-      talhao: feature.properties.codigo,
-      prioridade: feature.properties.status === "Critico" ? "Critico" : "Atencao",
-      atividade: feature.properties.prioridade || "Verificar situacao do talhao.",
-=======
     .filter((feature) => feature.properties.status !== "Normal" || feature.properties.sensor === "Não associado")
     .map((feature) => ({
       talhao: feature.properties.codigo,
       prioridade: feature.properties.status === "Critico" ? "Critico" : "Atencao",
       atividade: feature.properties.prioridade || "Verificar situação do talhão.",
->>>>>>> master
     }));
 }
 
@@ -568,21 +516,12 @@ function obterAlertas() {
   atualizarTalhoesMonitorados();
 
   return talhoes
-<<<<<<< HEAD
-    .filter((feature) => feature.properties.status !== "Normal" || feature.properties.sensor === "Nao associado")
-    .map((feature) => ({
-      nivel: feature.properties.status === "Critico" ? "critico" : "atencao",
-      titulo: `Talhao ${feature.properties.codigo} exige acompanhamento`,
-      texto: feature.properties.sensor === "Nao associado"
-        ? "Talhao sem sensor associado apos configuracao ou divisao."
-=======
     .filter((feature) => feature.properties.status !== "Normal" || feature.properties.sensor === "Não associado")
     .map((feature) => ({
       nivel: feature.properties.status === "Critico" ? "critico" : "atencao",
       titulo: `Talhão ${feature.properties.codigo} exige acompanhamento`,
       texto: feature.properties.sensor === "Não associado"
         ? "Talhão sem sensor associado após configuração ou divisão."
->>>>>>> master
         : feature.properties.prioridade,
     }));
 }
@@ -597,11 +536,7 @@ function preencherSelectTalhoes(select) {
       return `<option value="${codigo}">${codigo}</option>`;
     })
     .join("");
-<<<<<<< HEAD
-  select.innerHTML = `<option value="">${opcoes ? "Selecione o talhao" : "Nenhum talhao carregado"}</option>${opcoes}`;
-=======
   select.innerHTML = `<option value="">${opcoes ? "Selecione o talhão" : "Nenhum talhão carregado"}</option>${opcoes}`;
->>>>>>> master
   if (talhoes.some((feature) => feature.properties.codigo === atual)) select.value = atual;
 }
 
@@ -632,11 +567,7 @@ function carregarTarefasDia() {
   lista.innerHTML = tarefasDia.map((tarefa) => `
     <article class="tarefa-card ${normalizarClasse(tarefa.prioridade)}">
       <span class="badge-status ${normalizarClasse(tarefa.prioridade)}">Talhão ${escaparHtml(tarefa.talhao)}</span>
-<<<<<<< HEAD
-      <strong>${escaparHtml(tarefa.prioridade)}</strong>
-=======
       <strong>${escaparHtml(FrutLog.textoInterface(tarefa.prioridade))}</strong>
->>>>>>> master
       <p>${escaparHtml(tarefa.atividade)}</p>
     </article>
   `).join("");
@@ -655,11 +586,7 @@ function carregarTalhoes() {
       return `
         <article class="talhao-card ${normalizarClasse(props.status)}">
           <h3>Talhão ${escaparHtml(props.codigo)}</h3>
-<<<<<<< HEAD
-          <p><strong>Situação:</strong> ${escaparHtml(props.status)}</p>
-=======
           <p><strong>Situação:</strong> ${escaparHtml(FrutLog.textoInterface(props.status))}</p>
->>>>>>> master
           <p><strong>Cultura:</strong> ${escaparHtml(props.produto)} ${escaparHtml(props.variedade)}</p>
           <p><strong>Área:</strong> ${escaparHtml(props.area)}</p>
           <button class="btn-filtro" type="button" data-selecionar-talhao="${escaparHtml(props.codigo)}">Ver no mapa</button>
@@ -699,17 +626,10 @@ function renderizarMapa() {
   preencherTexto(
     "mensagem-geometria-talhoes",
     !talhoes.length
-<<<<<<< HEAD
-      ? "Nenhum talhao retornado pelo servidor. Verifique os cadastros e a fazenda vinculada."
-      : pendentes
-        ? `${pendentes} talhao(es) ainda sem limites desenhados no mapa. A Engenharia pode concluir o desenho.`
-        : `${talhoes.length} talhao(es) carregado(s) do servidor.`
-=======
       ? "Nenhum talhão retornado pelo servidor. Verifique os cadastros e a fazenda vinculada."
       : pendentes
         ? `${pendentes} talhão(es) ainda sem limites desenhados no mapa. A Engenharia pode concluir o desenho.`
         : `${talhoes.length} talhão(es) carregado(s) do servidor.`
->>>>>>> master
   );
 
   FrutLogMapaTalhoes.renderizarMapaTalhoes(svgMapa, talhoes, {
@@ -728,11 +648,7 @@ function carregarHistoricoInspecoes() {
       <td>${formatarData(inspecao.data)}</td>
       <td>${escaparHtml(inspecao.talhao)}</td>
       <td>${escaparHtml(inspecao.sensor || "--")}</td>
-<<<<<<< HEAD
-      <td><span class="status-sensor ${normalizarClasse(inspecao.situacao)}">${escaparHtml(inspecao.situacao)}</span></td>
-=======
       <td><span class="status-sensor ${normalizarClasse(inspecao.situacao)}">${escaparHtml(FrutLog.textoInterface(inspecao.situacao))}</span></td>
->>>>>>> master
       <td>${escaparHtml(inspecao.problemas || "Sem ocorrência")}</td>
       <td>${escaparHtml(inspecao.observacoes || "-")}</td>
     </tr>
@@ -809,11 +725,7 @@ function selecionarTalhao(idTalhao) {
 
   const badge = document.getElementById("tecnico-talhao-status");
   if (badge) {
-<<<<<<< HEAD
-    badge.textContent = props.status;
-=======
     badge.textContent = FrutLog.textoInterface(props.status);
->>>>>>> master
     badge.className = `badge-status ${classeStatusMapa(props.status)}`;
   }
 }
@@ -848,11 +760,7 @@ function carregarSensores() {
       <tr>
         <td>${escaparHtml(item.sensor)}</td>
         <td>${escaparHtml(item.talhao)}</td>
-<<<<<<< HEAD
-        <td><span class="status-sensor ${normalizarClasse(item.status)}">${escaparHtml(item.status)}</span></td>
-=======
         <td><span class="status-sensor ${normalizarClasse(item.status)}">${escaparHtml(FrutLog.textoInterface(item.status))}</span></td>
->>>>>>> master
         <td>${escaparHtml(formatarData(item.comunicacao))}</td>
         <td>${escaparHtml(item.leitura)}</td>
       </tr>
@@ -914,13 +822,8 @@ function carregarGraficoMetricas() {
 
   if (mensagem) {
     mensagem.textContent = leituras.length
-<<<<<<< HEAD
-      ? `${leituras.length} leitura(s) disponivel(is) para esta metrica.`
-      : "Ainda nao ha leituras para a metrica selecionada.";
-=======
       ? `${leituras.length} leitura(s) disponível(is) para esta métrica.`
       : "Ainda não há leituras para a métrica selecionada.";
->>>>>>> master
   }
 
   select.onchange = carregarGraficoMetricas;
@@ -985,11 +888,7 @@ async function registrarInspecao(evento) {
         data: dados.data,
         situacao: dados.situacao,
         sensor_id: dados.sensor_id || null,
-<<<<<<< HEAD
-        problemas: dados.problemas || "Sem ocorrencia",
-=======
         problemas: dados.problemas || "Sem ocorrência",
->>>>>>> master
         observacoes: dados.observacoes || "-"
       })
     });
