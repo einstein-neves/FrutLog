@@ -7,12 +7,10 @@
 
 #define DHTPIN 4
 #define DHTTYPE DHT11
-#define BUZZER_PIN 0
+#define BUZZER_PIN 1
+#define LED_PIN 3
 #define LIMITE_TEMPERATURA 28.0
-<<<<<<< HEAD
-=======
 #define LIMITE_UMIDADE 24.0
->>>>>>> dd4f711a526d9193963d47eb3afed569f79ef96d
 
 //CONFIGS DA CONEXAO WIFI
 const char* ssid = SECRET_SSID;
@@ -62,17 +60,16 @@ void conectarMQTT() {
 // VARIAVEIS INICIAIS DO SENSOR
 float temperaturaMinima = 999;
 float temperaturaMaxima = -999;
-bool ALERTA_TEMPERATURA = 0;
-<<<<<<< HEAD
-=======
-bool ALERTA_UMIDADE = 0;
->>>>>>> dd4f711a526d9193963d47eb3afed569f79ef96d
+bool ALERTA_TEMPERATURA = false;
+bool ALERTA_UMIDADE = false;
 
 // SETUP PARA INICIAR A ESP32 AS CONEXOES
 void setup() {
   Serial.begin(115200);
   pinMode(BUZZER_PIN, OUTPUT); // configura o pino do buzzer como saida 
   noTone(BUZZER_PIN); // garante que o buzzer inicia desligado
+  pinMode(LED_PIN, OUTPUT); //configura o pino do led como saida 
+  digitalWrite(LED_PIN, LOW);
   dht.begin(); // inicia a biblioteca do sensor
   conectarWiFi();
   client.setServer(mqttServer, mqttPort);
@@ -136,16 +133,6 @@ void loop() {
      Serial.println("ALERTA: TEMPERATURA ACIMA DO PERMITIDO!!");
      Serial.println(temperatura);
      Serial.println("------");
-<<<<<<< HEAD
-     tone(BUZZER_PIN, 1000); // faz um som continuo de 1000 Hz no buzzer
-  } else {
-    ALERTA_TEMPERATURA = false;
-    noTone(BUZZER_PIN); // desliga o som quando a temperatura voltar ao normal
-  }
-
-delay(5000);
-}
-=======
   } else {
     ALERTA_TEMPERATURA = false;
   }
@@ -159,8 +146,15 @@ delay(5000);
     ALERTA_UMIDADE = false;
   }
 
+// FUNÇÃO PARA O LED LIGAR QUANDO ALERTA ESTIVER ATIVADO
+  if (ALERTA_UMIDADE == true || ALERTA_TEMPERATURA == true){
+    digitalWrite(LED_PIN, HIGH);
+  } else {
+    digitalWrite(LED_PIN, LOW);
+  }
+
   // FUNÇÃO PARA O BUZZER EMITIR SOM QUANDO ALERTA ESTIVER ATIVADO
-  if (ALERTA_UMIDADE || ALERTA_TEMPERATURA ){
+  if (ALERTA_UMIDADE == true || ALERTA_TEMPERATURA == true){
     tone(BUZZER_PIN, 1000);
   } else {
     noTone(BUZZER_PIN);
@@ -168,4 +162,3 @@ delay(5000);
   
 delay(5000);
 }
->>>>>>> dd4f711a526d9193963d47eb3afed569f79ef96d
