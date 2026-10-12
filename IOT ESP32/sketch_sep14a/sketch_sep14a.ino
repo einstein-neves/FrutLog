@@ -109,7 +109,7 @@ void loop() {
 
     Serial.print("Publicado: ");
     Serial.println(payload);
-    delay(16000); // ThingSpeak (plano gratuito) exige minimo de ~15s entre mensagens
+    
   }
 
   // FUNCAO PARA ATUALIZAR A TEMPERATURA SEM ERRO
@@ -160,5 +160,5 @@ void loop() {
     noTone(BUZZER_PIN);
   }
   
-delay(5000);
+ delay(20000); // ThingSpeak (plano gratuito) exige minimo de ~15s entre mensagens, coloquei 20s pra nao ter erro
 }
