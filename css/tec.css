@@ -11,6 +11,7 @@
   margin-bottom: 20px;
 }
 
+/* Cartoes de tarefas e talhoes monitorados. */
 .lista-tarefas {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -79,6 +80,7 @@
   grid-column: span 2;
 }
 
+/* Etiquetas visuais do estado dos sensores. */
 .status-sensor {
   display: inline-flex;
   padding: 4px 8px;
@@ -112,6 +114,7 @@
   color: var(--cor-critico);
 }
 
+/* Alertas e historico de atividades do tecnico. */
 .lista-alertas {
   display: grid;
   gap: 12px;
@@ -175,6 +178,7 @@
   outline-offset: -2px;
 }
 
+/* Conteudo das abas e graficos de metricas. */
 .painel-aba-tecnico[hidden] {
   display: none;
 }
@@ -189,6 +193,7 @@
   margin-top: 12px;
 }
 
+/* Empilha tarefas e campos largos em telas pequenas. */
 @media (max-width: 760px) {
   .lista-tarefas {
     grid-template-columns: 1fr;
@@ -197,4 +202,66 @@
   .campo-largo {
     grid-column: span 1;
   }
+}
+
+
+/* Tela unica de registros de campo e filtros de metricas. */
+.item-detalhe-cadastro[hidden] {
+  display: none;
+}
+
+.seletor-tipo-registro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 16px;
+}
+
+.seletor-tipo-registro .btn-filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 16px;
+}
+
+.filtros-metricas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+#relatorio-conteudo {
+  min-height: 280px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+}
+
+#relatorio-auto-status {
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+}
+
+/* Grafico de clima mensal (antes definido apenas em eng.css, ausente nesta tela). */
+.grafico-clima-mensal {
+  position: relative;
+  width: 100%;
+  height: 350px;
+}
+
+@media (max-width: 760px) {
+  .filtros-metricas {
+    grid-template-columns: 1fr;
+  }
+}
+
+#registro-campo .subtitulo-cadastro,
+#relatorio-diario .subtitulo-cadastro {
+  margin: 0 0 14px;
+}
+
+#registro-sensor-ajuda {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font-size: 0.8rem;
 }

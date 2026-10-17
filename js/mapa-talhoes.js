@@ -34,12 +34,12 @@ const FrutLogMapaTalhoes = (() => {
     const sessao = FrutLog.obterSessao();
     const perfisPermitidos = PERFIS[perfil];
     if (!sessao || !perfisPermitidos?.includes(sessao.perfil)) {
-      throw new Error(`Sessao invalida para carregar o mapa do perfil ${perfil}.`);
+      throw new Error(`Sessão inválida para carregar o mapa do perfil ${perfil}.`);
     }
 
     const resposta = await FrutLog.apiFetch("/talhoes");
     if (!Array.isArray(resposta?.talhoes)) {
-      throw new Error("A API retornou uma lista de talhoes invalida.");
+      throw new Error("A API retornou uma lista de talhões inválida.");
     }
     return FrutLogTalhoes.carregarDoServidor(resposta.talhoes);
   }
@@ -65,7 +65,7 @@ const FrutLogMapaTalhoes = (() => {
       poligono.classList.toggle("selecionado", codigo === opcoes.selectedCode);
       poligono.setAttribute("tabindex", "0");
       poligono.setAttribute("role", "button");
-      poligono.setAttribute("aria-label", `Talhao ${codigo}`);
+      poligono.setAttribute("aria-label", `Talhão ${codigo}`);
 
       const selecionar = (evento) => opcoes.onSelect?.(feature, evento, poligono);
       poligono.addEventListener("click", selecionar);

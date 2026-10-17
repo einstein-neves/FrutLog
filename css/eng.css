@@ -3,6 +3,7 @@
    Estilos exclusivos da tela do Engenheiro.
    ========================================================= */
 
+/* Realce do cadastro e ferramentas de edição dos talhões. */
 .card-cadastro-produto {
   border-top: 6px solid var(--cor-destaque);
 }
@@ -56,6 +57,18 @@
 .mapa-container.modo-edicao {
   cursor: crosshair;
 }
+.mapa-container.modo-edicao .camada-talhoes {
+  pointer-events: auto;
+  touch-action: none;
+}
+.mapa-container.modo-edicao .ponto-arrastavel {
+  fill: #fff;
+  stroke: var(--cor-destaque);
+  stroke-width: 2;
+  pointer-events: all;
+  cursor: grab;
+}
+.mapa-container.modo-edicao .ponto-arrastavel:active { cursor: grabbing; }
 
 .mapa-container.modo-divisao {
   cursor: cell;
@@ -78,78 +91,117 @@
   pointer-events: none;
 }
 
-.card-grafico-thingspeak{ 
-
-  width: 100%;
-  margin:0 0 20px 0;
-
+.thingspeak-embeds {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Cria exatamente 2 colunas iguais */
+    gap: 20px; /* Espaçamento agradável entre os cartões */
+    margin-top: 20px;
 }
 
-.container-iframe{
-   width: 100%;
-   aspect-ratio: 16/9;
-   height: 300px;
-   overflow: hidden;
-   border-radius: 8px;
+/* Estilo individual de cada cartão de gráfico */
+.thingspeak-embeds article {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.container-iframe iframe{
+
+/* Efeito leve ao passar o mouse por cima do gráfico */
+.thingspeak-embeds article:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+}
+
+/* Garante que o iframe preencha o espaço interno perfeitamente */
+.thingspeak-embeds .container-iframe {
+    width: 100%;
+    height: 300px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.thingspeak-embeds iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.card-grafico-thingspeak {
   width: 100%;
-  height: 90%; 
+  margin: 0 0 20px;
+}
+
+.card-grafico-thingspeak > h1 {
+  margin: 0 0 20px;
+  font-size: 1.5rem;
+  color: black;
+}
+
+.container-iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: 300px;
   overflow: hidden;
-  border:none;
+  border-radius: 8px;
+}
+
+.container-iframe iframe {
+  width: 100%;
+  height: 90%;
+  overflow: hidden;
+  border: none;
   display: block;
   justify-content: center;
   align-items: center;
 }
 
-
-.card-grafico-thingspeak >h1{
-  margin:  0 0 20px 0;
-  font-size: 1.5rem;
-  color: black;
-}
-
- .graficos-thingspeak{
+.graficos-thingspeak {
   display: grid;
-  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
   width: 100%;
- }
+}
 
- .graficos-thingspeak-item{
+.graficos-thingspeak-item {
   min-width: 0;
   padding: 18px;
   background-color: var(--cor-card);
   border-radius: 10px;
-  box-shadow: var(--sombra-car);
+  box-shadow: var(--sombra-card);
   display: flex;
   flex-direction: column;
   justify-content: center;
   box-sizing: border-box;
   overflow: hidden;
   align-items: center;
- }
+}
 
- .graficos-thingspeak-item h2{
-  margin: 0 0 15px 0;
+.graficos-thingspeak-item h2 {
+  margin: 0 0 15px;
   font-size: 1rem;
   color: var(--cor-texto-escuro);
   width: 100%;
+}
 
- }
+.grafico-clima-mensal {
+  position: relative;
+  width: 100%;
+  height: 350px;
+}
 
+/* Ajustes de largura para tablets e celulares. */
+@media (max-width: 900px) {
+  #cadastro-plantio .info-grid-cadastro {
+    grid-template-columns: 1fr;
+  }
 
-
-
-
-
-
-
-
-
-
-
-
+  /* Em tablets e ecrãs menores, os gráficos passam a empilhar (100% de largura) */
+  .thingspeak-embeds .container-iframe {
+    min-width: 100%;
+  }
+}
 
 @media (max-width: 760px) {
   #cadastro-plantio .info-grid-cadastro {
@@ -159,10 +211,15 @@
   .barra-edicao-talhao .btn-filtro {
     flex: 1 1 calc(50% - 6px);
   }
+
+
+  .thingspeak-embeds .container-iframe iframe {
+    height: 450px; /* Reduz ligeiramente a altura em telemóveis para melhor visualização */
+  }
 }
 
-@media (max-width: 900px) {
-  #cadastro-plantio .info-grid-cadastro {
-    grid-template-columns: 1fr;
-  }
+@media (max-width: 1024px) {
+    .thingspeak-embeds {
+        grid-template-columns: 1fr;
+    }
 }

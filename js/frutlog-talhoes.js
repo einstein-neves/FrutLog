@@ -81,7 +81,7 @@ const FrutLogTalhoes = (() => {
     if (temperaturaAtual === null || temperaturaMaxima === null) {
       return {
         status: feature?.properties?.status || "Sem leitura",
-        prioridade: feature?.properties?.prioridade || "Sem leitura suficiente para alerta automatico.",
+        prioridade: feature?.properties?.prioridade || "Sem leitura suficiente para alerta automático.",
         leituraTemperatura: temperaturaAtual,
         limiteTemperatura: temperaturaMaxima,
       };
@@ -126,8 +126,8 @@ const FrutLogTalhoes = (() => {
       mensagem: resultado.prioridade,
     };
 
-    if (clone.properties.sensor === "Nao associado") {
-      clone.properties.prioridade = "Associar sensor ao talhao para monitoramento.";
+    if (clone.properties.sensor === "Não associado") {
+      clone.properties.prioridade = "Associar sensor ao talhão para monitoramento.";
     } else {
       clone.properties.prioridade = resultado.prioridade;
     }
@@ -152,7 +152,7 @@ const FrutLogTalhoes = (() => {
     try {
       return aplicarMonitoramentoColecao(JSON.parse(rascunho));
     } catch (erro) {
-      console.error("GeoJSON de talhoes invalido:", erro);
+      console.error("GeoJSON de talhões inválido:", erro);
       removerRascunhoInvalido();
       return aplicarMonitoramentoColecao(clonar(dadosIniciais));
     }
@@ -167,7 +167,7 @@ const FrutLogTalhoes = (() => {
 
   function carregarDoServidor(registros) {
     if (!Array.isArray(registros)) {
-      throw new Error("Resposta invalida ao carregar talhoes do servidor.");
+      throw new Error("Resposta inválida ao carregar talhões do servidor.");
     }
 
     const locais = obterTalhoes();
@@ -249,7 +249,7 @@ const FrutLogTalhoes = (() => {
         solo: "--",
         plantio: "--",
         colheita: "--",
-        sensor: "Nao associado",
+        sensor: "Não associado",
         parametros: { temperaturaMaxima: null },
         apontamentoTecnico: {
           data: "--",

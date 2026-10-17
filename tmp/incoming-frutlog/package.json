@@ -1,0 +1,12 @@
+{
+  "name": "frutlog-iot-api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node --env-file=.env server.js",
+    "dev": "node --env-file=.env --watch server.js",
+    "password-hash": "node scripts/password-hash.js",
+    "bootstrap-admin": "node --env-file=.env scripts/bootstrap-admin.js",
+    "reset-admin-password": "node --env-file=.env scripts/reset-admin-password.js"
+  }
+}

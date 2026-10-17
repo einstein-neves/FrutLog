@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     if (!encontrados.length) {
-      tabela.innerHTML = '<tr><td colspan="5">Nenhum relatorio correspondente.</td></tr>';
+      tabela.innerHTML = '<tr><td colspan="5">Nenhum relatório correspondente.</td></tr>';
       return;
     }
 
@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <td><span class="badge-status ${relatorio.status === "concluido" ? "normal" : "atencao"}">${escapar(statusVisivel)}</span></td>
           <td>
             <div class="acoes-relatorio">
-              <select class="campo-formulario" data-status-relatorio="${escapar(relatorio.id)}" aria-label="Novo status do relatorio ${escapar(relatorio.tecnico_nome)}">
+              <select class="campo-formulario" data-status-relatorio="${escapar(relatorio.id)}" aria-label="Novo status do relatório ${escapar(relatorio.tecnico_nome)}">
                 <option value="em_analise" ${relatorio.status === "em_analise" ? "selected" : ""}>Em analise</option>
                 <option value="concluido" ${relatorio.status === "concluido" ? "selected" : ""}>Concluido</option>
               </select>
@@ -65,18 +65,18 @@ document.addEventListener("DOMContentLoaded", () => {
   async function carregarRelatorios() {
     try {
       if (!FrutLog.AUTENTICACAO_API_ATIVA) {
-        throw new Error("A API autenticada e necessaria para consultar relatorios.");
+        throw new Error("A API autenticada e necessária para consultar relatórios.");
       }
       const resposta = await FrutLog.apiFetch("/relatorios-diarios");
       relatorios.splice(0, relatorios.length, ...(resposta.relatorios || []));
       atualizarLista();
       const mensagem = document.getElementById("mensagem-relatorios");
       if (mensagem) {
-        mensagem.textContent = `${relatorios.length} relatorio(s) recebido(s).`;
+        mensagem.textContent = `${relatorios.length} relatório(s) recebido(s).`;
         mensagem.className = "mensagem-feedback";
       }
     } catch (erro) {
-      console.error("Falha ao carregar relatorios diarios:", erro);
+      console.error("Falha ao carregar relatórios diários:", erro);
       tabela.innerHTML = `<tr><td colspan="5">${escapar(erro.message)}</td></tr>`;
       const mensagem = document.getElementById("mensagem-relatorios");
       if (mensagem) {
@@ -108,7 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
       atualizarLista();
       const mensagem = document.getElementById("mensagem-relatorios");
       if (mensagem) {
-        mensagem.textContent = "Acompanhamento do relatorio atualizado.";
+        mensagem.textContent = "Acompanhamento do relatório atualizado.";
         mensagem.className = "mensagem-feedback sucesso";
       }
     } catch (erro) {

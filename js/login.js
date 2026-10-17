@@ -42,17 +42,17 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       if (!dados?.sucesso) {
-        throw new Error(dados?.mensagem || "Matricula ou senha invalida.");
+        throw new Error(dados?.mensagem || "Matrícula ou senha inválida.");
       }
 
       if (!dados.usuario || !dados.usuario.perfil) {
-        throw new Error("Resposta invalida do servidor.");
+        throw new Error("Resposta inválida do servidor.");
       }
 
       const perfisPermitidos = ["engenheiro", "tecnico", "admin"];
 
       if (!perfisPermitidos.includes(dados.usuario.perfil)) {
-        throw new Error("Perfil de usuario nao reconhecido.");
+        throw new Error("Perfil de usuário não reconhecido.");
       }
 
       FrutLog.salvarSessao(dados.usuario, dados.token);
@@ -79,7 +79,7 @@ if (formularioLogin) {
       const senha = campoSenha.value;
 
       if (!matricula) {
-        exibirMensagem("Digite sua matricula.", "erro");
+        exibirMensagem("Digite sua matrícula.", "erro");
         campoMatricula.focus();
         return;
       }

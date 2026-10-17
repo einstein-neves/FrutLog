@@ -164,26 +164,25 @@ function configurarFormularioFuncionario() {
     if (botao) botao.disabled = true;
     try {
       const payload = {
-          nome: dados.nome,
-          cargo: dados.cargo,
-          profissao: dados.profissao,
-          perfil: dados.perfil,
-          status: dados.status,
+        nome: dados.nome,
+        cargo: dados.cargo,
+        profissao: dados.profissao,
+        perfil: dados.perfil,
+        senha: dados.senha,
       };
-      if (dados.senha) payload.senha = dados.senha;
       if (editando) {
         await FrutLog.apiFetch(`/funcionarios/${encodeURIComponent(dados.id)}`, {
           method: "PUT",
           body: JSON.stringify(payload),
         });
         funcionarios = funcionarios.map((item) => String(item.id) === String(dados.id)
-          ? { ...item, ...payload, status: payload.status, ativo: payload.status === "ativo" }
+          ? { ...item, ...payload, status: payload.status || item.status, ativo: (payload.status || item.status) === "ativo" }
           : item);
         exibirMensagem(mensagemId, "Funcionario atualizado.", "sucesso");
       } else {
         const resposta = await FrutLog.apiFetch("/funcionarios", {
           method: "POST",
-          body: JSON.stringify({ ...payload, senha: dados.senha }),
+          body: JSON.stringify({ ...payload, status: dados.status || "ativo" }),
         });
         const novoFuncionario = {
           id: resposta.id,
@@ -192,8 +191,8 @@ function configurarFormularioFuncionario() {
           cargo: dados.cargo,
           profissao: dados.profissao,
           perfil: dados.perfil,
-          status: dados.status,
-          ativo: dados.status === "ativo",
+          status: dados.status || "ativo",
+          ativo: (dados.status || "ativo") === "ativo",
         };
         funcionarios.push(novoFuncionario);
         exibirMensagem(mensagemId, `Funcionario cadastrado. Matricula: ${novoFuncionario.matricula}. A senha devera ser alterada no primeiro acesso.`, "sucesso");
@@ -305,7 +304,6 @@ function configurarAcoesTabelas() {
       document.getElementById("funcionario-cargo").value = funcionario.cargo;
       document.getElementById("funcionario-profissao").value = funcionario.profissao || "";
       document.getElementById("funcionario-perfil").value = funcionario.perfil;
-      document.getElementById("funcionario-status").value = funcionario.status || (funcionario.ativo ? "ativo" : "inativo");
       document.getElementById("funcionario-senha").value = "";
       document.getElementById("funcionario-senha").required = false;
       document.getElementById("funcionario-senha").type = "text";

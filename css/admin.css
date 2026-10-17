@@ -3,6 +3,7 @@
    Estilos exclusivos da administracao.
    ========================================================= */
 
+/* Indicadores de conexao e detalhes do mapa administrativo. */
 .status-usuario {
   display: inline-flex;
   align-items: center;
@@ -79,6 +80,7 @@
   font-size: 0.78rem;
 }
 
+/* Graficos, filtros e acoes da equipe. */
 .admin-graficos {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -198,6 +200,7 @@
   z-index: 1;
 }
 
+/* Resumos e tabelas consolidadas da administracao. */
 .resumo-admin {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
@@ -255,6 +258,7 @@
   margin: 0;
 }
 
+/* Controles de edicao dos limites do mapa. */
 #mapa-talhoes-admin .talhao-mapa {
   cursor: pointer;
 }
@@ -263,6 +267,14 @@
   outline: none;
 }
 
+.admin-map-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }
+.admin-map-tools select { width: auto; min-width: 160px; }
+.admin-map-tools input { width: 145px; }
+.admin-map-editing .camada-talhoes { pointer-events: auto; touch-action: none; cursor: crosshair; }
+.admin-map-vertex { fill: #fff; stroke: #26734d; stroke-width: 2; pointer-events: all; cursor: grab; }
+
+/* Botao flutuante, painel e mensagens do assistente. */
+/* precisa alterra a cor e arrendodamenot */
 .chatbot {
   position: fixed;
   right: 24px;
@@ -271,15 +283,15 @@
 
   width: 56px;
   height: 56px;
-  border: none;
+  border: 3px solid #fff;
   border-radius: 50%;
 
-  background-color: var(--cor-destaque, #2e7d32);
+  background-color: #492d03;
   color: #fff;
   font-size: 1.4rem;
   cursor: pointer;
 
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 0 1px rgba(73, 45, 3, 0.18), 0 6px 20px rgba(0, 0, 0, 0.32);
   transition: transform 0.2s ease;
 }
 

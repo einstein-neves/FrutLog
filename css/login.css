@@ -9,7 +9,7 @@
   justify-content: center;
   padding: 24px;
   background:
-    linear-gradient(rgba(157, 153, 153, 0.663), rgba(0, 0, 0, 0.655)),
+    linear-gradient(rgba(157, 153, 153, 0.795), rgba(0, 0, 0, 0.655)),
     url("../imagem/fotinha.png") no-repeat center center / cover;
 }
 
@@ -23,6 +23,7 @@
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55);
 }
 
+/* Marca e mensagem de boas-vindas. */
 .caixa-do-login1 {
   display: flex;
   flex: 1;
@@ -74,6 +75,7 @@
   text-align: center;
 }
 
+/* Campos, seletores e acoes de autenticacao. */
 .input-field {
   position: relative;
   margin-bottom: 18px;
@@ -182,12 +184,13 @@
   color: #e2ded8;
 }
 
+/* Cores das mensagens de validacao do acesso. */
 .caixa-do-login2 .mensagem-feedback.erro {
   color: #ff8a80;
 }
 
 .caixa-do-login2 .mensagem-feedback.sucesso {
-  color: #a5d6a7;
+  color: #552102;
 }
 
 @media (max-width: 760px) {
