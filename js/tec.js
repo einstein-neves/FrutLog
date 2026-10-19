@@ -91,9 +91,10 @@ const METRICAS_TELEMETRIA = {
   temperatura: { nome: "Temperatura", unidade: "°C", cor: "#ef6c00" },
   umidadeAr: { nome: "Umidade do ar", unidade: "%", cor: "#1565c0" },
   umidadeSolo: { nome: "Umidade do solo", unidade: "%", cor: "#2e7d32" },
-  chuva: { nome: "Chuva", unidade: "mm", cor: "#6a1b9a" },
 };
 const PALETA_TALHOES = ["#2e7d32", "#1565c0", "#ef6c00", "#6a1b9a", "#c62828", "#00838f"];
+// Talhão onde o ESP32 está instalado. Os dados do ThingSpeak são mostrados só para ele.
+const TALHAO_DO_ESP32 = "A1";
 
 function dataLocalISO() {
   const hoje = new Date();
@@ -333,7 +334,6 @@ function renderizarTelemetriaDiaria() {
     temperatura: "Temperatura",
     umidadeAr: "Umidade do ar",
     umidadeSolo: "Umidade do solo",
-    chuva: "Chuva",
   };
   tabela.innerHTML = linhas.map((item) => `
     <tr>
@@ -360,14 +360,24 @@ function renderizarResumoTelemetriaDiaria() {
   const linhas = [...grupos.values()].sort((a, b) => String(b.dia).localeCompare(String(a.dia)) || String(a.talhao).localeCompare(String(b.talhao)));
   tabela.innerHTML = linhas.length ? linhas.map((item) => `
     <tr><td>${escaparHtml(formatarData(item.dia))}</td><td>${escaparHtml(item.talhao)}</td>
-    ${["temperatura", "umidadeAr", "umidadeSolo", "chuva"].map((metrica) => `<td>${escaparHtml(item.valores[metrica] ?? "--")}</td>`).join("")}</tr>
-  `).join("") : '<tr><td colspan="6">Ainda não há telemetria diária para o filtro selecionado.</td></tr>';
+    ${["temperatura", "umidadeAr", "umidadeSolo"].map((metrica) => `<td>${escaparHtml(item.valores[metrica] ?? "--")}</td>`).join("")}</tr>
+  `).join("") : '<tr><td colspan="5">Ainda não há telemetria diária para o filtro selecionado.</td></tr>';
 }
 
 function renderizarTelemetriaMensal() {
   const tabela = document.getElementById("tabela-telemetria-mensal-tecnico");
   if (!tabela) return;
-  if (!telemetriaMensal.length) {
+  // O ESP32 (ThingSpeak) não é vinculado a talhão e só informa a média mensal.
+  const linhasEsp32 = telemetriaMensalEsp32.map((item) => ({
+    ...item,
+    talhao: "ESP32 (ThingSpeak)",
+    valor_minimo: null,
+    valor_maximo: null,
+    leituras_contabilizadas: null,
+  }));
+  const linhas = [...telemetriaMensal, ...linhasEsp32]
+    .sort((a, b) => String(b.mes).localeCompare(String(a.mes)));
+  if (!linhas.length) {
     tabela.innerHTML = '<tr><td colspan="6">Ainda não há consolidado mensal de telemetria.</td></tr>';
     return;
   }
@@ -375,16 +385,15 @@ function renderizarTelemetriaMensal() {
     temperatura: "Temperatura",
     umidadeAr: "Umidade do ar",
     umidadeSolo: "Umidade do solo",
-    chuva: "Chuva",
   };
-  tabela.innerHTML = telemetriaMensal.map((item) => `
+  tabela.innerHTML = linhas.map((item) => `
     <tr>
       <td>${escaparHtml(item.mes)}</td>
       <td>${escaparHtml(item.talhao)} · ${escaparHtml(metricas[item.codigo_metrica] || item.codigo_metrica)}</td>
-      <td>${escaparHtml(item.valor_medio)}</td>
-      <td>${escaparHtml(item.valor_minimo)}</td>
-      <td>${escaparHtml(item.valor_maximo)}</td>
-      <td>${escaparHtml(item.leituras_contabilizadas)}</td>
+      <td>${escaparHtml(item.valor_medio ?? "--")}</td>
+      <td>${escaparHtml(item.valor_minimo ?? "--")}</td>
+      <td>${escaparHtml(item.valor_maximo ?? "--")}</td>
+      <td>${escaparHtml(item.leituras_contabilizadas ?? "--")}</td>
     </tr>
   `).join("");
 }
@@ -415,8 +424,6 @@ function renderizarGraficoClimaMensalTecnico() {
         tension: 0.3,
         borderWidth: 2,
         spanGaps: true,
-        // Chuva (mm) usa eixo próprio para não achatar temperatura e umidade.
-        yAxisID: codigo === "chuva" ? "y1" : "y",
       })),
     },
     options: {
@@ -425,7 +432,6 @@ function renderizarGraficoClimaMensalTecnico() {
       interaction: { mode: "index", intersect: false },
       scales: {
         y: { beginAtZero: true, title: { display: true, text: "°C / %" } },
-        y1: { position: "right", beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: "mm" } },
       },
     },
   });
@@ -839,6 +845,37 @@ function carregarGraficoMetricas() {
   const leituras = sensores.filter((sensor) =>
     sensor.tipo === metrica && sensor.status !== "Inativo" &&
     (!talhao || sensor.talhao === talhao) && valorSensorValido(sensor));
+  // Último recurso: média mensal do ESP32 (ThingSpeak), que não pertence a nenhum talhão.
+  const esp32 = !leituras.length && (!talhao || talhao === TALHAO_DO_ESP32)
+    ? telemetriaMensalEsp32
+      .filter((item) => item.codigo_metrica === metrica && Number.isFinite(Number(item.valor_medio)))
+      .sort((a, b) => String(a.mes).localeCompare(String(b.mes)))
+    : [];
+  if (esp32.length) {
+    graficoMetricas = new Chart(canvas, {
+      type: "line",
+      data: {
+        labels: esp32.map((item) => item.mes),
+        datasets: [{
+          label: `${info.nome} · ESP32 (média mensal)`,
+          data: esp32.map((item) => Number(item.valor_medio)),
+          borderColor: info.cor,
+          backgroundColor: info.cor,
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 4,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        scales: { y: { title: { display: true, text: `${info.nome}${info.unidade ? ` (${info.unidade})` : ""}` } } },
+      },
+    });
+    if (mensagem) mensagem.textContent = `Nenhum sensor cadastrado enviou leituras; exibindo a média mensal do ESP32 (ThingSpeak) de ${info.nome.toLowerCase()}. O ESP32 não está vinculado a um talhão.`;
+    return;
+  }
   if (leituras.length) {
     graficoMetricas = new Chart(canvas, {
       type: "bar",
