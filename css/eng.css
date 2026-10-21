@@ -112,7 +112,9 @@
 
 .thingspeak-embeds {
     display: grid;
-    grid-template-columns: repeat(2, 1fr); /* Cria exatamente 2 colunas iguais */
+    /* Uma coluna por grafico, com minimo de 260px: em tela larga os tres ficam
+       lado a lado e em tela estreita eles quebram sozinhos. */
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
     gap: 20px; /* Espaçamento agradável entre os cartões */
     margin-top: 20px;
 }

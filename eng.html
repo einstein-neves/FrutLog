@@ -184,38 +184,46 @@
         <div class="thingspeak-summary" data-thingspeak-summary></div>
 
 
-      <!-- HILCCER ROCHA DE ARAUJO MELO - Alteracao grafico Inicio: 4 graficos do ESP32 via Node-RED (temperatura, umidade do ar, umidade do solo e chuva), um link por grafico -->
-       <div class="thingspeak-embeds" aria-label="Graficos do ESP32 via Node-RED">
+      <!-- HILCCER ROCHA DE ARAUJO MELO - Alteracao grafico Inicio: 3 graficos do ESP32 via Node-RED (temperatura, umidade do ar e umidade do solo), um link por grafico -->
+        <!-- Graficos do ESP32 servidos pelo Node-RED. O endereco abaixo e o padrao local;
+             js/telemetria-thingspeak.js reescreve o host quando outro e configurado. -->
+        <div class="thingspeak-embeds" aria-label="Graficos do ESP32 via Node-RED">
           <article>
-            <div class="container-iframe" style="height:300px;"><iframe
-                src="http://localhost:1880/dashboard/temperatura" title="Grafico de temperatura via Node-RED"
-                scrolling="no"></iframe></div>
+            <h3>Temperatura (&deg;C)</h3>
+            <div class="container-iframe" style="height:300px;">
+              <iframe loading="lazy" data-nodered-page="temperatura"
+                src="http://localhost:1880/dashboard/temperatura"
+                title="Grafico de temperatura via Node-RED" scrolling="no"></iframe>
+            </div>
           </article>
 
           <article>
-            <div class="container-iframe" style="height:300px;"><iframe src="http://localhost:1880/dashboard/umidade"
-                title="Grafico de umidade via Node-RED" scrolling="no"></iframe></div>
+            <h3>Umidade do ar (%)</h3>
+            <div class="container-iframe" style="height:300px;">
+              <iframe loading="lazy" data-nodered-page="umidade"
+                src="http://localhost:1880/dashboard/umidade"
+                title="Grafico de umidade do ar via Node-RED" scrolling="no"></iframe>
+            </div>
           </article>
 
-           <article> 
-            <div class="container-iframe" style="height:300px;"><iframe src="http://localhost:1880/dashboard/solo"
-                title="Grafico de umidade do solo via Node-RED" scrolling="no"></iframe></div>
+          <article>
+            <h3>Umidade do solo (%)</h3>
+            <div class="container-iframe" style="height:300px;">
+              <iframe loading="lazy" data-nodered-page="solo"
+                src="http://localhost:1880/dashboard/solo"
+                title="Grafico de umidade do solo via Node-RED" scrolling="no"></iframe>
+            </div>
           </article>
-
-           <article>
-            <div class="container-iframe" style="height:300px;"><iframe src="http://localhost:1880/dashboard/chuva"
-                title="Grafico chuva via Node-RED" scrolling="no"></iframe></div>
-          </article>
-
         </div>
+        <p class="mensagem-feedback erro" data-nodered-aviso hidden></p>
         
       <!--Alteracao grafico Fim - HILCCER ROCHA DE ARAUJO MELO.-->
 
         <section class="thingspeak-chart-container"
           aria-label="Gráfico de histórico recente das métricas do ThingSpeak">
           <h3 class="thingspeak-chart-title">Histórico recente das métricas do ThingSpeak</h3>
-          <p class="thingspeak-chart-description">Visualize as últimas leituras de temperatura, umidade do ar, umidade
-            do solo e chuva.</p>
+          <p class="thingspeak-chart-description">Visualize as últimas leituras de temperatura, umidade do ar e umidade
+            do solo.</p>
           <div class="thingspeak-chart"><canvas aria-label="Histórico recente das métricas do ThingSpeak"></canvas>
           </div>
           <div class="thingspeak-feed-scroll">
@@ -226,12 +234,11 @@
                   <th>Temperatura</th>
                   <th>Umidade do ar</th>
                   <th>Umidade do solo</th>
-                  <th>Chuva</th>
                 </tr>
               </thead>
               <tbody data-thingspeak-rows>
                 <tr>
-                  <td colspan="5">Carregando...</td>
+                  <td colspan="4">Carregando...</td>
                 </tr>
               </tbody>
             </table>
