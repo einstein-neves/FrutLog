@@ -136,6 +136,15 @@ async function db(c, table, method = "GET", data, query = "") {
   return response.status === 204 ? [] : response.json();
 }
 
+async function listarTalhoesComTemperatura(c, query) {
+  try {
+    return await db(c, "talhao", "GET", undefined, query);
+  } catch (erro) {
+    if (!String(erro.message).includes("temperatura_maxima")) throw erro;
+    return db(c, "talhao", "GET", undefined, query.replace(",temperatura_maxima", ""));
+  }
+}
+
 async function farmsForOrganization(c) {
   const organization = (await db(c, "organizacao", "GET", undefined, "?select=id&order=criado_em&limit=1"))[0];
   if (!organization) return [];
@@ -668,26 +677,46 @@ module.exports = async (req, res) => {
       ))[0];
       if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
 
-      const created = await db(c, "colheita", "POST", {
-        ciclo_cultura_id: (await db(
-          c,
-          "ciclo_cultura",
-          "GET",
-          undefined,
-          `?talhao_id=eq.${encodeURIComponent(plot.id)}&status=eq.ativo&select=id&order=plantado_em.desc&limit=1`
-        ))[0]?.id || null,
-        talhao_id: plot.id,
-        colhido_em: colhidoEm,
-        quantidade,
-        unidade: d.unidade,
-        ano: Number(colhidoEm.slice(0, 4)),
-        registrado_por: user.sub
-      });
+      const cicloAtivo = (await db(
+        c,
+        "ciclo_cultura",
+        "GET",
+        undefined,
+        `?talhao_id=eq.${encodeURIComponent(plot.id)}&status=eq.ativo&select=id&order=plantado_em.desc&limit=1`
+      ))[0];
+      const finalizarCiclo = d.finalizarCiclo === true || d.finalizarCiclo === "true";
+      if (finalizarCiclo && !cicloAtivo) {
+        return reply(res, 409, { mensagem: "NÃ£o hÃ¡ plantio ativo neste talhÃ£o para encerrar." }, origin);
+      }
+      if (finalizarCiclo) {
+        await db(c, "ciclo_cultura", "PATCH", { status: "encerrado", encerrado_em: colhidoEm }, `?id=eq.${encodeURIComponent(cicloAtivo.id)}`);
+      }
+
+      let created;
+      try {
+        created = await db(c, "colheita", "POST", {
+          ciclo_cultura_id: cicloAtivo?.id || null,
+          talhao_id: plot.id,
+          colhido_em: colhidoEm,
+          quantidade,
+          unidade: d.unidade,
+          ano: Number(colhidoEm.slice(0, 4)),
+          registrado_por: user.sub
+        });
+      } catch (erro) {
+        if (finalizarCiclo) {
+          await db(c, "ciclo_cultura", "PATCH", { status: "ativo", encerrado_em: null }, `?id=eq.${encodeURIComponent(cicloAtivo.id)}`);
+        }
+        throw erro;
+      }
       const harvest = Array.isArray(created) ? created[0] : created;
       if (!harvest?.id) {
+        if (finalizarCiclo) {
+          await db(c, "ciclo_cultura", "PATCH", { status: "ativo", encerrado_em: null }, `?id=eq.${encodeURIComponent(cicloAtivo.id)}`);
+        }
         throw new Error("O banco não confirmou a gravacao da colheita. Atualize o esquema e tente novamente.");
       }
-      return reply(res, 201, { sucesso: true, colheita: harvest }, origin);
+      return reply(res, 201, { sucesso: true, colheita: harvest, cicloEncerrado: finalizarCiclo }, origin);
     }
 
     const reportMatch = route.match(/^\/relatorios-diarios(?:\/([^/]+))?$/);
@@ -764,12 +793,9 @@ module.exports = async (req, res) => {
     if (req.method === "GET" && route === "/talhoes") {
       const farms = await farmsForOrganization(c);
       if (!farms.length) return reply(res, 503, { mensagem: "Fazenda não configurada." }, origin);
-      const plots = await db(
+      const plots = await listarTalhoesComTemperatura(
         c,
-        "talhao",
-        "GET",
-        undefined,
-        `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&select=id,codigo,nome,area_hectares,coordenadas&order=codigo`
+        `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&select=id,codigo,nome,area_hectares,coordenadas,temperatura_maxima&order=codigo`
       );
       return reply(res, 200, { talhoes: plots }, origin);
     }
@@ -1032,7 +1058,7 @@ module.exports = async (req, res) => {
       const farms = await farmsForOrganization(c);
       if (!farms.length) return reply(res, 503, { mensagem: "Fazenda não configurada." }, origin);
       const [plots, devices, sensors, readings, inspections, cycles, occurrences, sensorProblems, alerts, cultivars, cultures] = await Promise.all([
-        db(c, "talhao", "GET", undefined, `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&select=id,codigo,nome,area_hectares,coordenadas&order=codigo`),
+        listarTalhoesComTemperatura(c, `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&select=id,codigo,nome,area_hectares,coordenadas,temperatura_maxima&order=codigo`),
         db(c, "dispositivo", "GET", undefined, "?select=id,id_externo,talhao_id,status,ultimo_sinal_em"),
         db(c, "sensor", "GET", undefined, "?select=id,id_externo,dispositivo_id,codigo_metrica,unidade,status"),
         db(c, "v_ultima_leitura_sensor", "GET", undefined, "?select=*&limit=500"),
@@ -1182,6 +1208,33 @@ module.exports = async (req, res) => {
       );
     }
 
+    if (req.method === "POST" && route === "/plantios/encerrar-ciclo") {
+      if (!["engenheiro", "admin"].includes(user.perfil)) {
+        return reply(res, 403, { mensagem: "Somente Engenharia e Administração podem encerrar ciclos." }, origin);
+      }
+      const d = await parseBody(req);
+      const codigoTalhao = text(d.talhao, 40);
+      if (!codigoTalhao) return reply(res, 400, { mensagem: "Selecione um talhão." }, origin);
+
+      const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(codigoTalhao)}&select=id&limit=1`))[0];
+      if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
+      const ciclo = (await db(
+        c,
+        "ciclo_cultura",
+        "GET",
+        undefined,
+        `?talhao_id=eq.${encodeURIComponent(plot.id)}&status=eq.ativo&select=id&order=plantado_em.desc&limit=1`
+      ))[0];
+      if (!ciclo) return reply(res, 409, { mensagem: "Este talhão não possui ciclo ativo para encerrar." }, origin);
+      if (d.cicloId && d.cicloId !== ciclo.id) {
+        return reply(res, 409, { mensagem: "O ciclo ativo deste talhão mudou. Atualize a página e confira os dados antes de encerrar." }, origin);
+      }
+
+      const encerradoEm = date(d.encerradoEm) || new Date().toISOString().slice(0, 10);
+      await db(c, "ciclo_cultura", "PATCH", { status: "encerrado", encerrado_em: encerradoEm }, `?id=eq.${encodeURIComponent(ciclo.id)}`);
+      return reply(res, 200, { sucesso: true, talhao: codigoTalhao, encerradoEm }, origin);
+    }
+
     // 12. Cadastro de Plantio (Engenheiro / Admin)
     if (req.method === "POST" && route === "/plantios") {
       if (!["engenheiro", "admin"].includes(user.perfil)) return reply(res, 403, { mensagem: "Sem permissão." }, origin);
@@ -1197,8 +1250,32 @@ module.exports = async (req, res) => {
       const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&select=id,area_hectares&limit=1`))[0];
       if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
       const areaPlantada = Number(plot.area_hectares);
+      const temperaturaMaxima = Number(String(d.temperaturaMaxima ?? "").replace(",", "."));
+      if (!Number.isFinite(temperaturaMaxima) || temperaturaMaxima < 0 || temperaturaMaxima > 100) {
+        return reply(res, 400, { mensagem: "Informe uma temperatura mÃ¡xima entre 0 e 100 C." }, origin);
+      }
       if (!Number.isFinite(areaPlantada) || areaPlantada <= 0) {
         return reply(res, 409, { mensagem: "Defina uma área valida para o talhão antes de cadastrar o produto." }, origin);
+      }
+
+      const cicloAtivo = (await db(
+        c,
+        "ciclo_cultura",
+        "GET",
+        undefined,
+        `?talhao_id=eq.${encodeURIComponent(plot.id)}&status=eq.ativo&select=id&limit=1`
+      ))[0];
+      if (cicloAtivo) {
+        return reply(res, 409, { mensagem: "Este talhao possui um ciclo ativo. Encerre-o em Detalhes do Talhao antes de cadastrar outro produto." }, origin);
+      }
+
+      try {
+        await db(c, "talhao", "PATCH", { temperatura_maxima: temperaturaMaxima }, `?id=eq.${encodeURIComponent(plot.id)}`);
+      } catch (erro) {
+        if (String(erro.message).includes("temperatura_maxima")) {
+          return reply(res, 503, { mensagem: "Aplique a migration supabase/migration_temperatura_maxima_talhao.sql no banco para salvar o limite de temperatura." }, origin);
+        }
+        throw erro;
       }
 
       let cultura = (await db(c, "cultura", "GET", undefined, `?nome_comum=eq.${encodeURIComponent(d.produto)}&select=id&limit=1`))[0];

@@ -13,6 +13,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   configurarAcoesTabelas();
   configurarGraficos();
   preencherSelectTalhoes();
+  carregarRelatoriosDiarios(); // Carrega os relatórios na tabela
+
   window.addEventListener("frutlog:colheitas-atualizadas", async () => {
     try {
       const resposta = await FrutLog.apiFetch("/colheitas/anual");
@@ -50,8 +52,12 @@ let painelTecnico = {
 };
 let graficoColheita = null;
 let graficoLeituras = null;
+let graficoClimaMensalAdmin = null;
 let unidadeColheita = "t";
 let telemetriaDiariaAdmin = [];
+let telemetriaMensalAdmin = [];
+let telemetriaMensalEsp32Admin = [];
+let talhaoSelecionadoAdmin = "";
 
 function escaparHtml(valor) {
   return String(valor ?? "").replace(/[&<>"']/g, (caractere) => ({
@@ -85,7 +91,7 @@ function mostrarLinhasVazias(id, colunas, texto = "Nenhum registro encontrado.")
 }
 
 function gerarSenhaTemporaria() {
-  const caracteres = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
+  const caracteres = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#\$%";
   const limiteSemVies = 256 - (256 % caracteres.length);
   let senha = "";
   while (senha.length < 10) {
@@ -208,9 +214,6 @@ function configurarFormularioFuncionario() {
       botaoMostrarSenha.textContent = "Ocultar senha";
       botaoCancelar.hidden = true;
       botaoSalvar.innerHTML = '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Cadastrar Funcionario';
-      if (!editando) {
-        exibirMensagem(mensagemId, "Funcionario cadastrado. A senha provisoria usada continua visivel abaixo para ser copiada; o funcionario devera altera-la no primeiro acesso.", "sucesso");
-      }
     } catch (erro) {
       exibirMensagem(mensagemId, erro.message, "erro");
     } finally {
@@ -238,9 +241,7 @@ function carregarFuncionarios() {
   }
 
   tabela.innerHTML = filtrados.map((funcionario) => {
-    const ativo = funcionario.status
-      ? funcionario.status === "ativo"
-      : funcionario.ativo === true;
+    const ativo = funcionario.status ? funcionario.status === "ativo" : funcionario.ativo === true;
     const status = ativo ? "ativo" : (funcionario.status || "inativo");
     const textoStatus = status === "excluido" ? "Excluido" : ativo ? "Ativo" : "Inativo";
     return `
@@ -252,9 +253,9 @@ function carregarFuncionarios() {
         <td>${escaparHtml(funcionario.perfil)}</td>
         <td><span class="badge-status ${status}">${textoStatus}</span></td>
         <td>
-          <button class="btn-acao-admin" type="button" data-alternar-funcionario="${escaparHtml(funcionario.id)}" ${String(funcionario.id) === String(FrutLog.obterSessao()?.id) ? "disabled" : ""} aria-label="${ativo ? "Desativar" : "Ativar"} ${escaparHtml(funcionario.nome)}">${ativo ? "Desativar" : "Ativar"}</button>
-          <button class="btn-acao-admin" type="button" data-editar-funcionario="${escaparHtml(funcionario.id)}" ${String(funcionario.id) === String(FrutLog.obterSessao()?.id) ? "disabled" : ""} aria-label="Editar ${escaparHtml(funcionario.nome)}">Editar</button>
-          <button class="btn-acao-admin btn-excluir-admin" type="button" data-excluir-funcionario="${escaparHtml(funcionario.id)}" ${String(funcionario.id) === String(FrutLog.obterSessao()?.id) ? "disabled" : ""} aria-label="Excluir ${escaparHtml(funcionario.nome)}">Excluir</button>
+          <button class="btn-acao-admin" type="button" data-alternar-funcionario="${escaparHtml(funcionario.id)}" ${String(funcionario.id) === String(FrutLog.obterSessao()?.id) ? "disabled" : ""}>${ativo ? "Desativar" : "Ativar"}</button>
+          <button class="btn-acao-admin" type="button" data-editar-funcionario="${escaparHtml(funcionario.id)}" ${String(funcionario.id) === String(FrutLog.obterSessao()?.id) ? "disabled" : ""}>Editar</button>
+          <button class="btn-acao-admin btn-excluir-admin" type="button" data-excluir-funcionario="${escaparHtml(funcionario.id)}" ${String(funcionario.id) === String(FrutLog.obterSessao()?.id) ? "disabled" : ""}>Excluir</button>
         </td>
       </tr>`;
   }).join("");
@@ -273,18 +274,14 @@ function configurarAcoesTabelas() {
       const funcionario = funcionarios.find((item) => String(item.id) === String(id));
       if (!funcionario) return;
 
-      const status = (funcionario.status ? funcionario.status === "ativo" : funcionario.ativo === true)
-        ? "inativo"
-        : "ativo";
+      const status = (funcionario.status ? funcionario.status === "ativo" : funcionario.ativo === true) ? "inativo" : "ativo";
       botaoStatus.disabled = true;
       try {
         await FrutLog.apiFetch(`/funcionarios/${encodeURIComponent(id)}`, {
           method: "PATCH",
           body: JSON.stringify({ status }),
         });
-        funcionarios = funcionarios.map((item) => String(item.id) === String(id)
-          ? { ...item, status, ativo: status === "ativo" }
-          : item);
+        funcionarios = funcionarios.map((item) => String(item.id) === String(id) ? { ...item, status, ativo: status === "ativo" } : item);
         renderizarFuncionarios();
         exibirMensagem("mensagem-funcionario", `Funcionario ${status === "ativo" ? "ativado" : "desativado"}.`, "sucesso");
       } catch (erro) {
@@ -311,7 +308,6 @@ function configurarAcoesTabelas() {
       document.getElementById("funcionario-senha").placeholder = "Deixe vazio para manter a senha atual";
       document.getElementById("btn-cancelar-edicao-funcionario").hidden = false;
       document.getElementById("btn-salvar-funcionario").innerHTML = '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Salvar Alteracoes';
-      exibirMensagem("mensagem-funcionario", "Opcionalmente, defina uma nova senha provisoria; o funcionario precisara troca-la no proximo acesso.");
       document.getElementById("form-funcionario").scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
@@ -319,7 +315,7 @@ function configurarAcoesTabelas() {
     if (!botao) return;
     const id = botao.dataset.excluirFuncionario;
     const funcionario = funcionarios.find((item) => String(item.id) === String(id));
-    if (!funcionario || !window.confirm(`Excluir ${funcionario.nome} do sistema? Esta acao nao pode ser desfeita.`)) return;
+    if (!funcionario || !window.confirm(`Excluir ${funcionario.nome} do sistema?`)) return;
 
     botao.disabled = true;
     try {
@@ -330,48 +326,6 @@ function configurarAcoesTabelas() {
     } catch (erro) {
       botao.disabled = false;
       exibirMensagem("mensagem-funcionario", erro.message, "erro");
-    }
-  });
-
-  document.getElementById("tabela-sensores-admin")?.addEventListener("click", async (evento) => {
-    const botaoAlternar = evento.target.closest("[data-alternar-sensor]");
-    if (botaoAlternar) {
-      const id = botaoAlternar.dataset.alternarSensor;
-      const sensor = sensores.find((item) => String(item.id) === String(id));
-      if (!sensor) return;
-      botaoAlternar.disabled = true;
-      try {
-        await FrutLog.apiFetch(`/sensores/${encodeURIComponent(id)}`, {
-          method: "PATCH",
-          body: JSON.stringify({ status: sensor.ativo ? "inativo" : "ativo" }),
-        });
-        const resposta = await FrutLog.apiFetch("/sensores");
-        sensores = resposta.sensores || [];
-        renderizarSensores();
-        renderizarGraficoLeituras();
-        exibirMensagem("mensagem-sensor", `Sensor ${sensor.ativo ? "desativado" : "ativado"}.`, "sucesso");
-      } catch (erro) {
-        botaoAlternar.disabled = false;
-        exibirMensagem("mensagem-sensor", erro.message, "erro");
-      }
-      return;
-    }
-    const botao = evento.target.closest("[data-excluir-sensor]");
-    if (!botao) return;
-    const id = botao.dataset.excluirSensor;
-    const sensor = sensores.find((item) => String(item.id) === String(id));
-    if (!sensor || !window.confirm(`Excluir o sensor ${sensor.sensor}? O historico de leituras associado tambem sera apagado.`)) return;
-
-    botao.disabled = true;
-    try {
-      await FrutLog.apiFetch(`/sensores/${encodeURIComponent(id)}`, { method: "DELETE" });
-      sensores = sensores.filter((item) => String(item.id) !== String(id));
-      renderizarSensores();
-      renderizarGraficoLeituras();
-      exibirMensagem("mensagem-sensor", "Sensor e leituras historicas associadas excluidos.", "sucesso");
-    } catch (erro) {
-      botao.disabled = false;
-      exibirMensagem("mensagem-sensor", erro.message, "erro");
     }
   });
 }
@@ -403,7 +357,6 @@ function configurarFormularioSensor() {
       };
       sensores.push(sensor);
       renderizarSensores();
-      renderizarGraficoLeituras();
       preencherSelectTalhoes();
       exibirMensagem("mensagem-sensor", `Sensor ${sensor.sensor} cadastrado.`, "sucesso");
       formulario.reset();
@@ -449,7 +402,6 @@ function renderizarSensores() {
     mostrarLinhasVazias("tabela-sensores-admin", 6);
     return;
   }
-
   tabela.innerHTML = sensores.map((sensor) => {
     const status = sensor.status || (sensor.ativo === false ? "Inativo" : "Online");
     const statusClasse = normalizarStatus(status);
@@ -461,8 +413,8 @@ function renderizarSensores() {
         <td>${escaparHtml(sensor.leitura || "Sem leitura")}</td>
         <td><span class="badge-status ${statusClasse}">${escaparHtml(status)}</span></td>
         <td>
-          <button class="btn-acao-admin" type="button" data-alternar-sensor="${escaparHtml(sensor.id)}" aria-label="${sensor.ativo ? "Desativar" : "Ativar"} sensor ${escaparHtml(sensor.sensor || sensor.id_externo)}">${sensor.ativo ? "Desativar" : "Ativar"}</button>
-          <button class="btn-acao-admin btn-excluir-admin" type="button" data-excluir-sensor="${escaparHtml(sensor.id)}" aria-label="Excluir sensor ${escaparHtml(sensor.sensor || sensor.id_externo)}">Excluir</button>
+          <button class="btn-acao-admin" type="button" data-alternar-sensor="${escaparHtml(sensor.id)}">${sensor.ativo ? "Desativar" : "Ativar"}</button>
+          <button class="btn-acao-admin btn-excluir-admin" type="button" data-excluir-sensor="${escaparHtml(sensor.id)}">Excluir</button>
         </td>
       </tr>`;
   }).join("");
@@ -480,18 +432,11 @@ function preencherTabela(id, colunas, linhas) {
 
 function renderizarPainelTecnico() {
   const talhoes = painelTecnico.talhoes || [];
-  const inspecoes = painelTecnico.inspecoes || [];
-  const plantios = painelTecnico.plantios || [];
-  const ocorrencias = painelTecnico.ocorrencias || [];
-  const problemas = painelTecnico.problemasSensores || painelTecnico.problemas_sensores || [];
-  const tarefas = painelTecnico.tarefas || [];
-  const alertas = painelTecnico.alertas || [];
-
   document.getElementById("resumo-total-talhoes").textContent = talhoes.length;
-  document.getElementById("resumo-total-sensores").textContent = sensores.length || (painelTecnico.sensores || []).length;
-  document.getElementById("resumo-total-inspecoes").textContent = inspecoes.length;
-  document.getElementById("resumo-total-tarefas").textContent = tarefas.length;
-  document.getElementById("resumo-total-alertas").textContent = alertas.length;
+  document.getElementById("resumo-total-sensores").textContent = sensores.length;
+  document.getElementById("resumo-total-inspecoes").textContent = (painelTecnico.inspecoes || []).length;
+  document.getElementById("resumo-total-tarefas").textContent = (painelTecnico.tarefas || []).length;
+  document.getElementById("resumo-total-alertas").textContent = (painelTecnico.alertas || []).length;
 
   preencherTabela("tabela-talhoes-admin", 7, talhoes.map((talhao) => `
     <tr>
@@ -503,88 +448,105 @@ function renderizarPainelTecnico() {
       <td><span class="badge-status ${normalizarStatus(talhao.situacao || talhao.status)}">${escaparHtml(talhao.situacao || talhao.status || "--")}</span></td>
       <td>${escaparHtml(talhao.prioridade || "--")}</td>
     </tr>`));
-  preencherTabela("tabela-inspecoes-admin", 6, inspecoes.map((item) => `
-    <tr><td>${formatarData(item.data)}</td><td>${escaparHtml(item.talhao)}</td>
-      <td>${escaparHtml(item.sensor || "--")}</td>
-      <td><span class="badge-status ${normalizarStatus(item.situacao)}">${escaparHtml(item.situacao)}</span></td>
-      <td>${escaparHtml(item.problemas || "Sem ocorrencia")}</td><td>${escaparHtml(item.observacoes || "--")}</td></tr>`));
-  preencherTabela("tabela-plantios-admin", 5, plantios.map((item) => `
-    <tr><td>${escaparHtml(item.talhao || item.talhao_id || "--")}</td>
-      <td>${escaparHtml([item.produto || item.cultura, item.variedade].filter(Boolean).join(" / ") || "--")}</td>
-      <td>${escaparHtml(item.area ?? item.area_plantada_hectares ?? "--")}</td>
-      <td>${formatarData(item.dataPlantio || item.plantado_em)}</td>
-      <td>${formatarData(item.dataColheita || item.previsao_colheita)}</td></tr>`));
-  preencherTabela("tabela-ocorrencias-admin", 4, ocorrencias.map((item) => `
-    <tr><td>${formatarData(item.data)}</td><td>${escaparHtml(item.talhao)}</td>
-      <td>${escaparHtml(item.tipo)}</td><td>${escaparHtml(item.observacao || "--")}</td></tr>`));
-  preencherTabela("tabela-problemas-admin", 5, problemas.map((item) => `
-    <tr><td>${formatarData(item.data)}</td><td>${escaparHtml(item.sensor || "--")}</td>
-      <td>${escaparHtml(item.talhao || "--")}</td><td>${escaparHtml(item.problema)}</td>
-      <td>${escaparHtml(item.observacao || "--")}</td></tr>`));
-
-  const linhasAlertas = [
-    ...tarefas.map((item) => `<tr><td>${escaparHtml(item.talhao || "--")}</td><td>${escaparHtml(item.prioridade || "Tarefa")}</td><td>${escaparHtml(item.atividade || "--")}</td><td>Pendente</td></tr>`),
-    ...alertas.map((item) => `<tr><td>${escaparHtml(item.titulo || item.talhao || "--")}</td><td>${escaparHtml(item.severidade || item.nivel || "--")}</td><td>${escaparHtml(item.mensagem || item.texto || item.titulo || "--")}</td><td>${escaparHtml(item.status || "Aberto")}</td></tr>`),
-  ];
-  preencherTabela("tabela-alertas-admin", 4, linhasAlertas);
   preencherSelectTalhoes();
 }
 
 function renderizarMapaAdmin() {
-  const mapa = document.getElementById("mapa-talhoes-admin");
+  const mapa = document.getElementById("camada-talhoes");
   if (!mapa || typeof FrutLogTalhoes === "undefined") return;
   const features = FrutLogTalhoes.obterTalhoes();
   const estados = new Map((painelTecnico.talhoes || []).map((item) => [item.id, item.situacao || item.status]));
-  exibirMensagem(
-    "mensagem-mapa-admin",
-    features.length
-      ? `${features.length} talhao(es) carregado(s) do servidor.`
-      : "Nenhum talhao retornado pelo servidor. Verifique os cadastros e a fazenda vinculada."
-  );
-  const renderizados = FrutLogMapaTalhoes.renderizarMapaTalhoes(mapa, features, {
-    statusFor: (feature) => estados.get(feature.properties.codigo) || feature.properties.status,
-    onSelect: (feature, evento, poligono) => {
-      const codigo = feature.properties.codigo;
-      mapa.querySelectorAll(".talhao-mapa").forEach((item) => item.classList.toggle("selecionado", item === poligono));
-      const dados = (painelTecnico.talhoes || []).find((item) => item.id === codigo);
-      exibirMensagem("mensagem-dados-tecnicos", dados
-        ? `Talhao ${codigo}: ${dados.situacao || "sem situacao"}; leitura ${dados.leitura || "indisponivel"}.`
-        : `Talhao ${codigo} selecionado.`);
-    },
+  if (!features.some((feature) => feature.properties.codigo === talhaoSelecionadoAdmin)) {
+    talhaoSelecionadoAdmin = features[0]?.properties.codigo || "";
+  }
+  renderizarBotoesTalhaoAdmin(features);
+  FrutLogMapaTalhoes.renderizarMapaTalhoes(mapa, features, {
+    selectedCode: talhaoSelecionadoAdmin,
+    statusFor: (feature) => statusTemperaturaTalhaoAdmin(feature, estados.get(feature.properties.codigo)),
+    onSelect: (feature) => selecionarTalhaoAdmin(feature.properties.codigo),
   });
-  exibirMensagem(
-    "mensagem-mapa-admin",
-    renderizados
-      ? `${renderizados} divisao(oes) de talhao renderizada(s) com dados do servidor.`
-      : "Os talhoes foram carregados, mas nenhum possui coordenadas validas para desenhar."
-  );
+  if (talhaoSelecionadoAdmin) renderizarDetalhesTalhaoAdmin(talhaoSelecionadoAdmin);
 }
 
-function classeStatusMapa(valor) {
-  const normalizado = normalizarStatus(valor).replace(/\s+/g, "-");
-  return ["normal", "atencao", "critico", "sem-leitura", "sem-sensor", "sem-comunicacao", "sensor-inativo", "manutencao"].includes(normalizado)
-    ? normalizado
-    : "sem-leitura";
+function renderizarBotoesTalhaoAdmin(features) {
+  const container = document.getElementById("botoes-talhao");
+  if (!container) return;
+  container.innerHTML = features.map((feature) => {
+    const codigo = feature.properties.codigo;
+    const ativo = codigo === talhaoSelecionadoAdmin ? " active" : "";
+    return `<button class="btn-talhao${ativo}" type="button" data-talhao-admin="${escaparHtml(codigo)}">${escaparHtml(codigo)}</button>`;
+  }).join("");
+  container.querySelectorAll("[data-talhao-admin]").forEach((botao) => {
+    botao.addEventListener("click", () => selecionarTalhaoAdmin(botao.dataset.talhaoAdmin));
+  });
 }
 
-function renderizarTelemetriaDiariaAdmin() {
-  const metricas = {
-    temperatura: "Temperatura",
-    umidadeAr: "Umidade do ar",
-    umidadeSolo: "Umidade do solo",
-    chuva: "Chuva",
+function selecionarTalhaoAdmin(codigo) {
+  talhaoSelecionadoAdmin = codigo;
+  const features = FrutLogTalhoes.obterTalhoes();
+  renderizarBotoesTalhaoAdmin(features);
+  const mapa = document.getElementById("camada-talhoes");
+  mapa?.querySelectorAll(".talhao-mapa").forEach((poligono) => {
+    poligono.classList.toggle("selecionado", poligono.dataset.talhao === codigo);
+  });
+  renderizarDetalhesTalhaoAdmin(codigo);
+}
+
+function renderizarDetalhesTalhaoAdmin(codigo) {
+  const feature = FrutLogTalhoes.obterTalhoes().find((item) => item.properties.codigo === codigo);
+  if (!feature) return;
+  const dadosTalhao = (painelTecnico.talhoes || []).find((item) => item.id === codigo) || {};
+  const plantio = (painelTecnico.plantios || []).find((item) => item.talhao === codigo) || {};
+  const sensores = (painelTecnico.sensores || []).filter((item) => item.talhao === codigo);
+  const sensorAtivo = (tipo) => sensores.find((item) => item.tipo === tipo && item.status !== "Inativo");
+  const temperatura = sensorAtivo("temperatura");
+  const umidadeAr = sensorAtivo("umidadeAr");
+  const umidadeSolo = sensorAtivo("umidadeSolo");
+  const props = feature.properties;
+  const monitorado = FrutLogTalhoes.aplicarMonitoramento({
+    ...feature,
+    properties: {
+      ...props,
+      status: dadosTalhao.situacao || dadosTalhao.status || props.status,
+      prioridade: dadosTalhao.prioridade || props.prioridade,
+      diaria: { ...props.diaria, temperatura: temperatura?.valor ?? null },
+    },
+  }).properties;
+  const preencher = (id, valor) => {
+    const elemento = document.getElementById(id);
+    if (elemento) elemento.textContent = valor ?? "--";
   };
-  preencherTabela("tabela-telemetria-admin", 7, telemetriaDiariaAdmin.map((item) => `
-    <tr>
-      <td>${formatarData(item.dia)}</td>
-      <td>${escaparHtml(item.talhao || "--")}</td>
-      <td>${escaparHtml(metricas[item.codigo_metrica] || item.codigo_metrica)}</td>
-      <td>${escaparHtml(item.valor_medio)}</td>
-      <td>${escaparHtml(item.valor_minimo)}</td>
-      <td>${escaparHtml(item.valor_maximo)}</td>
-      <td>${escaparHtml(item.leituras_contabilizadas)}</td>
-    </tr>
-  `));
+
+  preencher("tecnico-titulo-talhao", `Detalhes: Talhão ${codigo}`);
+  preencher("tecnico-talhao-produto", plantio.produto || props.produto || "--");
+  preencher("tecnico-talhao-variedade", plantio.variedade || props.variedade || "--");
+  preencher("tecnico-talhao-area", props.area_hectares ? `${props.area_hectares} hectares` : props.area || "--");
+  preencher("tecnico-talhao-solo", plantio.solo || props.solo || "--");
+  preencher("tecnico-talhao-plantio", plantio.plantado_em || props.plantio || "--");
+  preencher("tecnico-talhao-colheita", plantio.previsao_colheita || props.colheita || "--");
+  preencher("tecnico-talhao-sensor", dadosTalhao.sensor || sensores[0]?.sensor || "Não associado");
+  preencher("tecnico-talhao-limite", props.parametros?.temperaturaMaxima != null ? `${props.parametros.temperaturaMaxima} °C` : "--");
+  preencher("tecnico-talhao-temperatura", temperatura?.valor != null ? `${temperatura.valor} °C` : "--");
+  preencher("tecnico-talhao-umidade", umidadeAr?.valor != null || umidadeSolo?.valor != null
+    ? `${umidadeAr?.valor ?? "--"}% ar / ${umidadeSolo?.valor ?? "--"}% solo`
+    : "--");
+  preencher("tecnico-talhao-prioridade", monitorado.prioridade || "Rotina de acompanhamento");
+  preencher("tecnico-talhao-status", FrutLog.textoInterface(monitorado.status || "Sem leitura"));
+  const badge = document.getElementById("tecnico-talhao-status");
+  if (badge) badge.className = `badge-status ${normalizarStatus(monitorado.status || "sem-leitura")}`;
+}
+
+function statusTemperaturaTalhaoAdmin(feature, fallbackStatus) {
+  const sensores = (painelTecnico.sensores || []).filter((item) => item.talhao === feature.properties.codigo);
+  const temperatura = sensores.find((item) => item.tipo === "temperatura" && item.status !== "Inativo");
+  return FrutLogTalhoes.aplicarMonitoramento({
+    ...feature,
+    properties: {
+      ...feature.properties,
+      status: fallbackStatus || feature.properties.status,
+      diaria: { ...feature.properties.diaria, temperatura: temperatura?.valor ?? null },
+    },
+  }).properties.status;
 }
 
 function configurarGraficos() {
@@ -599,12 +561,6 @@ function configurarGraficos() {
 
 function definirColheitasAnuais(colheitas) {
   colheitasAnuais = Array.isArray(colheitas) ? colheitas : [];
-  if (colheitasAnuais.length && !colheitasAnuais.some((item) => item.unidade === unidadeColheita)) {
-    unidadeColheita = colheitasAnuais[0].unidade;
-    document.querySelectorAll("[data-unidade-admin]").forEach((botao) => {
-      botao.classList.toggle("active", botao.dataset.unidadeAdmin === unidadeColheita);
-    });
-  }
 }
 
 function renderizarGraficoColheita() {
@@ -612,68 +568,58 @@ function renderizarGraficoColheita() {
   if (!canvas || typeof Chart === "undefined") return;
   if (graficoColheita) graficoColheita.destroy();
   const dados = colheitasAnuais.filter((item) => item.unidade === unidadeColheita);
-  const unidadeLabel = { t: "Toneladas", sc: "Sacas", kg: "Quilogramas", cx: "Caixas" };
-  const unidade = unidadeLabel[unidadeColheita] || unidadeColheita;
-  const mensagem = document.getElementById("mensagem-colheita-admin");
-  if (!dados.length) {
-    graficoColheita = null;
-    if (mensagem) mensagem.textContent = "Ainda nao ha registros de colheita para esta unidade.";
-    ["resumo-colheita-ultima", "resumo-colheita-menor", "resumo-colheita-maior"].forEach((id) => {
-      document.getElementById(id).textContent = "--";
-    });
-    return;
-  }
-  if (mensagem) mensagem.textContent = "";
+  if (!dados.length) return;
 
   graficoColheita = new Chart(canvas, {
     type: "bar",
     data: {
       labels: dados.map((item) => item.ano),
-      datasets: [{
-        label: unidade[0].toUpperCase() + unidade.slice(1),
-        data: dados.map((item) => item.quantidade),
-        backgroundColor: "#2e7d32",
-        borderRadius: 6,
-      }],
+      datasets: [{ data: dados.map((item) => item.quantidade), backgroundColor: "#2e7d32", borderRadius: 6 }],
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true } },
-    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } },
   });
-
-  const menor = dados.reduce((a, b) => a.quantidade < b.quantidade ? a : b);
-  const maior = dados.reduce((a, b) => a.quantidade > b.quantidade ? a : b);
-  const ultima = dados.reduce((a, b) => a.ano > b.ano ? a : b);
-  document.getElementById("resumo-colheita-ultima").textContent = `${ultima.ano}: ${ultima.quantidade} ${unidade}`;
-  document.getElementById("resumo-colheita-menor").textContent = `${menor.ano}: ${menor.quantidade} ${unidade}`;
-  document.getElementById("resumo-colheita-maior").textContent = `${maior.ano}: ${maior.quantidade} ${unidade}`;
 }
 
-function renderizarGraficoLeituras() {
-  const canvas = document.getElementById("grafico-leituras-sensores");
+function renderizarGraficoClimaMensalAdmin() {
+  const canvas = document.getElementById("grafico-clima-mensal");
   if (!canvas || typeof Chart === "undefined") return;
-  const dados = sensores.filter((item) => item.ativo !== false && item.valor !== null && item.valor !== undefined && item.valor !== "" && Number.isFinite(Number(item.valor)));
-  if (graficoLeituras) graficoLeituras.destroy();
-  graficoLeituras = new Chart(canvas, {
-    type: "bar",
+  if (graficoClimaMensalAdmin) graficoClimaMensalAdmin.destroy();
+
+  const leituras = [...telemetriaMensalAdmin, ...telemetriaMensalEsp32Admin];
+  const meses = [...new Set(leituras.map((item) => item.mes).filter(Boolean))].sort();
+  const metricas = [
+    { codigo: "temperatura", label: "Temperatura (°C)" },
+    { codigo: "chuva", label: "Chuva (mm)" },
+    { codigo: "umidadeAr", label: "Umidade do ar (%)" },
+    { codigo: "umidadeSolo", label: "Umidade do solo (%)" },
+  ];
+  const valores = Object.fromEntries(metricas.map(({ codigo }) => [codigo, new Map()]));
+  leituras.forEach((item) => {
+    const valor = Number(item.valor_medio);
+    if (valores[item.codigo_metrica] && Number.isFinite(valor)) {
+      const porMes = valores[item.codigo_metrica];
+      const atual = porMes.get(item.mes) || { soma: 0, quantidade: 0 };
+      atual.soma += valor;
+      atual.quantidade += 1;
+      porMes.set(item.mes, atual);
+    }
+  });
+
+  graficoClimaMensalAdmin = new Chart(canvas, {
+    type: "line",
     data: {
-      labels: dados.map((item) => item.sensor || item.id_externo),
-      datasets: [{
-        label: "Ultima leitura",
-        data: dados.map((item) => Number(item.valor)),
-        backgroundColor: "#1976d2",
-        borderRadius: 6,
-      }],
+      labels: meses,
+      datasets: metricas.map(({ codigo, label }) => ({
+        label,
+        data: meses.map((mes) => {
+          const item = valores[codigo].get(mes);
+          return item ? item.soma / item.quantidade : null;
+        }),
+        tension: 0.3,
+        borderWidth: 2,
+      })),
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true } },
-    },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } },
   });
 }
 
@@ -684,58 +630,15 @@ async function carregarDadosConectados() {
     FrutLog.apiFetch("/painel-tecnico"),
     FrutLog.apiFetch("/colheitas/anual"),
     FrutLog.apiFetch("/telemetria/diaria"),
+    FrutLog.apiFetch("/telemetria/esp32-mensal"),
   ]);
-  const erros = [];
-
-  if (resultados[0].status === "fulfilled") {
-    funcionarios = resultados[0].value.usuarios || [];
-    renderizarFuncionarios();
-  } else {
-    erros.push(`Funcionarios: ${resultados[0].reason.message}`);
-    mostrarLinhasVazias("tabela-funcionarios", 7, "Falha ao carregar funcionarios.");
-  }
-
-  if (resultados[1].status === "fulfilled") {
-    sensores = resultados[1].value.sensores || [];
-    renderizarSensores();
-    renderizarGraficoLeituras();
-  } else {
-    erros.push(`Sensores: ${resultados[1].reason.message}`);
-    mostrarLinhasVazias("tabela-sensores-admin", 6, "Falha ao carregar sensores.");
-  }
-
-  if (resultados[2].status === "fulfilled") {
-    painelTecnico = resultados[2].value;
-    renderizarPainelTecnico();
-  } else {
-    erros.push(`Dados de campo: ${resultados[2].reason.message}`);
-    exibirMensagem("mensagem-dados-tecnicos", resultados[2].reason.message, "erro");
-  }
-
-  if (resultados[3].status === "fulfilled") {
-    definirColheitasAnuais(resultados[3].value.colheitas);
-  } else {
-    erros.push(`Colheitas: ${resultados[3].reason.message}`);
-  }
-  if (resultados[4].status === "fulfilled") {
-    telemetriaDiariaAdmin = resultados[4].value.leituras || [];
-    renderizarTelemetriaDiariaAdmin();
-  } else {
-    erros.push(`Telemetria diaria: ${resultados[4].reason.message}`);
-    mostrarLinhasVazias("tabela-telemetria-admin", 7, "Falha ao carregar telemetria diaria.");
-  }
-
-  renderizarGraficoColheita();
-  if (erros.length) {
-    exibirMensagem("mensagem-carregamento-admin", erros.join(" | "), "erro");
-  } else {
-    exibirMensagem("mensagem-carregamento-admin", "Dados atualizados do servidor.", "sucesso");
-  }
-
-  if (!window.sincronizacaoAdminIniciada) {
-    window.sincronizacaoAdminIniciada = true;
-    window.setInterval(atualizarDadosCampoConectados, 15000);
-  }
+  if (resultados[0].status === "fulfilled") { funcionarios = resultados[0].value.usuarios || []; renderizarFuncionarios(); }
+  if (resultados[1].status === "fulfilled") { sensores = resultados[1].value.sensores || []; renderizarSensores(); }
+  if (resultados[2].status === "fulfilled") { painelTecnico = resultados[2].value; renderizarPainelTecnico(); }
+  if (resultados[3].status === "fulfilled") { definirColheitasAnuais(resultados[3].value.colheitas); renderizarGraficoColheita(); }
+  if (resultados[4].status === "fulfilled") telemetriaMensalAdmin = resultados[4].value.mensal || [];
+  if (resultados[5].status === "fulfilled") telemetriaMensalEsp32Admin = resultados[5].value.mensal || [];
+  renderizarGraficoClimaMensalAdmin();
 }
 
 async function carregarMapaAdmin() {
@@ -744,56 +647,104 @@ async function carregarMapaAdmin() {
   renderizarMapaAdmin();
 }
 
-window.addEventListener("focus", atualizarDadosCampoConectados);
-
 async function atualizarDadosCampoConectados() {
-  const resultados = await Promise.allSettled([
+  const [painel] = await Promise.allSettled([
     FrutLog.apiFetch("/painel-tecnico"),
-    FrutLog.apiFetch("/sensores"),
-    FrutLog.apiFetch("/colheitas/anual"),
-    FrutLog.apiFetch("/telemetria/diaria"),
     carregarMapaAdmin(),
   ]);
-  const erros = [];
-
-  if (resultados[0].status === "fulfilled") {
-    painelTecnico = resultados[0].value;
+  if (painel.status === "fulfilled") {
+    painelTecnico = painel.value;
     renderizarPainelTecnico();
     renderizarMapaAdmin();
+  }
+}
+
+/* =========================================================
+   GESTÃO DE RELATÓRIOS E MODAL (COM SUPORTE A ANEXOS)
+   ========================================================= */
+
+async function carregarRelatoriosDiarios() {
+  const tabela = document.getElementById("tabela-relatorios");
+  if (!tabela) return;
+
+  try {
+    // Faz a requisição na sua API de relatórios
+    const resposta = await FrutLog.apiFetch("/relatorios");
+    const relatorios = resposta.relatorios || [];
+
+    if (!relatorios.length) {
+      tabela.innerHTML = `<tr><td colspan="5">Nenhum relatório recebido.</td></tr>`;
+      return;
+    }
+
+    tabela.innerHTML = relatorios.map((rel) => {
+      const textoCompleto = rel.texto || rel.descricao || rel.relatorio || "Sem detalhes.";
+      const textoResumido = textoCompleto.length > 35 ? textoCompleto.substring(0, 35) + "..." : textoCompleto;
+      const dataFormatada = formatarData(rel.data || rel.criado_em);
+      const tecnicoNome = rel.tecnico || rel.nome_tecnico || "Técnico";
+      const statusRel = rel.status || "Enviado";
+      const anexoUrl = rel.anexo || rel.imagem_url || "";
+
+      return `
+        <tr>
+          <td>${dataFormatada}</td>
+          <td>${escaparHtml(tecnicoNome)}</td>
+          <td>
+            <span>${escaparHtml(textoResumido)}</span>
+            <button type="button" class="btn-link-relatorio" onclick='abrirModalRelatorio("${escaparHtml(tecnicoNome)}", "${dataFormatada}", \`\${escaparHtml(textoCompleto)}\`, "${escaparHtml(anexoUrl)}")' style="background:none; border:none; color:#2e7d32; cursor:pointer; font-weight:600; text-decoration:underline; margin-left:6px;">
+              Ver completo
+            </button>
+          </td>
+          <td><span class="badge-status ${normalizarStatus(statusRel)}">${escaparHtml(statusRel)}</span></td>
+          <td>${escaparHtml(rel.acompanhamento || "Pendente")}</td>
+        </tr>
+      `;
+    }).join("");
+
+  } catch (erro) {
+    console.error("Erro ao carregar relatórios:", erro);
+    tabela.innerHTML = `<tr><td colspan="5">Erro ao carregar relatórios do servidor.</td></tr>`;
+  }
+}
+
+function abrirModalRelatorio(tecnico, data, textoCompleto, urlAnexo) {
+  const modal = document.getElementById('modal-relatorio');
+  document.getElementById('modal-tecnico').innerText = tecnico;
+  document.getElementById('modal-data').innerText = data;
+  document.getElementById('modal-texto').innerText = textoCompleto;
+
+  const containerAnexos = document.getElementById('modal-anexos-container');
+  const previewMidia = document.getElementById('modal-midia-preview');
+
+  previewMidia.innerHTML = '';
+
+  // Verifica se o técnico enviou imagem ou documento
+  if (urlAnexo && urlAnexo.trim() !== '') {
+    containerAnexos.style.display = 'block';
+
+    // Detecta se é imagem pelas extensões comuns
+    if (urlAnexo.match(/\.(jpeg|jpg|gif|png|webp)\$/i)) {
+      previewMidia.innerHTML = `
+        <a href="${urlAnexo}" target="_blank" title="Clique para ampliar a imagem">
+          <img src="${urlAnexo}" alt="Evidência de campo" class="img-relatorio-preview" style="max-width: 100%; max-height: 220px; border-radius: 6px; margin-top: 5px; cursor: pointer; border: 1px solid #ddd; object-fit: contain;">
+        </a>
+      `;
+    } else {
+      // Se for PDF ou documento genérico
+      previewMidia.innerHTML = `
+        <a href="${urlAnexo}" target="_blank" class="link-documento-anexo">
+          <i class="fa-solid fa-paperclip"></i> Abrir documento anexo
+        </a>
+      `;
+    }
   } else {
-    erros.push(`Dados de campo: ${resultados[0].reason.message}`);
+    containerAnexos.style.display = 'none';
   }
 
-  if (resultados[1].status === "fulfilled") {
-    sensores = resultados[1].value.sensores || [];
-    renderizarSensores();
-    renderizarGraficoLeituras();
-  } else {
-    erros.push(`Sensores: ${resultados[1].reason.message}`);
-  }
+  if (modal) modal.style.display = 'flex';
+}
 
-  if (resultados[2].status === "fulfilled") {
-    definirColheitasAnuais(resultados[2].value.colheitas);
-    renderizarGraficoColheita();
-  } else {
-    erros.push(`Colheitas: ${resultados[2].reason.message}`);
-  }
-
-  if (resultados[3].status === "fulfilled") {
-    telemetriaDiariaAdmin = resultados[3].value.leituras || [];
-    renderizarTelemetriaDiariaAdmin();
-  } else {
-    erros.push(`Telemetria diaria: ${resultados[3].reason.message}`);
-  }
-
-  if (resultados[4].status === "rejected") {
-    erros.push(`Geometrias: ${resultados[4].reason.message}`);
-  }
-
-  if (erros.length) {
-    console.error("Falha ao sincronizar dados operacionais:", erros.join(" | "));
-    exibirMensagem("mensagem-carregamento-admin", erros.join(" | "), "erro");
-  } else {
-    exibirMensagem("mensagem-carregamento-admin", "Dados atualizados do servidor.", "sucesso");
-  }
+function fecharModalRelatorio() {
+  const modal = document.getElementById('modal-relatorio');
+  if (modal) modal.style.display = 'none';
 }

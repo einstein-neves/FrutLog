@@ -46,6 +46,7 @@
       <p>Acompanhamento dos produtos em desenvolvimento nos talhões.</p>
     </section>
 
+    <!-- Mapa e detalhes do talhao selecionado. -->
     <section id="monitoramento" class="secao-mapa-detalhes" aria-label="Monitoramento dos talhões">
       <div class="cartao cartao-mapa-wrapper">
         <div class="mapa-header">
@@ -57,7 +58,8 @@
           <span class="status-mapa">Monitoramento Ativo</span>
         </div>
 
-        <p class="texto-ajuda">Edição dos limites: clique em Editar Talhões para desenhar, mover pontos e ajustar a área.</p>
+        <p class="texto-ajuda">Edição dos limites: clique em Editar Talhões para desenhar, mover pontos e ajustar a
+          área.</p>
         <div class="barra-edicao-talhao" aria-label="Ferramentas de edição de talhões">
           <button class="btn-filtro" type="button" id="btn-editar-talhoes">Editar Talhões</button>
           <button class="btn-filtro" type="button" id="btn-recarregar-mapa">Recarregar mapa</button>
@@ -148,12 +150,16 @@
             <span class="valor" id="talhao-inspecao-recomendacao">--</span>
           </div>
         </div>
+        <div class="area-botao-cadastro">
+          <button type="button" id="btn-encerrar-ciclo-talhao" class="btn-secundario" disabled>Encerrar ciclo deste talh&atilde;o</button>
+        </div>
+        <p class="mensagem-feedback" id="mensagem-encerramento-ciclo" aria-live="polite"></p>
       </div>
     </section>
 
 
-<!-- EDIÇÃO -->
- 
+    <!-- EDIÇÃO -->
+
     <div id="telemetria">
       <section class="cartao-full-diario">
         <div class="titulo-do-cartao"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Telemetria Diária</div>
@@ -171,7 +177,7 @@
           </table>
         </div>
       </section>
-      
+
       <section class="cartao thingspeak-dashboard" data-thingspeak-panel aria-labelledby="eng-thingspeak-heading">
         <div class="titulo-cartao" id="eng-thingspeak-heading">ThingSpeak / ESP32 — clima e telemetria</div>
         <p class="mensagem-feedback" data-thingspeak-status aria-live="polite">Carregando canal ThingSpeak...</p>
@@ -186,7 +192,7 @@
                 scrolling="no"></iframe></div>
           </article>
 
-           <article>
+          <article>
             <div class="container-iframe" style="height:300px;"><iframe src="http://localhost:1880/dashboard/umidade"
                 title="Grafico de umidade via Node-RED" scrolling="no"></iframe></div>
           </article>
@@ -205,65 +211,69 @@
         
       <!--Alteracao grafico Fim - HILCCER ROCHA DE ARAUJO MELO.-->
 
-        <section class="thingspeak-chart-container" aria-label="Gráfico de histórico recente das métricas do ThingSpeak">
+        <section class="thingspeak-chart-container"
+          aria-label="Gráfico de histórico recente das métricas do ThingSpeak">
           <h3 class="thingspeak-chart-title">Histórico recente das métricas do ThingSpeak</h3>
-          <p class="thingspeak-chart-description">Visualize as últimas leituras de temperatura, umidade do ar, umidade do solo e chuva.</p>
-        <div class="thingspeak-chart"><canvas aria-label="Histórico recente das métricas do ThingSpeak"></canvas></div>
-        <div class="thingspeak-feed-scroll">
-          <table class="tabela-dados">
-            <thead>
-              <tr>
-                <th>Data/hora</th>
-                <th>Temperatura</th>
-                <th>Umidade do ar</th>
-                <th>Umidade do solo</th>
-                <th>Chuva</th>
-              </tr>
-            </thead>
-            <tbody data-thingspeak-rows>
-              <tr>
-                <td colspan="5">Carregando...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+          <p class="thingspeak-chart-description">Visualize as últimas leituras de temperatura, umidade do ar, umidade
+            do solo e chuva.</p>
+          <div class="thingspeak-chart"><canvas aria-label="Histórico recente das métricas do ThingSpeak"></canvas>
+          </div>
+          <div class="thingspeak-feed-scroll">
+            <table class="tabela-dados">
+              <thead>
+                <tr>
+                  <th>Data/hora</th>
+                  <th>Temperatura</th>
+                  <th>Umidade do ar</th>
+                  <th>Umidade do solo</th>
+                  <th>Chuva</th>
+                </tr>
+              </thead>
+              <tbody data-thingspeak-rows>
+                <tr>
+                  <td colspan="5">Carregando...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
     </div>
 
     <div id="historico" hidden>
-    <section class="cartao">
-      <div class="titulo-cartao"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i> Consolidado Mensal</div>
-      <div class="tabela-responsiva">
-        <table class="tabela-dados">
-          <thead>
-            <tr>
-              <th>Temperatura (C)</th>
-              <th>Umidade Ar (%)</th>
-              <th>Umidade Solo (%)</th>
-              <th>Chuva (mm)</th>
-              <th>Previsão Colheita</th>
-              <th>Qtd. Colhida</th>
-            </tr>
-          </thead>
-          <tbody id="tabela-talhao-mensal"></tbody>
-        </table>
-      </div>
-    </section>
+      <section class="cartao">
+        <div class="titulo-cartao"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i> Consolidado Mensal
+        </div>
+        <div class="tabela-responsiva">
+          <table class="tabela-dados">
+            <thead>
+              <tr>
+                <th>Temperatura (C)</th>
+                <th>Umidade Ar (%)</th>
+                <th>Umidade Solo (%)</th>
+                <th>Chuva (mm)</th>
+                <th>Previsão Colheita</th>
+                <th>Qtd. Colhida</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-talhao-mensal"></tbody>
+          </table>
+        </div>
+      </section>
 
-    <section class="cartao">
-      <div class="titulo-cartao">
-        <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
-        Clima Mensal
-      </div>
+      <section class="cartao">
+        <div class="titulo-cartao">
+          <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+          Clima Mensal
+        </div>
 
-      <p class="texto-ajuda">
-        Médias mensais das leituras dos sensores.
-      </p>
+        <p class="texto-ajuda">
+          Médias mensais das leituras dos sensores.
+        </p>
 
-      <div class="grafico-clima-mensal">
-        <canvas id="grafico-clima-mensal-engenheiro"></canvas>
-      </div>
-    </section>
+        <div class="grafico-clima-mensal">
+          <canvas id="grafico-clima-mensal-engenheiro"></canvas>
+        </div>
+      </section>
 
     </div>
 
@@ -317,6 +327,7 @@
       </div>
     </section>
 
+    <!-- Cadastro de um novo ciclo de cultivo para um talhao. -->
     <section id="cadastro-plantio" class="cartao card-cadastro-produto">
       <div class="cabecalho-cadastro">
         <span class="badge-status">Planejamento Agrícola</span>
@@ -372,6 +383,11 @@
               <option>Nenhum sensor ativo cadastrado para este talhão</option>
             </select>
           </div>
+        </div>
+
+        <div class="resumo-ciclo-atual" id="resumo-ciclo-atual" aria-live="polite">
+          <strong>Ciclo atual do talhão selecionado</strong>
+          <p id="dados-ciclo-atual">Carregando os dados do talhão...</p>
         </div>
 
         <p class="mensagem-feedback" id="mensagem-plantio" aria-live="polite"></p>

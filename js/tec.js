@@ -266,7 +266,7 @@ async function carregarPainelTecnico() {
         temperaturaMaxima: feature.properties.parametros?.temperaturaMaxima ?? null,
       },
     };
-    return { ...feature, properties: props };
+    return FrutLogTalhoes.aplicarMonitoramento({ ...feature, properties: props });
   });
 
   historicoInspecoes = painel.inspecoes || [];

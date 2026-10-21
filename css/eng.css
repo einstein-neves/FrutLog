@@ -16,6 +16,25 @@
   grid-column: span 1;
 }
 
+.resumo-ciclo-atual {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background: #f8faf7;
+  color: var(--cor-texto-escuro);
+}
+
+.resumo-ciclo-atual strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.resumo-ciclo-atual p {
+  margin: 0;
+  color: var(--cor-texto-suave);
+}
+
 #telemetria .fa-bolt,
 #historico .fa-calendar-days {
   color: var(--cor-destaque);

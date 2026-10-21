@@ -26,6 +26,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   let opcoes;
+  let ciclosAtivos = [];
+  try {
+    const painel = await FrutLog.apiFetch("/painel-tecnico");
+    ciclosAtivos = painel.plantios || [];
+  } catch (erro) {
+    // O formulario de colheita continua disponivel mesmo se o resumo nao carregar.
+  }
   try {
     opcoes = await optionsTalhoes();
   } catch (erro) {
@@ -40,6 +47,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     const selectTalhao = formulario.elements.talhao;
     selectTalhao.innerHTML = '<option value="">Selecione o talhão</option>' + opcoes;
 
+    const resumoCiclo = formulario.querySelector("[data-resumo-ciclo] p");
+    let cicloSelecionado = null;
+    const atualizarResumoCiclo = () => {
+      cicloSelecionado = ciclosAtivos.find((item) => item.talhao === selectTalhao.value) || null;
+      if (resumoCiclo) {
+        resumoCiclo.textContent = cicloSelecionado
+          ? `${[cicloSelecionado.produto, cicloSelecionado.variedade].filter(Boolean).join(" / ") || "Produto sem identificação"} · plantado em ${cicloSelecionado.plantado_em || "--"} · previsão de colheita ${cicloSelecionado.previsao_colheita || "--"}.`
+          : selectTalhao.value
+            ? "Não há ciclo ativo neste talhão."
+            : "Selecione um talhão para consultar o ciclo ativo.";
+      }
+      return cicloSelecionado;
+    };
+    selectTalhao.addEventListener("change", atualizarResumoCiclo);
+    atualizarResumoCiclo();
+
     formulario.addEventListener("submit", async (evento) => {
       evento.preventDefault();
       const botao = formulario.querySelector('[type="submit"]');
@@ -52,11 +75,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
         exibirMensagem(
           formulario,
-          `Colheita registrada: ${resposta.colheita.quantidade} ${resposta.colheita.unidade} em ${resposta.colheita.ano}.`,
+          `Colheita registrada: ${resposta.colheita.quantidade} ${resposta.colheita.unidade} em ${resposta.colheita.ano}.${resposta.cicloEncerrado ? " Ciclo encerrado; a Engenharia ja pode cadastrar o proximo produto neste talhao." : ""}`,
           "sucesso"
         );
         formulario.reset();
         window.dispatchEvent(new CustomEvent("frutlog:colheitas-atualizadas"));
+        if (resposta.cicloEncerrado) {
+          FrutLog.notificarAtualizacaoTalhoes();
+          window.dispatchEvent(new Event("frutlog:talhoes-atualizados"));
+        }
       } catch (erro) {
         exibirMensagem(formulario, erro.message, "erro");
       } finally {

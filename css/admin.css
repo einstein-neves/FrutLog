@@ -80,6 +80,25 @@
   font-size: 0.78rem;
 }
 
+.resumo-ciclo-atual {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background: #f8faf7;
+  color: var(--cor-texto-escuro);
+}
+
+.resumo-ciclo-atual strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.resumo-ciclo-atual p {
+  margin: 0;
+  color: var(--cor-texto-suave);
+}
+
 /* Graficos, filtros e acoes da equipe. */
 .admin-graficos {
   display: grid;
@@ -395,6 +414,123 @@
   white-space: nowrap;
   clip-path: inset(50%);
 }
+
+
+
+/* estilo da aba para relatorios do tecnico */
+
+
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+.modal-conteudo {
+  background: #fff;
+  padding: 25px;
+  border-radius: 8px;
+  width: 600px;
+  max-width: 90%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.modal-conteudo h3 {
+  margin-bottom: 15px;
+  color: #2e4a38;
+  font-size: 18px;
+}
+
+.modal-conteudo p {
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.modal-divisor {
+  margin: 15px 0;
+  border: 0;
+  border-top: 1px solid #eee;
+}
+
+.modal-texto-container {
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 6px;
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid #eee;
+}
+
+.modal-texto-container p {
+  white-space: pre-wrap;
+  color: #333;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.modal-acoes {
+  text-align: right;
+  margin-top: 20px;
+}
+
+.btn-fechar-modal {
+  background: #2e4a38;
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.btn-fechar-modal:hover {
+  background: #1f3326;
+}
+.modal-anexos {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px dashed #ccc;
+}
+
+.modal-anexos p {
+  font-size: 14px;
+  color: #2e4a38;
+  margin-bottom: 5px;
+}
+
+.img-relatorio-preview {
+  display: block;
+  transition: opacity 0.2s;
+}
+
+.img-relatorio-preview:hover {
+  opacity: 0.85;
+}
+
+.link-documento-anexo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f1f5f3;
+  border-radius: 6px;
+  border: 1px solid #d1ded8;
+}
+
+
+
+
+
+
+
+
 
 @media (max-width: 900px) {
   .admin-graficos {

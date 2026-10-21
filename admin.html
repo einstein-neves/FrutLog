@@ -31,7 +31,7 @@
     <a href="#mapa-fazenda" class="nav-link"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> Mapa</a>
     <a href="#graficos" class="nav-link"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Gráficos</a>
   </nav>
-  
+
 <div class="sidebar-acoes">
     <button id="btn-logout" class="btn-logout" type="button"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Sair</button>
     </div>
@@ -232,25 +232,31 @@
           <tbody id="tabela-alertas-admin"></tbody>
         </table>
       </div>
-    </article>     
+    </article>
   </div>
 </section>
 
     <!-- SEÇÃO TELEMETRIA -->
-  
+
 <section id="telemetria-admin" class="cartao thingspeak-dashboard" data-thingspeak-panel aria-labelledby="admin-thingspeak-heading">
     <div class="titulo-cartao" id="admin-thingspeak-heading">ThingSpeak / ESP32 — clima e telemetria</div>
     <p class="mensagem-feedback" data-thingspeak-status aria-live="polite">Carregando canal ThingSpeak...</p>
     <div class="thingspeak-summary" data-thingspeak-summary></div>
-    
+
     <div class="thingspeak-embeds" aria-label="Graficos do ESP32 via Node-RED">
       <article>
         <div class="container-iframe" style="height:300px;"><iframe src="http://localhost:1880/dashboard/temperatura" title="Grafico de temperatura via Node-RED" scrolling="no">
         </iframe>
         </div>
       </article>
-      
+
       <article><div class="container-iframe" style="height:300px;"><iframe src="http://localhost:1880/dashboard/umidade" title="Grafico de umidade via Node-RED" scrolling="no"></iframe></div></article>
+
+      <article><div class="container-iframe" style="height:300px;"><iframe src="" title="Grafico de umidade via Node-RED" scrolling="no"></iframe></div></article>
+
+
+
+      <article><div class="container-iframe" style="height:300px;"><iframe src="" title="Grafico de umidade via Node-RED" scrolling="no"></iframe></div></article>
     </div>
 
 <div class="thingspeak-chart"><canvas aria-label="Histórico recente das métricas do ThingSpeak"></canvas></div>
@@ -271,6 +277,7 @@
 </section>
 
 <!-- SEÇÃO COLHEITAS -->
+<!-- Registro das quantidades colhidas nos talhoes. -->
 <section id="colheitas-admin" class="cartao">
     <div class="titulo-cartao"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> Registrar colheita</div>
     <form data-form-colheita>
@@ -288,45 +295,117 @@
         </div>
       </div>
 
+      <div class="resumo-ciclo-atual" data-resumo-ciclo aria-live="polite">
+        <strong>Ciclo atual do talhão selecionado</strong>
+        <p>Carregando os dados do talhão...</p>
+      </div>
       <p class="mensagem-feedback" data-mensagem-colheita aria-live="polite"></p>
-      <div class="area-botao-cadastro"><button type="submit" class="btn-primario">Registrar colheita</button></div>
+      <div class="area-botao-cadastro">
+        <button type="submit" class="btn-primario">Registrar colheita</button>
+      </div>
     </form>
 </section>
 
+
+
+
+
 <!-- SEÇÃO RELATÓRIOS -->
-<section id="relatorios-diarios" class="cartao">
-  <div class="titulo-cartao"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Relatórios diários recebidos</div>
+<!-- SEÇÃO RELATÓRIOS -->
+    <section id="relatorios-diarios" class="cartao">
+      <div class="titulo-cartao">
+        <i class="fa-solid fa-file-lines" aria-hidden="true"></i> Relatórios diários recebidos
+      </div>
 
-  <div class="filtros-relatorios">
-    <label for="filtro-relatorio-texto">Técnico ou texto</label>
-    <input id="filtro-relatorio-texto" class="campo-formulario" type="search" placeholder="Buscar relatório">
-    <label for="filtro-relatorio-data">Data</label>
-    <input id="filtro-relatorio-data" class="campo-formulario" type="date">
-    <label for="filtro-relatorio-status">Status</label>
-    <select id="filtro-relatorio-status" class="campo-formulario">
-      <option value="todos">Todos</option>
-      <option value="enviado">Enviado</option>
-      <option value="em_analise">Em analise</option>
-      <option value="concluido">Concluido</option>
-    </select>
+      <div class="filtros-relatorios">
+        <label for="filtro-relatorio-texto">Técnico ou texto</label>
+        <input id="filtro-relatorio-texto" class="campo-formulario" type="search" placeholder="Buscar relatório">
+
+        <label for="filtro-relatorio-data">Data</label>
+        <input id="filtro-relatorio-data" class="campo-formulario" type="date">
+
+        <label for="filtro-relatorio-status">Status</label>
+        <select id="filtro-relatorio-status" class="campo-formulario">
+          <option value="todos">Todos</option>
+          <option value="enviado">Enviado</option>
+          <option value="em_analise">Em analise</option>
+          <option value="concluido">Concluido</option>
+        </select>
+      </div>
+
+      <p id="mensagem-relatorios" class="mensagem-feedback" aria-live="polite"></p>
+
+      <div class="tabela-responsiva">
+        <table class="tabela-dados">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Técnico</th>
+              <th>Relatório de campo</th>
+              <th>Status</th>
+              <th>Acompanhamento</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-relatorios">
+            <!-- As linhas da tabela são injetadas via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  <!-- MODAL DE VISUALIZAÇÃO COMPLETA DO RELATÓRIO (COM SUPORTE A ANEXOS) -->
+  <div id="modal-relatorio" class="modal-overlay">
+    <div class="modal-conteudo">
+      <h3><i class="fa-solid fa-file-lines"></i> Detalhes do Relatório de Campo</h3>
+
+      <p><strong>Técnico:</strong> <span id="modal-tecnico"></span></p>
+      <p><strong>Data/Hora:</strong> <span id="modal-data"></span></p>
+
+      <hr class="modal-divisor">
+
+      <div class="modal-texto-container">
+        <p id="modal-texto"></p>
+      </div>
+
+      <!-- Bloco dinâmico para imagens ou documentos anexados pelo técnico -->
+      <div id="modal-anexos-container" class="modal-anexos" style="display: none;">
+        <p><strong>Anexo de Campo:</strong></p>
+        <div id="modal-midia-preview"></div>
+      </div>
+
+      <div class="modal-acoes">
+        <button type="button" class="btn-fechar-modal" onclick="fecharModalRelatorio()">Fechar</button>
+      </div>
+    </div>
   </div>
 
-  <p id="mensagem-relatorios" class="mensagem-feedback" aria-live="polite"></p>
-  <div class="tabela-responsiva">
-    <table class="tabela-dados">
-      <thead>
-        <tr>
-          <th>Data</th>
-          <th>Técnico</th>
-          <th>Relatório de campo</th>
-          <th>Status</th>
-          <th>Acompanhamento</th>
-        </tr>
-      </thead>
-      <tbody id="tabela-relatorios"></tbody>
-    </table>
-  </div>
-</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   <!-- SEÇÃO MAPA DA FAZENDA -->
   <section id="mapa-fazenda" class="cartao cartao-mapa-wrapper">
@@ -342,7 +421,6 @@
       <div class="cartao cartao-mapa-wrapper" style="box-shadow: none; border: none; padding: 0;">
         <div class="mapa-header">
           <div>
-            <h2>Mapa dos Talhões</h2>
             <p>Selecione um talhão para consultar a situação em campo.</p>
           </div>
           <div class="botoes-do-talhao" id="botoes-talhao" aria-label="Seleção de talhão"></div>
@@ -422,7 +500,7 @@
     </section>
   </main>
 
-  
+
   <!-- CHATBOT  DAvi -->
   <section id="painel-chatbot" class="painel-chatbot" aria-label="Assistente FrutLog" hidden>
     <header class="cabecalho-chatbot">
@@ -452,7 +530,6 @@
   <script src="js/colheitas.js"></script>
   <script src="js/chatbot.js"></script>
   <script src="js/admin.js"></script>
-  <script src="js/editor-mapa-admin.js"></script>
   <script src="js/pulse-frutlog.js"></script>
   <script src="js/vendor/flatpickr.min.js"></script>
   <script src="js/vendor/flatpickr-pt.js"></script>

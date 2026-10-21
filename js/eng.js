@@ -13,6 +13,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const botoesTalhao = document.getElementById("botoes-talhao");
   const formularioPlantio = document.getElementById("formulario-plantio");
   const mensagemPlantio = document.getElementById("mensagem-plantio");
+  const btnEncerrarCiclo = document.getElementById("btn-encerrar-ciclo-talhao");
+  const mensagemEncerramentoCiclo = document.getElementById("mensagem-encerramento-ciclo");
   const mensagemEdicao = document.getElementById("mensagem-edicao-talhao");
   const filtrosGrafico = document.querySelectorAll(".btn-filtro[data-unidade]");
   const btnEditar = document.getElementById("btn-editar-talhoes");
@@ -43,6 +45,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   let sensoresDoPainel = [];
   let telemetriaMensalEngenheiro = [];
   let telemetriaMensalEsp32 = [];
+  let plantiosAtivos = [];
 
   let colheitas = [];
 
@@ -67,6 +70,23 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function obterFeature(codigo) {
     return talhoes.find((feature) => feature.properties.codigo === codigo);
+  }
+
+  function atualizarResumoCicloAtual() {
+    const codigo = document.getElementById("talhao")?.value;
+    const saida = document.getElementById("dados-ciclo-atual");
+    const ciclo = plantiosAtivos.find((item) => item.talhao === codigo);
+    if (!saida) return ciclo || null;
+
+    if (!codigo) {
+      saida.textContent = "Selecione um talhão para consultar o ciclo ativo.";
+    } else if (ciclo) {
+      const produto = [ciclo.produto, ciclo.variedade].filter(Boolean).join(" / ") || "Produto sem identificação";
+      saida.textContent = `${produto} · plantado em ${formatarData(ciclo.plantado_em)} · previsão de colheita ${formatarData(ciclo.previsao_colheita)}.`;
+    } else {
+      saida.textContent = "Não há ciclo ativo neste talhão. Você já pode cadastrar um produto.";
+    }
+    return ciclo || null;
   }
 
   function obterPontos(feature) {
@@ -195,6 +215,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     select.innerHTML = `<option value="">${opcoes ? "Selecione o talhão" : "Nenhum talhão carregado"}</option>${opcoes}`;
     if (talhoes.some((feature) => feature.properties.codigo === atual)) select.value = atual;
     atualizarSensoresDoTalhao();
+    atualizarResumoCicloAtual();
   }
 
   function atualizarSensoresDoTalhao() {
@@ -263,6 +284,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     preencherTexto("talhao-inspecao-tecnico", props.apontamentoTecnico?.tecnico || "--");
     preencherTexto("talhao-inspecao-problema", props.apontamentoTecnico?.problema || "--");
     preencherTexto("talhao-inspecao-recomendacao", props.apontamentoTecnico?.recomendacao || "--");
+    const cicloAtivo = plantiosAtivos.find((item) => item.talhao === codigo);
+    if (btnEncerrarCiclo) btnEncerrarCiclo.disabled = !cicloAtivo;
 
     const badge = document.getElementById("talhao-status");
     if (badge) {
@@ -786,6 +809,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     exibirMensagemEdicao("Alteracoes não salvas foram descartadas.");
   }
 
+  btnEncerrarCiclo?.addEventListener("click", async (evento) => {
+    const botao = evento.currentTarget;
+    const codigo = talhaoSelecionado;
+    const ciclo = plantiosAtivos.find((item) => item.talhao === codigo);
+    if (!codigo || !ciclo) return;
+    if (!window.confirm(`Encerrar o ciclo atual do talh\u00e3o ${codigo}? Confira se todas as colheitas foram registradas.`)) return;
+    botao.disabled = true;
+    try {
+      await FrutLog.apiFetch("/plantios/encerrar-ciclo", {
+        method: "POST",
+        body: JSON.stringify({ talhao: codigo, cicloId: ciclo.id }),
+      });
+      if (mensagemEncerramentoCiclo) {
+        mensagemEncerramentoCiclo.textContent = `Ciclo encerrado. Agora voc\u00ea pode cadastrar outro produto para o talh\u00e3o ${codigo}.`;
+        mensagemEncerramentoCiclo.className = "mensagem-feedback sucesso";
+      }
+      await carregarDadosPainel();
+      FrutLog.notificarAtualizacaoTalhoes();
+    } catch (erro) {
+      if (mensagemEncerramentoCiclo) {
+        mensagemEncerramentoCiclo.textContent = erro.message;
+        mensagemEncerramentoCiclo.className = "mensagem-feedback erro";
+      }
+    } finally {
+      botao.disabled = false;
+    }
+  });
   async function registrarPlantio(evento) {
     evento.preventDefault();
 
@@ -833,6 +883,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     ]);
     const erros = [];
     const painel = resultadoPainel.status === "fulfilled" ? resultadoPainel.value : {};
+    plantiosAtivos = painel.plantios || [];
+    atualizarResumoCicloAtual();
     if (resultadoPainel.status === "rejected") {
       erros.push(`Dados do painel: ${resultadoPainel.reason?.message || resultadoPainel.reason}`);
     }
@@ -906,7 +958,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           },
           monitoramento: {
             temperaturaAtual: temperatura?.valor ?? null,
-            temperaturaMaxima: null,
+            temperaturaMaxima: feature.properties.parametros?.temperaturaMaxima ?? null,
           },
         },
       };
@@ -1059,7 +1111,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
-  document.getElementById("talhao")?.addEventListener("change", atualizarSensoresDoTalhao);
+  document.getElementById("talhao")?.addEventListener("change", () => {
+    atualizarSensoresDoTalhao();
+    atualizarResumoCicloAtual();
+  });
   formularioPlantio?.addEventListener("submit", registrarPlantio);
   window.addEventListener("frutlog:colheitas-atualizadas", async () => {
     try {

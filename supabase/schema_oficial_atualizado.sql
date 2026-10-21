@@ -126,6 +126,10 @@ create table if not exists public.talhao (
   constraint talhao_codigo_unico_por_fazenda unique (fazenda_id, codigo)
 );
 
+alter table public.talhao
+  add column if not exists temperatura_maxima numeric(5,2)
+  check (temperatura_maxima is null or (temperatura_maxima >= 0 and temperatura_maxima <= 100));
+
 -- 4.6 Ciclo de Cultura (Plantios)
 create table if not exists public.ciclo_cultura (
   id uuid primary key default gen_random_uuid(),
@@ -639,6 +643,9 @@ create index if not exists sensor_dispositivo_metrica_idx on public.sensor (disp
 create index if not exists regra_alerta_org_metrica_idx on public.regra_alerta (organizacao_id, codigo_metrica) where habilitado;
 create index if not exists alerta_sensor_status_idx on public.alerta (sensor_id, status, aberto_em desc);
 create index if not exists ciclo_cultura_talhao_status_idx on public.ciclo_cultura (talhao_id, status, plantado_em desc);
+create unique index if not exists ciclo_cultura_um_ativo_por_talhao_idx
+  on public.ciclo_cultura (talhao_id)
+  where status = 'ativo';
 create index if not exists inspecao_talhao_data_idx on public.inspecao (talhao_id, inspecionado_em desc);
 create index if not exists ocorrencia_talhao_idx on public.ocorrencia (talhao_id, registrado_em desc);
 create index if not exists problema_sensor_idx on public.problema_sensor (talhao_id, data desc);

@@ -70,6 +70,7 @@ const FrutLogTalhoes = (() => {
   }
 
   function normalizarNumero(valor) {
+    if (valor === null || valor === undefined || String(valor).trim() === "") return null;
     const numero = Number(String(valor ?? "").replace(",", "."));
     return Number.isNaN(numero) ? null : numero;
   }
@@ -78,25 +79,34 @@ const FrutLogTalhoes = (() => {
     const temperaturaAtual = normalizarNumero(feature?.properties?.diaria?.temperatura);
     const temperaturaMaxima = normalizarNumero(feature?.properties?.parametros?.temperaturaMaxima);
 
-    if (temperaturaAtual === null || temperaturaMaxima === null) {
+    if (temperaturaMaxima === null) {
       return {
-        status: feature?.properties?.status || "Sem leitura",
+        status: "Sem leitura",
+        prioridade: "Configure a temperatura maxima para habilitar o alerta termico.",
+        leituraTemperatura: temperaturaAtual,
+        limiteTemperatura: null,
+      };
+    }
+
+    if (temperaturaAtual === null) {
+      return {
+        status: "Sem leitura",
         prioridade: feature?.properties?.prioridade || "Sem leitura suficiente para alerta automático.",
         leituraTemperatura: temperaturaAtual,
         limiteTemperatura: temperaturaMaxima,
       };
     }
 
-    if (temperaturaAtual > temperaturaMaxima) {
+    if (temperaturaAtual >= temperaturaMaxima) {
       return {
         status: "Critico",
-        prioridade: `Temperatura ${temperaturaAtual} C acima do limite de ${temperaturaMaxima} C.`,
+        prioridade: `Temperatura ${temperaturaAtual} C atingiu ou ultrapassou o limite de ${temperaturaMaxima} C.`,
         leituraTemperatura: temperaturaAtual,
         limiteTemperatura: temperaturaMaxima,
       };
     }
 
-    if (temperaturaAtual >= temperaturaMaxima - 1) {
+    if (temperaturaAtual >= temperaturaMaxima - 3) {
       return {
         status: "Atencao",
         prioridade: `Temperatura ${temperaturaAtual} C proxima do limite de ${temperaturaMaxima} C.`,
@@ -106,7 +116,7 @@ const FrutLogTalhoes = (() => {
     }
 
     return {
-      status: "Sem leitura",
+      status: "Normal",
       prioridade: `Temperatura ${temperaturaAtual} C dentro do limite de ${temperaturaMaxima} C.`,
       leituraTemperatura: temperaturaAtual,
       limiteTemperatura: temperaturaMaxima,
@@ -203,6 +213,12 @@ const FrutLogTalhoes = (() => {
           nome: registro.nome || local?.properties?.nome || codigo,
           area_hectares: Number.isFinite(area) ? area : null,
           area: Number.isFinite(area) ? `${area} hectares` : local?.properties?.area || "--",
+          parametros: {
+            ...(local?.properties?.parametros || {}),
+            temperaturaMaxima: registro.temperatura_maxima === null || registro.temperatura_maxima === undefined
+              ? local?.properties?.parametros?.temperaturaMaxima ?? null
+              : Number(registro.temperatura_maxima),
+          },
           geometriaPendente,
         },
         geometry: geometria,
