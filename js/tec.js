@@ -643,7 +643,7 @@ function renderizarMapa() {
   });
 }
 
-const ROTULOS_TIPO_REGISTRO = { inspecao: "Inspeção", ocorrencia: "Ocorrência", sensor: "Problema em sensor" };
+const ROTULOS_TIPO_REGISTRO = { inspecao: "Inspeção", ocorrencia: "Ocorrência" };
 
 function carregarHistoricoRegistros() {
   const tabela = document.getElementById("tabela-registros-campo");
@@ -660,10 +660,7 @@ function carregarHistoricoRegistros() {
       tipo: "ocorrencia", data: item.data, talhao: item.talhao, sensor: null,
       detalhe: item.tipo || item.problema, observacao: item.observacao,
     })),
-    ...historicoProblemasSensores.map((item) => ({
-      tipo: "sensor", data: item.data, talhao: item.talhao, sensor: item.sensor,
-      detalhe: item.problema, observacao: item.observacao,
-    })),
+
   ]
     .filter((item) => !filtro || item.tipo === filtro)
     .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
@@ -1058,7 +1055,7 @@ function montarRelatorioAutomatico(dia) {
   const doDia = (itens) => itens.filter((item) => String(item.data || "").slice(0, 10) === dia);
   const inspecoes = doDia(historicoInspecoes);
   const ocorrencias = doDia(historicoOcorrencias);
-  const problemas = doDia(historicoProblemasSensores);
+
   const telemetria = telemetriaDiaria.filter((item) => String(item.dia).slice(0, 10) === dia);
   const hoje = dia === dataLocalISO();
   const tecnico = FrutLog.obterSessao?.()?.nome;
@@ -1088,15 +1085,9 @@ function montarRelatorioAutomatico(dia) {
     });
   } else linhas.push("- Nenhuma ocorrência registrada neste dia.");
 
-  linhas.push("", `3. PROBLEMAS EM SENSORES (${problemas.length})`);
-  if (problemas.length) {
-    problemas.forEach((item) => {
-      const obs = util(item.observacao);
-      linhas.push(`- Talhão ${item.talhao}: sensor ${item.sensor || "não cadastrado"} — ${item.problema}${obs ? ` (${obs})` : ""}.`);
-    });
-  } else linhas.push("- Nenhum problema de sensor registrado neste dia.");
 
-  linhas.push("", "4. TELEMETRIA DO DIA (médias por talhão)");
+
+  linhas.push("", "3. TELEMETRIA DO DIA (médias por talhão)");
   const talhoesComTelemetria = [...new Set(telemetria.map((item) => item.talhao).filter(Boolean))].sort();
   if (talhoesComTelemetria.length) {
     talhoesComTelemetria.forEach((codigo) => {
@@ -1113,7 +1104,7 @@ function montarRelatorioAutomatico(dia) {
   const recomendacoes = new Set();
   if (hoje) {
     const fora = talhoes.filter((feature) => feature.properties.status !== "Normal");
-    linhas.push("", "5. SITUAÇÃO ATUAL DOS TALHÕES");
+    linhas.push("", "4. SITUAÇÃO ATUAL DOS TALHÕES");
     if (fora.length) {
       fora.forEach((feature) => {
         const props = feature.properties;
@@ -1124,16 +1115,16 @@ function montarRelatorioAutomatico(dia) {
     else linhas.push("- Nenhum talhão carregado.");
   }
   inspecoes.filter((item) => item.situacao === "Critico").forEach((item) => recomendacoes.add(`Priorizar o acompanhamento do talhão ${item.talhao} (inspeção crítica).`));
-  problemas.forEach((item) => recomendacoes.add(`Verificar ou reparar o sensor ${item.sensor || "ausente"} no talhão ${item.talhao}.`));
+
   ocorrencias.forEach((item) => recomendacoes.add(`Acompanhar a ocorrência "${item.tipo || item.problema}" no talhão ${item.talhao}.`));
 
-  linhas.push("", `${hoje ? 6 : 5}. RECOMENDAÇÕES`);
+  linhas.push("", `${hoje ? 5 : 4}. RECOMENDAÇÕES`);
   if (recomendacoes.size) [...recomendacoes].forEach((texto) => linhas.push(`- ${texto}`));
   else linhas.push("- Manter a rotina de acompanhamento dos talhões.");
 
   let texto = linhas.join("\n");
   if (texto.length > 6000) texto = `${texto.slice(0, 5940).trimEnd()}\n[Texto resumido: revise antes de enviar]`;
-  const resumo = `${inspecoes.length} inspeção(ões), ${ocorrencias.length} ocorrência(s), ${problemas.length} problema(s) de sensor, telemetria de ${talhoesComTelemetria.length} talhão(ões)`;
+  const resumo = `${inspecoes.length} inspeção(ões), ${ocorrencias.length} ocorrência(s), telemetria de ${talhoesComTelemetria.length} talhão(ões)`;
   return { texto, resumo };
 }
 

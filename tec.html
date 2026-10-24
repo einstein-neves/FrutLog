@@ -23,9 +23,9 @@
     </div>
 
     <nav class="menu" aria-label="Menu do técnico">
-      <a href="#aba-monitoramento" class="nav-link active"><i class="fa-solid fa-map" aria-hidden="true"></i>
+      <a href="#aba-monitoramento" class="nav-link active"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
         Monitoramento</a>
-      <a href="#aba-registros" class="nav-link"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i>
+      <a href="#aba-registros" class="nav-link"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
         Registros de campo</a>
       <a href="#aba-telemetria" class="nav-link"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
         Telemetria</a>
@@ -117,11 +117,7 @@
           </div>
         </div>
 
-        <section class="cartao">
-          <div class="titulo-cartao"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Talhões cadastrados
-          </div>
-          <div class="lista-tarefas" id="lista-talhoes"></div>
-        </section>
+       
         <section class="cartao">
           <div class="titulo-cartao"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Métricas dos Sensores
           </div>
@@ -179,8 +175,7 @@
               class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Inspeção</button>
           <button type="button" class="btn-filtro" data-tipo-registro="ocorrencia" aria-pressed="false"><i
               class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Ocorrência</button>
-          <button type="button" class="btn-filtro" data-tipo-registro="sensor" aria-pressed="false"><i
-              class="fa-solid fa-microchip" aria-hidden="true"></i> Problema em sensor</button>
+          
         </div>
 
         <form id="form-registro-campo">
@@ -228,11 +223,7 @@
                 <option>Outro</option>
               </select>
             </div>
-            <div class="item-detalhe-cadastro" data-tipos="sensor" hidden>
-              <label class="label" for="registro-problema-sensor">Problema no sensor</label>
-              <input type="text" id="registro-problema-sensor" name="problema" class="campo-formulario"
-                data-obrigatorio="true" placeholder="Ex.: sem comunicação desde ontem">
-            </div>
+            
             <div class="item-detalhe-cadastro campo-largo" data-tipos="inspecao ocorrencia sensor">
               <label class="label" for="registro-observacoes">Observações</label>
               <textarea id="registro-observacoes" name="observacoes" class="campo-formulario"></textarea>
@@ -283,7 +274,7 @@
               <option value="">Todos</option>
               <option value="inspecao">Inspeções</option>
               <option value="ocorrencia">Ocorrências</option>
-              <option value="sensor">Problemas em sensores</option>
+              
             </select>
           </div>
         </div>
