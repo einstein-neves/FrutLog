@@ -12,8 +12,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   configurarFiltrosFuncionarios();
   configurarAcoesTabelas();
   configurarGraficos();
+  configurarEncerramentoCicloAdmin();
+  configurarAcoesHistorico();
+  carregarHistoricoQuandoVisivel();
   preencherSelectTalhoes();
-  carregarRelatoriosDiarios(); // Carrega os relatórios na tabela
 
   window.addEventListener("frutlog:colheitas-atualizadas", async () => {
     try {
@@ -40,6 +42,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 let funcionarios = [];
 let sensores = [];
+let historicoOperacao = [];
+let historicoOperacaoCarregado = false;
+let filtroHistoricoOperacao = "ativos";
 let colheitasAnuais = [];
 let painelTecnico = {
   talhoes: [],
@@ -58,6 +63,7 @@ let telemetriaDiariaAdmin = [];
 let telemetriaMensalAdmin = [];
 let telemetriaMensalEsp32Admin = [];
 let talhaoSelecionadoAdmin = "";
+let encerrandoCicloAdmin = false;
 
 function escaparHtml(valor) {
   return String(valor ?? "").replace(/[&<>"']/g, (caractere) => ({
@@ -328,6 +334,41 @@ function configurarAcoesTabelas() {
       exibirMensagem("mensagem-funcionario", erro.message, "erro");
     }
   });
+
+  // A tabela de sensores é redesenhada após cada ação, então use delegação.
+  document.getElementById("tabela-sensores-admin")?.addEventListener("click", async (evento) => {
+    const excluir = evento.target.closest("[data-excluir-sensor]");
+    const alternar = evento.target.closest("[data-alternar-sensor]");
+    const botao = excluir || alternar;
+    if (!botao) return;
+    const id = botao.dataset.excluirSensor || botao.dataset.alternarSensor;
+    const sensor = sensores.find((item) => String(item.id) === String(id));
+    if (!sensor) return;
+    if (excluir && !window.confirm(`Excluir o sensor ${sensor.sensor || sensor.id_externo}?`)) return;
+
+    botao.disabled = true;
+    try {
+      if (excluir) {
+        await FrutLog.apiFetch(`/sensores/${encodeURIComponent(id)}`, { method: "DELETE" });
+        sensores = sensores.filter((item) => String(item.id) !== String(id));
+        exibirMensagem("mensagem-sensor", "Sensor excluído.", "sucesso");
+      } else {
+        const status = sensor.ativo ? "inativo" : "ativo";
+        await FrutLog.apiFetch(`/sensores/${encodeURIComponent(id)}`, {
+          method: "PATCH", body: JSON.stringify({ status }),
+        });
+        sensores = sensores.map((item) => String(item.id) === String(id)
+          ? { ...item, ativo: status === "ativo", status: status === "ativo" ? "Offline" : "Inativo" }
+          : item);
+        exibirMensagem("mensagem-sensor", `Sensor ${status === "ativo" ? "ativado" : "desativado"}.`, "sucesso");
+      }
+      renderizarSensores();
+      renderizarPainelTecnico();
+    } catch (erro) {
+      botao.disabled = false;
+      exibirMensagem("mensagem-sensor", erro.message, "erro");
+    }
+  });
 }
 
 function configurarFormularioSensor() {
@@ -430,6 +471,119 @@ function preencherTabela(id, colunas, linhas) {
   tabela.innerHTML = linhas.join("");
 }
 
+// O histórico é carregado quando o admin se aproxima da seção, para não pesar a abertura do painel.
+function carregarHistoricoQuandoVisivel() {
+  const secao = document.getElementById("resumo-tecnico");
+  if (!secao) return;
+  if (!("IntersectionObserver" in window)) {
+    carregarHistoricoOperacao();
+    return;
+  }
+  const observador = new IntersectionObserver((entradas) => {
+    if (!entradas.some((entrada) => entrada.isIntersecting)) return;
+    observador.disconnect();
+    carregarHistoricoOperacao();
+  }, { rootMargin: "160px" });
+  observador.observe(secao);
+}
+
+async function carregarHistoricoOperacao() {
+  const tabela = document.getElementById("tabela-historico-admin");
+  if (!tabela) return;
+  tabela.innerHTML = '<tr><td colspan="9">Carregando histórico...</td></tr>';
+  try {
+    const resposta = await FrutLog.apiFetch("/admin/historico-operacao");
+    historicoOperacao = Array.isArray(resposta.historico) ? resposta.historico : [];
+    historicoOperacaoCarregado = true;
+    renderizarHistoricoAdmin();
+  } catch (erro) {
+    mostrarLinhasVazias("tabela-historico-admin", 9, `Falha ao carregar histórico: ${erro.message}`);
+  }
+}
+
+function renderizarHistoricoAdmin() {
+  const situacaoAtualPorTalhao = new Map((painelTecnico.talhoes || []).map((item) => [item.id, item]));
+  const registrosFiltrados = historicoOperacao.filter((item) => {
+    const estaArquivado = Boolean(item.arquivadoEm || item.talhaoArquivadoEm);
+    if (filtroHistoricoOperacao === "arquivados") return estaArquivado;
+    if (filtroHistoricoOperacao === "ativos") return !estaArquivado;
+    return true;
+  });
+  preencherTabela("tabela-historico-admin", 9, registrosFiltrados.map((item) => {
+    const sensoresTexto = item.sensores?.length
+      ? item.sensores.map((sensor) => `${escaparHtml(sensor.identificador)} · ${escaparHtml(sensor.metrica)} (${escaparHtml(sensor.status)})`).join("<br>")
+      : "Sem sensor associado";
+    const colheitasTexto = item.colheitas?.length
+      ? item.colheitas.map((colheita) => {
+        const arquivada = Boolean(colheita.arquivado_em);
+        const acao = `<button class="btn-acao-admin${arquivada ? "" : " btn-excluir-admin"}" type="button" data-alternar-arquivo="${escaparHtml(colheita.id)}" data-tipo-historico="colheita">${arquivada ? "Restaurar colheita" : "Arquivar colheita"}</button>`;
+        return `${formatarData(colheita.colhido_em)} · ${escaparHtml(colheita.quantidade)} ${escaparHtml(colheita.unidade)} ${acao}`;
+      }).join("<br>")
+      : "Sem colheita registrada";
+    const alertas = item.alertas || [];
+    const alertasTexto = alertas.length
+      ? `${alertas.length} registro(s): ${alertas.map((alerta) => `${escaparHtml(alerta.titulo)} (${escaparHtml(alerta.status)})`).join("; ")}`
+      : "Sem alertas";
+    const operacaoAtual = situacaoAtualPorTalhao.get(item.talhao);
+    const pendenciaAtual = operacaoAtual && operacaoAtual.situacao !== "Normal"
+      ? `<strong>${escaparHtml(operacaoAtual.prioridade)}</strong><br>`
+      : "";
+    const situacao = item.tipo === "talhao" ? "Sem ciclo cadastrado" : item.status;
+    const arquivado = Boolean(item.arquivadoEm);
+    const acaoArquivar = !arquivado && item.tipo === "ciclo" && item.status === "ativo"
+      ? '<button class="btn-acao-admin" type="button" disabled title="Encerre o ciclo antes de arquivar">Ciclo ativo</button>'
+      : `<button class="btn-acao-admin${arquivado ? "" : " btn-excluir-admin"}" type="button" data-alternar-arquivo="${escaparHtml(item.registroId)}" data-tipo-historico="${escaparHtml(item.tipo)}">${arquivado ? "Restaurar" : "Arquivar"}</button>`;
+    const acaoTalhao = item.tipo === "talhao" ? "" : ` <button class="btn-acao-admin${item.talhaoArquivadoEm ? "" : " btn-excluir-admin"}" type="button" data-alternar-arquivo="${escaparHtml(item.talhaoId)}" data-tipo-historico="talhao">${item.talhaoArquivadoEm ? "Restaurar talhão" : "Arquivar talhão"}</button>`;
+    const ciclo = item.tipo === "talhao"
+      ? "Talhão cadastrado, sem ciclo de cultivo"
+      : `Plantio: ${formatarData(item.plantadoEm)}<br>Previsão: ${formatarData(item.previsaoColheita)}${item.encerradoEm ? `<br>Encerrado: ${formatarData(item.encerradoEm)}` : ""}`;
+    return `<tr>
+      <td>${formatarData(item.talhaoCriadoEm)}</td>
+      <td><strong>${escaparHtml(item.talhao)}</strong><br>${escaparHtml(item.produto)}${item.variedade ? ` / ${escaparHtml(item.variedade)}` : ""}</td>
+      <td>Talhão: ${escaparHtml(item.areaTalhao)} ha${item.areaPlantada != null ? `<br>Plantada: ${escaparHtml(item.areaPlantada)} ha` : ""}</td>
+      <td>${ciclo}</td>
+      <td>${sensoresTexto}</td>
+      <td>${colheitasTexto}</td>
+      <td>${pendenciaAtual}${alertasTexto}</td>
+      <td><span class="badge-status ${normalizarStatus(operacaoAtual?.situacao || situacao)}">${escaparHtml(operacaoAtual?.situacao || situacao)}</span>${operacaoAtual?.prioridade ? `<br><small>${escaparHtml(operacaoAtual.prioridade)}</small>` : ""}</td>
+      <td>${acaoArquivar}${acaoTalhao}</td>
+    </tr>`;
+  }));
+}
+
+function configurarAcoesHistorico() {
+  document.getElementById("filtro-historico-admin")?.addEventListener("change", (evento) => {
+    filtroHistoricoOperacao = evento.currentTarget.value;
+    renderizarHistoricoAdmin();
+  });
+  document.getElementById("tabela-historico-admin")?.addEventListener("click", async (evento) => {
+    const botao = evento.target.closest("[data-alternar-arquivo]");
+    if (!botao) return;
+    const tipo = botao.dataset.tipoHistorico;
+    const id = botao.dataset.alternarArquivo;
+    const registro = tipo === "colheita"
+      ? historicoOperacao.flatMap((item) => item.colheitas || []).find((item) => String(item.id) === String(id))
+      : historicoOperacao.find((item) => item.tipo === tipo && String(item.registroId) === String(id));
+    if (!registro) return;
+    const arquivar = !registro.arquivadoEm;
+    botao.disabled = true;
+    try {
+      await FrutLog.apiFetch(`/admin/historico-operacao/${encodeURIComponent(tipo)}/${encodeURIComponent(id)}`, {
+        method: "PATCH", body: JSON.stringify({ arquivado: arquivar }),
+      });
+      exibirMensagem("mensagem-dados-tecnicos", arquivar ? "Registro arquivado e preservado." : "Registro restaurado.", "sucesso");
+      await carregarHistoricoOperacao();
+      if (tipo === "talhao") {
+        FrutLog.notificarAtualizacaoTalhoes();
+        window.dispatchEvent(new Event("frutlog:talhoes-atualizados"));
+      }
+    } catch (erro) {
+      botao.disabled = false;
+      exibirMensagem("mensagem-dados-tecnicos", erro.message, "erro");
+    }
+  });
+}
+
 function renderizarPainelTecnico() {
   const talhoes = painelTecnico.talhoes || [];
   document.getElementById("resumo-total-talhoes").textContent = talhoes.length;
@@ -438,16 +592,7 @@ function renderizarPainelTecnico() {
   document.getElementById("resumo-total-tarefas").textContent = (painelTecnico.tarefas || []).length;
   document.getElementById("resumo-total-alertas").textContent = (painelTecnico.alertas || []).length;
 
-  preencherTabela("tabela-talhoes-admin", 7, talhoes.map((talhao) => `
-    <tr>
-      <td>${escaparHtml(talhao.id || talhao.talhao)}</td>
-      <td>${escaparHtml(talhao.cultura || talhao.produto || "--")}</td>
-      <td>${escaparHtml(talhao.area || "--")}</td>
-      <td>${escaparHtml(talhao.sensor || "--")}</td>
-      <td>${escaparHtml(talhao.leitura || "--")}</td>
-      <td><span class="badge-status ${normalizarStatus(talhao.situacao || talhao.status)}">${escaparHtml(talhao.situacao || talhao.status || "--")}</span></td>
-      <td>${escaparHtml(talhao.prioridade || "--")}</td>
-    </tr>`));
+  if (historicoOperacaoCarregado) renderizarHistoricoAdmin();
   preencherSelectTalhoes();
 }
 
@@ -497,6 +642,8 @@ function renderizarDetalhesTalhaoAdmin(codigo) {
   if (!feature) return;
   const dadosTalhao = (painelTecnico.talhoes || []).find((item) => item.id === codigo) || {};
   const plantio = (painelTecnico.plantios || []).find((item) => item.talhao === codigo) || {};
+  const botaoEncerrarCiclo = document.getElementById("btn-encerrar-ciclo-talhao");
+  if (botaoEncerrarCiclo) botaoEncerrarCiclo.disabled = encerrandoCicloAdmin || !plantio.id;
   const sensores = (painelTecnico.sensores || []).filter((item) => item.talhao === codigo);
   const sensorAtivo = (tipo) => sensores.find((item) => item.tipo === tipo && item.status !== "Inativo");
   const temperatura = sensorAtivo("temperatura");
@@ -534,6 +681,44 @@ function renderizarDetalhesTalhaoAdmin(codigo) {
   preencher("tecnico-talhao-status", FrutLog.textoInterface(monitorado.status || "Sem leitura"));
   const badge = document.getElementById("tecnico-talhao-status");
   if (badge) badge.className = `badge-status ${normalizarStatus(monitorado.status || "sem-leitura")}`;
+}
+
+function configurarEncerramentoCicloAdmin() {
+  const botao = document.getElementById("btn-encerrar-ciclo-talhao");
+  if (!botao) return;
+  botao.addEventListener("click", async () => {
+    const codigo = talhaoSelecionadoAdmin;
+    const ciclo = (painelTecnico.plantios || []).find((item) => item.talhao === codigo);
+    if (!codigo || !ciclo?.id || encerrandoCicloAdmin) return;
+    if (!window.confirm(`Encerrar o ciclo atual do talhão ${codigo}? O registro ficará no histórico.`)) return;
+
+    encerrandoCicloAdmin = true;
+    botao.disabled = true;
+    const mensagem = document.getElementById("mensagem-encerramento-ciclo");
+    try {
+      // A API registra o encerramento no banco; atualizar os painéis remove o ciclo da visão atual.
+      await FrutLog.apiFetch("/plantios/encerrar-ciclo", {
+        method: "POST",
+        body: JSON.stringify({ talhao: codigo, cicloId: ciclo.id }),
+      });
+      await carregarDadosConectados();
+      if (historicoOperacaoCarregado) await carregarHistoricoOperacao();
+      renderizarMapaAdmin();
+      if (mensagem) {
+        mensagem.textContent = `Ciclo do talhão ${codigo} encerrado e mantido no histórico. Já é possível cadastrar outro produto.`;
+        mensagem.className = "mensagem-feedback sucesso";
+      }
+      FrutLog.notificarAtualizacaoTalhoes();
+    } catch (erro) {
+      if (mensagem) {
+        mensagem.textContent = erro.message;
+        mensagem.className = "mensagem-feedback erro";
+      }
+    } finally {
+      encerrandoCicloAdmin = false;
+      renderizarDetalhesTalhaoAdmin(codigo);
+    }
+  });
 }
 
 function statusTemperaturaTalhaoAdmin(feature, fallbackStatus) {
@@ -648,103 +833,15 @@ async function carregarMapaAdmin() {
 }
 
 async function atualizarDadosCampoConectados() {
-  const [painel] = await Promise.allSettled([
+  const atualizacoes = [
     FrutLog.apiFetch("/painel-tecnico"),
     carregarMapaAdmin(),
-  ]);
+  ];
+  if (historicoOperacaoCarregado) atualizacoes.push(carregarHistoricoOperacao());
+  const [painel] = await Promise.allSettled(atualizacoes);
   if (painel.status === "fulfilled") {
     painelTecnico = painel.value;
     renderizarPainelTecnico();
     renderizarMapaAdmin();
   }
-}
-
-/* =========================================================
-   GESTÃO DE RELATÓRIOS E MODAL (COM SUPORTE A ANEXOS)
-   ========================================================= */
-
-async function carregarRelatoriosDiarios() {
-  const tabela = document.getElementById("tabela-relatorios");
-  if (!tabela) return;
-
-  try {
-    // Faz a requisição na sua API de relatórios
-    const resposta = await FrutLog.apiFetch("/relatorios");
-    const relatorios = resposta.relatorios || [];
-
-    if (!relatorios.length) {
-      tabela.innerHTML = `<tr><td colspan="5">Nenhum relatório recebido.</td></tr>`;
-      return;
-    }
-
-    tabela.innerHTML = relatorios.map((rel) => {
-      const textoCompleto = rel.texto || rel.descricao || rel.relatorio || "Sem detalhes.";
-      const textoResumido = textoCompleto.length > 35 ? textoCompleto.substring(0, 35) + "..." : textoCompleto;
-      const dataFormatada = formatarData(rel.data || rel.criado_em);
-      const tecnicoNome = rel.tecnico || rel.nome_tecnico || "Técnico";
-      const statusRel = rel.status || "Enviado";
-      const anexoUrl = rel.anexo || rel.imagem_url || "";
-
-      return `
-        <tr>
-          <td>${dataFormatada}</td>
-          <td>${escaparHtml(tecnicoNome)}</td>
-          <td>
-            <span>${escaparHtml(textoResumido)}</span>
-            <button type="button" class="btn-link-relatorio" onclick='abrirModalRelatorio("${escaparHtml(tecnicoNome)}", "${dataFormatada}", \`\${escaparHtml(textoCompleto)}\`, "${escaparHtml(anexoUrl)}")' style="background:none; border:none; color:#2e7d32; cursor:pointer; font-weight:600; text-decoration:underline; margin-left:6px;">
-              Ver completo
-            </button>
-          </td>
-          <td><span class="badge-status ${normalizarStatus(statusRel)}">${escaparHtml(statusRel)}</span></td>
-          <td>${escaparHtml(rel.acompanhamento || "Pendente")}</td>
-        </tr>
-      `;
-    }).join("");
-
-  } catch (erro) {
-    console.error("Erro ao carregar relatórios:", erro);
-    tabela.innerHTML = `<tr><td colspan="5">Erro ao carregar relatórios do servidor.</td></tr>`;
-  }
-}
-
-function abrirModalRelatorio(tecnico, data, textoCompleto, urlAnexo) {
-  const modal = document.getElementById('modal-relatorio');
-  document.getElementById('modal-tecnico').innerText = tecnico;
-  document.getElementById('modal-data').innerText = data;
-  document.getElementById('modal-texto').innerText = textoCompleto;
-
-  const containerAnexos = document.getElementById('modal-anexos-container');
-  const previewMidia = document.getElementById('modal-midia-preview');
-
-  previewMidia.innerHTML = '';
-
-  // Verifica se o técnico enviou imagem ou documento
-  if (urlAnexo && urlAnexo.trim() !== '') {
-    containerAnexos.style.display = 'block';
-
-    // Detecta se é imagem pelas extensões comuns
-    if (urlAnexo.match(/\.(jpeg|jpg|gif|png|webp)\$/i)) {
-      previewMidia.innerHTML = `
-        <a href="${urlAnexo}" target="_blank" title="Clique para ampliar a imagem">
-          <img src="${urlAnexo}" alt="Evidência de campo" class="img-relatorio-preview" style="max-width: 100%; max-height: 220px; border-radius: 6px; margin-top: 5px; cursor: pointer; border: 1px solid #ddd; object-fit: contain;">
-        </a>
-      `;
-    } else {
-      // Se for PDF ou documento genérico
-      previewMidia.innerHTML = `
-        <a href="${urlAnexo}" target="_blank" class="link-documento-anexo">
-          <i class="fa-solid fa-paperclip"></i> Abrir documento anexo
-        </a>
-      `;
-    }
-  } else {
-    containerAnexos.style.display = 'none';
-  }
-
-  if (modal) modal.style.display = 'flex';
-}
-
-function fecharModalRelatorio() {
-  const modal = document.getElementById('modal-relatorio');
-  if (modal) modal.style.display = 'none';
 }

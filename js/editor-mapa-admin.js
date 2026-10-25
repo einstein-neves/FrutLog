@@ -1,8 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const svg = document.getElementById('mapa-talhoes-admin');
+  const svg = document.getElementById('camada-talhoes');
   if (!svg) return;
   const map = svg.parentElement;
-  let editing = false, drawing = false, saving = false, features = [], selected = '', points = [], drag = null;
+  let editing = false, drawing = false, saving = false, features = [], selected = '', points = [], drag = null, removed = [];
   window.FrutLogEditorAdmin = { ativo: () => editing };
   const toolbar = document.createElement('div');
   toolbar.className = 'admin-map-tools';
@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     buttons.edit.disabled = true;
     try {
       features = clone(await FrutLogMapaTalhoes.carregarMapaTalhoes('admin'));
+      removed = [];
       selected = features[0]?.properties.codigo || ''; editing = true;
       refreshSelect(); render(); say('Selecione um talhão e arraste seus pontos. Use Criar para desenhar um novo limite.');
     } catch (error) { say(error.message, true); sync(); }
@@ -86,15 +87,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     saving = true; sync();
     try {
-      const response = await FrutLog.apiFetch('/talhoes/geometrias', { method: 'PUT', body: JSON.stringify({ talhoes: features, removidos: [] }) });
+      // A remoção só sai do mapa persistido depois que esta gravação for aceita pelo banco.
+      const quantidadeArquivada = removed.length;
+      const response = await FrutLog.apiFetch('/talhoes/geometrias', { method: 'PUT', body: JSON.stringify({ talhoes: features, removidos: removed }) });
       FrutLogTalhoes.carregarDoServidor(response.talhoes || []);
-      editing = false; drawing = false; drag = null; sync(); renderizarMapaAdmin();
+      editing = false; drawing = false; drag = null; removed = []; sync(); renderizarMapaAdmin();
       FrutLog.notificarAtualizacaoTalhoes(); window.dispatchEvent(new Event('frutlog:talhoes-atualizados'));
-      say('Formas e áreas salvas no banco.');
+      say(quantidadeArquivada
+        ? `Alterações salvas. ${quantidadeArquivada} talhão(ões) removido(s) do mapa e arquivado(s) para preservar o histórico.`
+        : 'Formas e áreas salvas no banco.');
     } catch (error) { say(error.message, true); }
     finally { saving = false; sync(); }
   });
-  button('cancel', 'Cancelar', () => { editing = false; drawing = false; drag = null; sync(); renderizarMapaAdmin(); say('Edição cancelada.'); });
+  button('delete', 'Excluir talhão', () => {
+    const feature = current();
+    if (!feature) return;
+    if (features.length <= 1) { say('A fazenda precisa manter pelo menos um talhão.', true); return; }
+    if (!window.confirm(`Excluir o talhão ${selected}? Essa alteração será aplicada ao banco ao clicar em Salvar.`)) return;
+    if (!removed.includes(selected)) removed.push(selected);
+    features = features.filter(item => item.properties.codigo !== selected);
+    selected = features[0]?.properties.codigo || '';
+    refreshSelect(); render(); say('Talhão removido da edição. Clique em Salvar para confirmar.');
+  });
+  button('cancel', 'Cancelar', () => { editing = false; drawing = false; drag = null; removed = []; sync(); renderizarMapaAdmin(); say('Edição cancelada.'); });
   function point(event) {
     const rectangle = svg.getBoundingClientRect();
     return [Math.max(0, Math.min(500, (event.clientX - rectangle.left) * 500 / rectangle.width)), Math.max(0, Math.min(400, (event.clientY - rectangle.top) * 400 / rectangle.height))];

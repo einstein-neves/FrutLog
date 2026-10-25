@@ -266,6 +266,15 @@
   margin: 0 0 10px;
 }
 
+.historico-operacao-admin .tabela-dados {
+  min-width: 1250px;
+}
+
+.historico-operacao-admin .tabela-dados td {
+  vertical-align: top;
+  line-height: 1.45;
+}
+
 .resumo-colheita-admin {
   display: flex;
   flex-wrap: wrap;
@@ -278,15 +287,22 @@
 }
 
 /* Controles de edicao dos limites do mapa. */
-#mapa-talhoes-admin .talhao-mapa {
+#mapa-fazenda .talhao-mapa {
   cursor: pointer;
 }
 
-#mapa-talhoes-admin .talhao-mapa:focus-visible {
+#mapa-fazenda .talhao-mapa:focus-visible {
   outline: none;
 }
 
-.admin-map-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }
+.admin-map-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+}
+
 .admin-map-tools select { width: auto; min-width: 160px; }
 .admin-map-tools input { width: 145px; }
 .admin-map-editing .camada-talhoes { pointer-events: auto; touch-action: none; cursor: crosshair; }

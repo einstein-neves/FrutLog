@@ -121,6 +121,7 @@ create table if not exists public.talhao (
   nome varchar(255) not null default '',
   area_hectares numeric(10,2) not null check (area_hectares > 0),
   coordenadas jsonb,
+  arquivado_em timestamptz,
   criado_em timestamptz not null default now(),
   atualizado_em timestamptz not null default now(),
   constraint talhao_codigo_unico_por_fazenda unique (fazenda_id, codigo)
@@ -142,6 +143,7 @@ create table if not exists public.ciclo_cultura (
   status varchar(40) not null default 'ativo',
   usuario_id uuid references public.usuario(id) on delete set null,
   encerrado_em date,
+  arquivado_em timestamptz,
   criado_em timestamptz not null default now(),
   atualizado_em timestamptz not null default now()
 );
@@ -262,6 +264,7 @@ create table if not exists public.colheita (
   unidade public.unidade_colheita not null default 't',
   ano integer not null,
   registrado_por uuid references public.usuario(id) on delete set null,
+  arquivado_em timestamptz,
   criado_em timestamptz not null default now()
 );
 
@@ -284,6 +287,7 @@ create table if not exists public.relatorio_campo_diario (
     check (length(btrim(conteudo)) > 0 and length(conteudo) <= 6000),
   status varchar(20) not null default 'enviado'
     constraint relatorio_status_valido check (status in ('enviado', 'em_analise', 'concluido')),
+  arquivado_em timestamptz,
   criado_em timestamptz not null default now(),
   atualizado_em timestamptz not null default now(),
   constraint relatorio_unico_por_tecnico_dia unique (usuario_id, data_relatorio)
@@ -348,25 +352,6 @@ begin
     return jsonb_build_object('erro', 'Fazenda nao encontrada.');
   end if;
 
-  foreach v_codigo in array coalesce(p_removidos, '{}') loop
-    if exists (
-      select 1
-        from public.talhao t
-       where t.fazenda_id = p_fazenda_id
-         and t.codigo = v_codigo
-         and (
-           exists (select 1 from public.ciclo_cultura c where c.talhao_id = t.id)
-           or exists (select 1 from public.inspecao i where i.talhao_id = t.id)
-           or exists (select 1 from public.ocorrencia o where o.talhao_id = t.id)
-           or exists (select 1 from public.dispositivo d where d.talhao_id = t.id)
-           or exists (select 1 from public.problema_sensor p where p.talhao_id = t.id)
-           or exists (select 1 from public.alerta a where a.talhao_id = t.id)
-         )
-    ) then
-      return jsonb_build_object('erro', format('O talhao %s possui historico ou sensores associados e nao pode ser removido.', v_codigo));
-    end if;
-  end loop;
-
   for v_item in select value from jsonb_array_elements(p_features) loop
     v_codigo := btrim(v_item #>> '{properties,codigo}');
     v_nome_talhao := coalesce(nullif(btrim(v_item #>> '{properties,nome}'), ''), v_codigo);
@@ -392,7 +377,10 @@ begin
   end loop;
 
   if cardinality(coalesce(p_removidos, '{}')) > 0 then
-    delete from public.talhao as t
+    -- Talhões removidos do mapa ficam arquivados para preservar ciclos e dados vinculados.
+    update public.talhao as t
+       set arquivado_em = coalesce(t.arquivado_em, now()),
+           atualizado_em = now()
      where t.fazenda_id = p_fazenda_id
        and t.codigo = any(p_removidos);
   end if;
@@ -406,7 +394,8 @@ begin
   ) order by t.codigo), '[]'::jsonb)
     into v_resultado
     from public.talhao as t
-   where t.fazenda_id = p_fazenda_id;
+   where t.fazenda_id = p_fazenda_id
+     and t.arquivado_em is null;
 
   return v_resultado;
 end;

@@ -54,6 +54,7 @@
             <h2>Visão dos Talhões</h2>
             <p>Selecione um talhão para visualizar seus dados.</p>
           </div>
+
           <div class="botoes-do-talhao" id="botoes-talhao" aria-label="Seleção de talhão"></div>
           <span class="status-mapa">Monitoramento Ativo</span>
         </div>
@@ -150,10 +151,12 @@
             <span class="valor" id="talhao-inspecao-recomendacao">--</span>
           </div>
         </div>
+<!-- Botão para encerrar o ciclo do talhão. -->
         <div class="area-botao-cadastro">
           <button type="button" id="btn-encerrar-ciclo-talhao" class="btn-secundario" disabled>Encerrar ciclo deste talh&atilde;o</button>
         </div>
         <p class="mensagem-feedback" id="mensagem-encerramento-ciclo" aria-live="polite"></p>
+
       </div>
     </section>
 
@@ -423,16 +426,31 @@
           <option value="concluido">Concluido</option>
         </select>
       </div>
+      <!-- A seleção em lote arquiva ou restaura sem remover o histórico do banco. -->
+      <div class="acoes-lote-relatorios">
+        <label><input id="selecionar-todos-relatorios" type="checkbox"> Selecionar todos os visíveis</label>
+        <label for="filtro-visibilidade-relatorios">Exibição</label>
+        <select id="filtro-visibilidade-relatorios" class="campo-formulario">
+          <option value="ativos">Visíveis</option>
+          <option value="arquivados">Arquivados</option>
+          <option value="todos">Todos</option>
+        </select>
+        <button class="btn-filtro" type="button" data-arquivar-selecionados disabled>Arquivar selecionados</button>
+        <button class="btn-filtro" type="button" data-restaurar-selecionados disabled>Restaurar selecionados</button>
+        <button class="btn-excluir-relatorio" type="button" data-excluir-selecionados disabled>Excluir selecionados</button>
+      </div>
       <p id="mensagem-relatorios" class="mensagem-feedback" aria-live="polite"></p>
       <div class="tabela-responsiva">
         <table class="tabela-dados">
           <thead>
             <tr>
+              <th>Selecionar</th>
               <th>Data</th>
               <th>Técnico</th>
               <th>Relatório de campo</th>
               <th>Status</th>
               <th>Acompanhamento</th>
+              <th>Ação</th>
             </tr>
           </thead>
           <tbody id="tabela-relatorios"></tbody>

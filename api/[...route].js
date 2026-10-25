@@ -1,4 +1,6 @@
 const crypto = require("crypto");
+const { criarToken, autenticarRequisicao } = require("./session");
+const { db, listarTalhoesComTemperatura, farmsForOrganization } = require("./database");
 
 const ROLES = ["engenheiro", "tecnico", "admin", "administrador"];
 const TYPES = ["temperatura", "umidadeSolo", "umidadeAr", "chuva"];
@@ -69,39 +71,6 @@ function parseBody(req, maximum = 16384) {
   });
 }
 
-const b64 = (v) => Buffer.from(JSON.stringify(v)).toString("base64url");
-
-function createToken(user, secret) {
-  const h = b64({ alg: "HS256", typ: "JWT" });
-  const p = b64({
-    sub: user.id,
-    matricula: user.matricula,
-    nome: user.nome,
-    perfil: user.perfil,
-    mustChangePassword: Boolean(user.mustChangePassword),
-    iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + 28800
-  });
-  return `${h}.${p}.${crypto.createHmac("sha256", secret).update(`${h}.${p}`).digest("base64url")}`;
-}
-
-function authenticated(req, secret) {
-  try {
-    const [h, p, s] = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "").split(".");
-    if (!h || !p || !s) return null;
-    const expected = crypto.createHmac("sha256", secret).update(`${h}.${p}`).digest();
-    const supplied = Buffer.from(s, "base64url");
-    if (supplied.length !== expected.length || !crypto.timingSafeEqual(supplied, expected)) return null;
-    const user = JSON.parse(Buffer.from(p, "base64url").toString("utf8"));
-    const normalPerfil = user.perfil === "administrador" ? "admin" : user.perfil;
-    return user.exp > Date.now() / 1000 && ["engenheiro", "tecnico", "admin"].includes(normalPerfil)
-      ? { ...user, perfil: normalPerfil, mustChangePassword: Boolean(user.mustChangePassword) }
-      : null;
-  } catch {
-    return null;
-  }
-}
-
 function hashPassword(password) {
   const rounds = 210000;
   const salt = crypto.randomBytes(16).toString("hex");
@@ -114,47 +83,6 @@ function passwordOk(password, stored) {
   if (kind !== "pbkdf2" || !/^\d+$/.test(rounds) || !salt || !/^[a-f0-9]{64}$/i.test(hash)) return false;
   const actual = crypto.pbkdf2Sync(password, salt, Number(rounds), 32, "sha256").toString("hex");
   return crypto.timingSafeEqual(Buffer.from(actual), Buffer.from(hash));
-}
-
-async function db(c, table, method = "GET", data, query = "") {
-  const response = await fetch(`${c.url}/rest/v1/${table}${query}`, {
-    method,
-    headers: {
-      apikey: c.key,
-      ...(c.key.startsWith("sb_secret_") ? {} : { Authorization: `Bearer ${c.key}` }),
-      "Content-Type": "application/json",
-      Prefer: method === "POST" || method === "PATCH" ? "return=representation,resolution=merge-duplicates" : ""
-    },
-    body: data === undefined ? undefined : JSON.stringify(data)
-  });
-  if (!response.ok) {
-    const errBody = await response.json().catch(() => ({}));
-    const msg = errBody.message || errBody.details || errBody.hint || `HTTP ${response.status}`;
-    console.error(`PostgREST [${method} ${table}${query}]:`, msg);
-    throw new Error(`Falha no banco de dados: ${msg}`);
-  }
-  return response.status === 204 ? [] : response.json();
-}
-
-async function listarTalhoesComTemperatura(c, query) {
-  try {
-    return await db(c, "talhao", "GET", undefined, query);
-  } catch (erro) {
-    if (!String(erro.message).includes("temperatura_maxima")) throw erro;
-    return db(c, "talhao", "GET", undefined, query.replace(",temperatura_maxima", ""));
-  }
-}
-
-async function farmsForOrganization(c) {
-  const organization = (await db(c, "organizacao", "GET", undefined, "?select=id&order=criado_em&limit=1"))[0];
-  if (!organization) return [];
-  return db(
-    c,
-    "fazenda",
-    "GET",
-    undefined,
-    `?organizacao_id=eq.${encodeURIComponent(organization.id)}&select=id&order=criado_em`
-  );
 }
 
 const hits = new Map();
@@ -292,7 +220,7 @@ module.exports = async (req, res) => {
       return reply(res, 200, {
         sucesso: true,
         usuario: safe,
-        token: createToken(safe, c.jwt)
+        token: criarToken(safe, c.jwt)
       }, origin);
     }
 
@@ -340,8 +268,24 @@ module.exports = async (req, res) => {
     }
 
     // Validação de Sessão para Rotas Protegidas
-    const user = authenticated(req, c.jwt);
+    const user = autenticarRequisicao(req, c.jwt);
     if (!user) return reply(res, 401, { mensagem: "Não autorizado." }, origin);
+
+    // Recheck mutable account privileges before any write, so an old token
+    // cannot keep changing data after an account is blocked or its role changes.
+    if (req.method !== "GET") {
+      const currentUser = (await db(
+        c,
+        "usuario",
+        "GET",
+        undefined,
+        `?id=eq.${encodeURIComponent(user.sub)}&select=id,perfil,status&limit=1`
+      ))[0];
+      const currentRole = currentUser?.perfil === "administrador" ? "admin" : currentUser?.perfil;
+      if (!currentUser || currentUser.status !== "ativo" || currentRole !== user.perfil) {
+        return reply(res, 401, { mensagem: "Sessao revogada ou perfil alterado. Faca login novamente." }, origin);
+      }
+    }
 
     if (req.method === "GET" && route === "/chatbot/contexto") {
       const farms = await farmsForOrganization(c);
@@ -474,7 +418,7 @@ module.exports = async (req, res) => {
       return reply(res, 200, {
         sucesso: true,
         usuario: updatedUser,
-        token: createToken(updatedUser, c.jwt)
+        token: criarToken(updatedUser, c.jwt)
       }, origin);
     }
 
@@ -543,7 +487,7 @@ module.exports = async (req, res) => {
         "colheita",
         "GET",
         undefined,
-        "?select=ano,quantidade,unidade&order=ano&limit=10000"
+        "?arquivado_em=is.null&select=ano,quantidade,unidade&order=ano&limit=10000"
       );
       const annual = new Map();
       harvests.forEach((row) => {
@@ -673,7 +617,7 @@ module.exports = async (req, res) => {
         "talhao",
         "GET",
         undefined,
-        `?codigo=eq.${encodeURIComponent(d.talhao)}&select=id&limit=1`
+        `?codigo=eq.${encodeURIComponent(d.talhao)}&arquivado_em=is.null&select=id&limit=1`
       ))[0];
       if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
 
@@ -732,9 +676,19 @@ module.exports = async (req, res) => {
           "relatorio_campo_diario",
           "GET",
           undefined,
-          "?select=id,tecnico_nome,data_relatorio,conteudo,status,criado_em,atualizado_em&order=data_relatorio.desc,criado_em.desc&limit=500"
+          "?select=id,usuario_id,tecnico_nome,data_relatorio,conteudo,status,criado_em,atualizado_em,arquivado_em&order=data_relatorio.desc,criado_em.desc&limit=500"
         );
-        return reply(res, 200, { relatorios: reports }, origin);
+        // A matrícula vem do cadastro atual do técnico; o relatório guarda o usuário autor pelo ID.
+        const authorIds = [...new Set(reports.map((report) => report.usuario_id).filter(Boolean))];
+        const authors = authorIds.length
+          ? await db(c, "usuario", "GET", undefined, `?id=in.(${authorIds.map(encodeURIComponent).join(",")})&select=id,matricula`)
+          : [];
+        const matriculaPorAutor = new Map(authors.map((author) => [author.id, author.matricula]));
+        const reportsWithAuthor = reports.map((report) => ({
+          ...report,
+          tecnico_matricula: matriculaPorAutor.get(report.usuario_id) || "Não informada"
+        }));
+        return reply(res, 200, { relatorios: reportsWithAuthor }, origin);
       }
 
       if (req.method === "POST" && !reportId) {
@@ -766,13 +720,9 @@ module.exports = async (req, res) => {
         return reply(res, 201, { sucesso: true, relatorio: report }, origin);
       }
 
-      if (req.method === "PATCH" && reportId) {
+      if (req.method === "DELETE" && reportId) {
         if (!["engenheiro", "admin"].includes(user.perfil)) {
-          return reply(res, 403, { mensagem: "Apenas Engenharia e Administração podem acompanhar relatórios." }, origin);
-        }
-        const d = await parseBody(req);
-        if (!["em_analise", "concluido"].includes(d.status)) {
-          return reply(res, 400, { mensagem: "Status de acompanhamento inválido." }, origin);
+          return reply(res, 403, { mensagem: "Apenas Engenharia e Administração podem excluir relatórios." }, origin);
         }
         const report = (await db(
           c,
@@ -782,8 +732,39 @@ module.exports = async (req, res) => {
           `?id=eq.${encodeURIComponent(reportId)}&select=id&limit=1`
         ))[0];
         if (!report) return reply(res, 404, { mensagem: "Relatório não encontrado." }, origin);
-        await db(c, `relatorio_campo_diario?id=eq.${encodeURIComponent(reportId)}`, "PATCH", { status: d.status });
-        return reply(res, 200, { sucesso: true }, origin);
+        await db(
+          c,
+          "relatorio_campo_diario",
+          "DELETE",
+          undefined,
+          `?id=eq.${encodeURIComponent(reportId)}`
+        );
+        return reply(res, 200, { sucesso: true, excluido: true }, origin);
+      }
+
+      if (req.method === "PATCH" && reportId) {
+        if (!["engenheiro", "admin"].includes(user.perfil)) {
+          return reply(res, 403, { mensagem: "Apenas Engenharia e Administração podem acompanhar relatórios." }, origin);
+        }
+        const d = await parseBody(req);
+        const atualizarStatus = d.status !== undefined;
+        const atualizarArquivo = typeof d.arquivado === "boolean";
+        if ((atualizarStatus && !["em_analise", "concluido"].includes(d.status)) || (!atualizarStatus && !atualizarArquivo)) {
+          return reply(res, 400, { mensagem: "Informe um status válido ou a situação de arquivamento." }, origin);
+        }
+        const report = (await db(
+          c,
+          "relatorio_campo_diario",
+          "GET",
+          undefined,
+          `?id=eq.${encodeURIComponent(reportId)}&select=id&limit=1`
+        ))[0];
+        if (!report) return reply(res, 404, { mensagem: "Relatório não encontrado." }, origin);
+        const atualizacao = {};
+        if (atualizarStatus) atualizacao.status = d.status;
+        if (atualizarArquivo) atualizacao.arquivado_em = d.arquivado ? new Date().toISOString() : null;
+        await db(c, `relatorio_campo_diario?id=eq.${encodeURIComponent(reportId)}`, "PATCH", atualizacao);
+        return reply(res, 200, { sucesso: true, arquivado: atualizarArquivo ? d.arquivado : undefined }, origin);
       }
 
       return reply(res, 405, { mensagem: "Método não permitido para esta rota." }, origin);
@@ -795,7 +776,7 @@ module.exports = async (req, res) => {
       if (!farms.length) return reply(res, 503, { mensagem: "Fazenda não configurada." }, origin);
       const plots = await listarTalhoesComTemperatura(
         c,
-        `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&select=id,codigo,nome,area_hectares,coordenadas,temperatura_maxima&order=codigo`
+        `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&arquivado_em=is.null&select=id,codigo,nome,area_hectares,coordenadas,temperatura_maxima&order=codigo`
       );
       return reply(res, 200, { talhoes: plots }, origin);
     }
@@ -862,9 +843,13 @@ module.exports = async (req, res) => {
           "talhao",
           "GET",
           undefined,
-          `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&codigo=in.(${candidateCodes.map(encodeURIComponent).join(",")})&select=id,codigo,fazenda_id`
+          `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&codigo=in.(${candidateCodes.map(encodeURIComponent).join(",")})&select=id,codigo,fazenda_id,arquivado_em`
         )
         : [];
+      const codigosArquivados = new Set(existingPlots.filter((plot) => plot.arquivado_em).map((plot) => plot.codigo));
+      if (d.talhoes.some((feature) => codigosArquivados.has(feature.properties.codigo))) {
+        return reply(res, 409, { mensagem: "Existe um talhÃ£o arquivado com este cÃ³digo. Restaure-o no histÃ³rico antes de editar o mapa." }, origin);
+      }
       const farmIds = new Set(existingPlots.map((plot) => plot.fazenda_id));
       if (farmIds.size > 1) {
         return reply(
@@ -888,7 +873,7 @@ module.exports = async (req, res) => {
         "talhao",
         "GET",
         undefined,
-        `?fazenda_id=eq.${encodeURIComponent(farm.id)}&select=id,codigo,nome,area_hectares,coordenadas&order=codigo`
+        `?fazenda_id=eq.${encodeURIComponent(farm.id)}&arquivado_em=is.null&select=id,codigo,nome,area_hectares,coordenadas&order=codigo`
       );
       const persistedByCode = new Map(persistedPlots.map((plot) => [plot.codigo, plot]));
       const geometryConfirmed = d.talhoes.every((feature) => {
@@ -910,7 +895,7 @@ module.exports = async (req, res) => {
     // 5. Rotas Granulares: Sensores e Última Leitura
     if (req.method === "GET" && route === "/sensores") {
       const [plots, devices, sensors, readings] = await Promise.all([
-        db(c, "talhao", "GET", undefined, "?select=id,codigo"),
+        db(c, "talhao", "GET", undefined, "?arquivado_em=is.null&select=id,codigo"),
         db(c, "dispositivo", "GET", undefined, "?select=id,id_externo,talhao_id,status,ultimo_sinal_em"),
         db(c, "sensor", "GET", undefined, "?select=id,id_externo,dispositivo_id,codigo_metrica,unidade,status"),
         db(c, "v_ultima_leitura_sensor", "GET", undefined, "?select=*&limit=500")
@@ -1047,6 +1032,121 @@ module.exports = async (req, res) => {
     }
 
     // 11. Painéis Compostos (BFF - Backend for Frontend)
+    const archiveMatch = route.match(/^\/admin\/historico-operacao\/(talhao|ciclo|colheita)\/([^/]+)$/);
+    if (req.method === "PATCH" && archiveMatch) {
+      if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissao." }, origin);
+      const [, type, rawId] = archiveMatch;
+      const id = decodeURIComponent(rawId);
+      const data = await parseBody(req);
+      if (typeof data.arquivado !== "boolean") {
+        return reply(res, 400, { mensagem: "Informe se o registro deve ser arquivado." }, origin);
+      }
+      const farms = await farmsForOrganization(c);
+      const farmIds = farms.map((farm) => farm.id);
+      if (!farmIds.length) return reply(res, 503, { mensagem: "Fazenda nao configurada." }, origin);
+      const resource = { talhao: "talhao", ciclo: "ciclo_cultura", colheita: "colheita" }[type];
+      const record = (await db(c, resource, "GET", undefined, `?id=eq.${encodeURIComponent(id)}&select=id,talhao_id,status,arquivado_em&limit=1`))[0];
+      if (!record) return reply(res, 404, { mensagem: "Registro historico nao encontrado." }, origin);
+      const plotId = type === "talhao" ? record.id : record.talhao_id;
+      const plot = (await db(c, "talhao", "GET", undefined, `?id=eq.${encodeURIComponent(plotId)}&fazenda_id=in.(${farmIds.join(",")})&select=id&limit=1`))[0];
+      if (!plot) return reply(res, 404, { mensagem: "Registro nao pertence a fazenda desta organizacao." }, origin);
+
+      if (data.arquivado && type === "ciclo" && record.status === "ativo") {
+        return reply(res, 409, { mensagem: "Encerre o ciclo antes de arquiva-lo." }, origin);
+      }
+      const updated = await db(c, `${resource}?id=eq.${encodeURIComponent(id)}`, "PATCH", {
+        arquivado_em: data.arquivado ? new Date().toISOString() : null
+      });
+      return reply(res, 200, { sucesso: true, arquivado: data.arquivado, registro: updated[0] || null }, origin);
+    }
+
+    if (req.method === "GET" && route === "/admin/historico-operacao") {
+      if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissao." }, origin);
+      const farms = await farmsForOrganization(c);
+      if (!farms.length) return reply(res, 503, { mensagem: "Fazenda nao configurada." }, origin);
+
+      const [plots, cycles, cultivars, cultures, devices, sensors, alerts, harvests] = await Promise.all([
+        db(c, "talhao", "GET", undefined, `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&select=id,codigo,area_hectares,criado_em,arquivado_em&order=codigo`),
+        db(c, "ciclo_cultura", "GET", undefined, "?select=id,talhao_id,cultivar_id,plantado_em,previsao_colheita,encerrado_em,area_plantada_hectares,solo,status,criado_em,arquivado_em&order=plantado_em.desc"),
+        db(c, "cultivar", "GET", undefined, "?select=id,nome,cultura_id"),
+        db(c, "cultura", "GET", undefined, "?select=id,nome_comum"),
+        db(c, "dispositivo", "GET", undefined, "?select=id,id_externo,talhao_id,status"),
+        db(c, "sensor", "GET", undefined, "?select=id,id_externo,dispositivo_id,codigo_metrica,status"),
+        db(c, "alerta", "GET", undefined, "?select=id,talhao_id,sensor_id,status,severidade,titulo,mensagem,aberto_em,fechado_em&order=aberto_em.desc&limit=500"),
+        db(c, "colheita", "GET", undefined, "?select=id,talhao_id,ciclo_cultura_id,colhido_em,quantidade,unidade,ano,arquivado_em&order=colhido_em.desc&limit=500")
+      ]);
+
+      const plotById = new Map(plots.map((plot) => [plot.id, plot]));
+      const deviceById = new Map(devices.map((device) => [device.id, device]));
+      const cultivarById = new Map(cultivars.map((cultivar) => [cultivar.id, cultivar]));
+      const cultureById = new Map(cultures.map((culture) => [culture.id, culture.nome_comum]));
+      const sensorsByPlot = new Map();
+      for (const sensor of sensors) {
+        const plotId = deviceById.get(sensor.dispositivo_id)?.talhao_id;
+        if (!plotId) continue;
+        if (!sensorsByPlot.has(plotId)) sensorsByPlot.set(plotId, []);
+        sensorsByPlot.get(plotId).push({ id: sensor.id, identificador: sensor.id_externo, metrica: sensor.codigo_metrica, status: sensor.status });
+      }
+      const alertsByPlot = new Map();
+      for (const alert of alerts) {
+        if (!alert.talhao_id) continue;
+        if (!alertsByPlot.has(alert.talhao_id)) alertsByPlot.set(alert.talhao_id, []);
+        alertsByPlot.get(alert.talhao_id).push(alert);
+      }
+      const harvestsByCycle = new Map();
+      for (const harvest of harvests) {
+        if (!harvest.ciclo_cultura_id) continue;
+        if (!harvestsByCycle.has(harvest.ciclo_cultura_id)) harvestsByCycle.set(harvest.ciclo_cultura_id, []);
+        harvestsByCycle.get(harvest.ciclo_cultura_id).push(harvest);
+      }
+
+      const historico = cycles.flatMap((cycle) => {
+        const plot = plotById.get(cycle.talhao_id);
+        if (!plot) return [];
+        const cultivar = cultivarById.get(cycle.cultivar_id);
+        return [{
+          id: cycle.id, registroId: cycle.id, tipo: "ciclo", talhao: plot.codigo, talhaoId: plot.id, talhaoArquivadoEm: plot.arquivado_em,
+          talhaoCriadoEm: plot.criado_em, areaTalhao: plot.area_hectares,
+          areaPlantada: cycle.area_plantada_hectares,
+          produto: cultureById.get(cultivar?.cultura_id) || "Produto nao informado",
+          variedade: cultivar?.nome || "", plantadoEm: cycle.plantado_em,
+          previsaoColheita: cycle.previsao_colheita, encerradoEm: cycle.encerrado_em,
+          solo: cycle.solo, status: cycle.status, arquivadoEm: cycle.arquivado_em,
+          sensores: sensorsByPlot.get(plot.id) || [], alertas: alertsByPlot.get(plot.id) || [],
+          colheitas: harvestsByCycle.get(cycle.id) || []
+        }];
+      });
+      const plotsWithCycles = new Set(cycles.map((cycle) => cycle.talhao_id));
+      const cycleIds = new Set(cycles.map((cycle) => cycle.id));
+      for (const harvest of harvests) {
+        if (harvest.ciclo_cultura_id && cycleIds.has(harvest.ciclo_cultura_id)) continue;
+        const plot = plotById.get(harvest.talhao_id);
+        if (!plot) continue;
+        historico.push({
+          id: `colheita:${harvest.id}`, registroId: harvest.id, tipo: "colheita", talhao: plot.codigo,
+          talhaoId: plot.id, talhaoArquivadoEm: plot.arquivado_em, talhaoCriadoEm: plot.criado_em, areaTalhao: plot.area_hectares,
+          areaPlantada: null, produto: "Registro de colheita", variedade: "",
+          plantadoEm: null, previsaoColheita: null, encerradoEm: null, solo: "",
+          status: "colheita registrada", arquivadoEm: harvest.arquivado_em,
+          sensores: sensorsByPlot.get(plot.id) || [],
+          alertas: alertsByPlot.get(plot.id) || [], colheitas: [harvest]
+        });
+      }
+      for (const plot of plots) {
+        if (plotsWithCycles.has(plot.id)) continue;
+        historico.push({
+          id: `talhao:${plot.id}`, registroId: plot.id, tipo: "talhao", talhao: plot.codigo, talhaoId: plot.id,
+          talhaoCriadoEm: plot.criado_em, areaTalhao: plot.area_hectares, areaPlantada: null,
+          produto: "Sem ciclo cadastrado", variedade: "", plantadoEm: null,
+          previsaoColheita: null, encerradoEm: null, solo: "", status: "sem ciclo",
+          arquivadoEm: plot.arquivado_em,
+          sensores: sensorsByPlot.get(plot.id) || [], alertas: alertsByPlot.get(plot.id) || [],
+          colheitas: harvests.filter((harvest) => harvest.talhao_id === plot.id)
+        });
+      }
+      return reply(res, 200, { historico }, origin);
+    }
+
     if (req.method === "GET" && ["/painel-tecnico", "/painel-engenheiro"].includes(route)) {
       if (
         (route === "/painel-tecnico" && !["tecnico", "admin"].includes(user.perfil)) ||
@@ -1058,7 +1158,7 @@ module.exports = async (req, res) => {
       const farms = await farmsForOrganization(c);
       if (!farms.length) return reply(res, 503, { mensagem: "Fazenda não configurada." }, origin);
       const [plots, devices, sensors, readings, inspections, cycles, occurrences, sensorProblems, alerts, cultivars, cultures] = await Promise.all([
-        listarTalhoesComTemperatura(c, `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&select=id,codigo,nome,area_hectares,coordenadas,temperatura_maxima&order=codigo`),
+        listarTalhoesComTemperatura(c, `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&arquivado_em=is.null&select=id,codigo,nome,area_hectares,coordenadas,temperatura_maxima&order=codigo`),
         db(c, "dispositivo", "GET", undefined, "?select=id,id_externo,talhao_id,status,ultimo_sinal_em"),
         db(c, "sensor", "GET", undefined, "?select=id,id_externo,dispositivo_id,codigo_metrica,unidade,status"),
         db(c, "v_ultima_leitura_sensor", "GET", undefined, "?select=*&limit=500"),
@@ -1216,7 +1316,7 @@ module.exports = async (req, res) => {
       const codigoTalhao = text(d.talhao, 40);
       if (!codigoTalhao) return reply(res, 400, { mensagem: "Selecione um talhão." }, origin);
 
-      const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(codigoTalhao)}&select=id&limit=1`))[0];
+      const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(codigoTalhao)}&arquivado_em=is.null&select=id&limit=1`))[0];
       if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
       const ciclo = (await db(
         c,
@@ -1247,7 +1347,7 @@ module.exports = async (req, res) => {
         return reply(res, 400, { mensagem: "Dados de plantio inválidos." }, origin);
       }
 
-      const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&select=id,area_hectares&limit=1`))[0];
+      const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&arquivado_em=is.null&select=id,area_hectares&limit=1`))[0];
       if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
       const areaPlantada = Number(plot.area_hectares);
       const temperaturaMaxima = Number(String(d.temperaturaMaxima ?? "").replace(",", "."));
@@ -1314,7 +1414,7 @@ module.exports = async (req, res) => {
         if (!text(d.talhao) || !date(d.data) || !["Normal", "Atencao", "Critico"].includes(d.situacao)) {
           return reply(res, 400, { mensagem: "Dados de inspeção inválidos." }, origin);
         }
-        const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&select=id&limit=1`))[0];
+        const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&arquivado_em=is.null&select=id&limit=1`))[0];
         if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
 
         const sensorId = text(d.sensor_id, 80);
@@ -1360,7 +1460,7 @@ module.exports = async (req, res) => {
         if (!text(d.talhao) || !text(d.tipo)) {
           return reply(res, 400, { mensagem: "Dados de ocorrência inválidos." }, origin);
         }
-        const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&select=id&limit=1`))[0];
+        const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&arquivado_em=is.null&select=id&limit=1`))[0];
         if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
 
         await db(c, "rpc/registrar_ocorrencia_com_alerta", "POST", {
@@ -1377,7 +1477,7 @@ module.exports = async (req, res) => {
         if (!text(d.talhao) || !date(d.data) || !text(d.problema)) {
           return reply(res, 400, { mensagem: "Dados de problema de sensor inválidos." }, origin);
         }
-        const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&select=id&limit=1`))[0];
+        const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&arquivado_em=is.null&select=id&limit=1`))[0];
         if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
 
         const sensorCodigo = text(d.sensor, 80);
@@ -1583,7 +1683,7 @@ module.exports = async (req, res) => {
         "talhao",
         "GET",
         undefined,
-        `?codigo=eq.${encodeURIComponent(codigoTalhao)}&select=id&limit=1`
+        `?codigo=eq.${encodeURIComponent(codigoTalhao)}&arquivado_em=is.null&select=id&limit=1`
       ))[0];
       if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
 

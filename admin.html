@@ -190,7 +190,7 @@
 
     <!-- SEÇÃO RESUMO TÉCNICO -->
 <section id="resumo-tecnico" class="cartao">
-  <div class="titulo-cartao"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i> Visão Consolidada da Operação</div>
+  <div class="titulo-cartao"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i> Hist&oacute;rico e situa&ccedil;&atilde;o dos talh&otilde;es</div>
   <p id="mensagem-dados-tecnicos" class="mensagem-feedback" aria-live="polite"></p>
   <div class="resumo-admin">
     <article><span>Talhões</span><strong id="resumo-total-talhoes">--</strong></article>
@@ -200,40 +200,30 @@
     <article><span>Alertas abertos</span><strong id="resumo-total-alertas">--</strong></article>
   </div>
 
-<div class="tabelas-consolidadas-admin">
+<div class="tabelas-consolidadas-admin historico-operacao-admin">
   <article>
-    <h3>Talhões e monitoramento</h3>
-    <p class="texto-ajuda">Talhões, áreas, plantios e sensores vêm dos registros da fazenda. Situação e prioridade são calculadas com base no cadastro e nas leituras dos sensores.</p>
+    <h3>Hist&oacute;rico de talh&otilde;es e cultivos</h3>
+    <p class="texto-ajuda">Cada linha representa um ciclo de cultivo, ativo ou encerrado. Talh&otilde;es sem plantio tamb&eacute;m aparecem para registrar o cadastro e os dados associados.</p>
+    <label class="filtro-historico-admin" for="filtro-historico-admin">Exibi&ccedil;&atilde;o do hist&oacute;rico
+      <select id="filtro-historico-admin" class="campo-formulario">
+        <option value="ativos">Registros ativos</option>
+        <option value="arquivados">Registros arquivados</option>
+        <option value="todos">Todos os registros</option>
+      </select>
+    </label>
     <div class="tabela-responsiva">
       <table class="tabela-dados">
         <thead>
           <tr>
-            <th>Talhão</th>
-            <th>Produto / variedade</th>
-            <th>Área</th>
-            <th>Sensor</th>
-            <th>Leitura</th>
-            <th>Situação</th>
-            <th>Prioridade</th>
+            <th>Cadastro</th><th>Talh&atilde;o / produto</th><th>&Aacute;reas</th><th>Per&iacute;odo</th>
+            <th>Sensores</th><th>Colheitas</th><th>Pend&ecirc;ncias / alertas</th><th>Situa&ccedil;&atilde;o atual</th><th>A&ccedil;&otilde;es</th>
           </tr>
         </thead>
-        <tbody id="tabela-talhoes-admin"></tbody>
+        <tbody id="tabela-historico-admin"></tbody>
       </table>
     </div>
   </article>
-
-    <article>
-      <h3>Tarefas e alertas</h3>
-      <div class="tabela-responsiva">
-        <table class="tabela-dados">
-          <thead>
-            <tr><th>Talhão / assunto</th><th>Prioridade</th><th>Descrição</th><th>Status</th></tr>
-          </thead>
-          <tbody id="tabela-alertas-admin"></tbody>
-        </table>
-      </div>
-    </article>
-  </div>
+</div>
 </section>
 
     <!-- SEÇÃO TELEMETRIA -->
@@ -244,7 +234,8 @@
     <div class="thingspeak-summary" data-thingspeak-summary></div>
 
     <!-- Graficos do ESP32 servidos pelo Node-RED. O endereco abaixo e o padrao local;
-         js/telemetria-thingspeak.js reescreve o host quando outro e configurado. -->
+      js/telemetria-thingspeak.js reescreve o host quando outro e configurado. -->
+
     <div class="thingspeak-embeds" aria-label="Graficos do ESP32 via Node-RED">
       <article>
         <h3>Temperatura (&deg;C)</h3>
@@ -297,7 +288,8 @@
     <div class="titulo-cartao"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> Registrar colheita</div>
     <form data-form-colheita>
       <div class="info-grid-cadastro">
-        <div class="item-detalhe-cadastro"><label class="label">Talhão</label><select name="talhao" class="campo-formulario" required></select></div>
+        <div class="item-detalhe-cadastro"><label class="label">Talhão</label><select name="talhao" class="campo-formulario" required></select>
+        </div>
         <div class="item-detalhe-cadastro"><label class="label">Data da colheita</label><input name="colhidoEm" type="date" class="campo-formulario" required></div>
         <div class="item-detalhe-cadastro"><label class="label">Quantidade</label><input name="quantidade" type="number" min="0.01" step="0.01" class="campo-formulario" required></div>
         <div class="item-detalhe-cadastro"><label class="label">Unidade</label>
@@ -321,11 +313,6 @@
     </form>
 </section>
 
-
-
-
-
-<!-- SEÇÃO RELATÓRIOS -->
 <!-- SEÇÃO RELATÓRIOS -->
     <section id="relatorios-diarios" class="cartao">
       <div class="titulo-cartao">
@@ -348,17 +335,33 @@
         </select>
       </div>
 
+      <!-- A seleção em lote arquiva ou restaura sem remover o histórico do banco. -->
+      <div class="acoes-lote-relatorios">
+        <label><input id="selecionar-todos-relatorios" type="checkbox"> Selecionar todos os visíveis</label>
+        <label for="filtro-visibilidade-relatorios">Exibição</label>
+        <select id="filtro-visibilidade-relatorios" class="campo-formulario">
+          <option value="ativos">Visíveis</option>
+          <option value="arquivados">Arquivados</option>
+          <option value="todos">Todos</option>
+        </select>
+        <button class="btn-filtro" type="button" data-arquivar-selecionados disabled>Arquivar selecionados</button>
+        <button class="btn-filtro" type="button" data-restaurar-selecionados disabled>Restaurar selecionados</button>
+        <button class="btn-excluir-relatorio" type="button" data-excluir-selecionados disabled>Excluir selecionados</button>
+      </div>
+
       <p id="mensagem-relatorios" class="mensagem-feedback" aria-live="polite"></p>
 
       <div class="tabela-responsiva">
         <table class="tabela-dados">
           <thead>
             <tr>
+              <th>Selecionar</th>
               <th>Data</th>
               <th>Técnico</th>
               <th>Relatório de campo</th>
               <th>Status</th>
               <th>Acompanhamento</th>
+              <th>Ação</th>
             </tr>
           </thead>
           <tbody id="tabela-relatorios">
@@ -432,49 +435,51 @@
       <span class="status-mapa">Monitoramento Ativo</span>
     </div>
 
-    <div class="secao-mapa-detalhes painel-mapa-tecnico" style="margin-top: 15px;">
-      <div class="cartao cartao-mapa-wrapper" style="box-shadow: none; border: none; padding: 0;">
+    <div class="secao-mapa-detalhes painel-mapa-tecnico">
+      <article class="cartao cartao-mapa-wrapper mapa-admin-card">
         <div class="mapa-header">
-          <div>
-            <p>Selecione um talhão para consultar a situação em campo.</p>
-          </div>
+          <div><p>Selecione um talhão para consultar a situação em campo.</p></div>
           <div class="botoes-do-talhao" id="botoes-talhao" aria-label="Seleção de talhão"></div>
         </div>
-
+        <p class="texto-ajuda">Edite os limites, crie ou remova talhões e salve as alterações.</p>
         <div class="mapa-container">
           <img src="imagem/mapa-FrutLog.jpg" alt="Mapa aéreo dos talhões" class="mapa-imagem">
           <svg class="camada-talhoes" id="camada-talhoes" viewBox="0 0 500 400" preserveAspectRatio="none" aria-label="Talhões da fazenda"></svg>
         </div>
         <p class="texto-ajuda" id="mensagem-geometria-talhoes" aria-live="polite"></p>
-
         <div class="legenda-mapa">
           <div class="legenda-item"><span class="legenda-cor legenda-normal"></span><span>Normal</span></div>
           <div class="legenda-item"><span class="legenda-cor legenda-atencao"></span><span>Atenção</span></div>
           <div class="legenda-item"><span class="legenda-cor legenda-critico"></span><span>Crítico</span></div>
           <div class="legenda-item"><span class="legenda-cor legenda-selecao"></span><span>Selecionado</span></div>
         </div>
+      </article>
+      <article class="cartao card-detalhes-elegante">
+        <div class="cabecalho-detalhes"><span class="badge-status" id="tecnico-talhao-status">Normal</span><h2 class="titulo-talhao" id="tecnico-titulo-talhao">Detalhes: Talhão A1</h2></div>
+        <div class="info-grid-detalhes">
+          <div class="item-detalhe"><span class="label">Produto</span><span class="valor" id="tecnico-talhao-produto">--</span></div>
+          <div class="item-detalhe"><span class="label">Variedade</span><span class="valor" id="tecnico-talhao-variedade">--</span></div>
+          <div class="item-detalhe"><span class="label">Área</span><span class="valor" id="tecnico-talhao-area">--</span></div>
+          <div class="item-detalhe"><span class="label">Tipo de solo</span><span class="valor" id="tecnico-talhao-solo">--</span></div>
+          <div class="item-detalhe"><span class="label">Data de plantio</span><span class="valor" id="tecnico-talhao-plantio">--</span></div>
+          <div class="item-detalhe"><span class="label">Previsão de colheita</span><span class="valor" id="tecnico-talhao-colheita">--</span></div>
+          <div class="item-detalhe"><span class="label">Sensor principal</span><span class="valor" id="tecnico-talhao-sensor">--</span></div>
+          <div class="item-detalhe"><span class="label">Temperatura configurada</span><span class="valor" id="tecnico-talhao-limite">--</span></div>
+          <div class="item-detalhe"><span class="label">Temperatura atual</span><span class="valor" id="tecnico-talhao-temperatura">--</span></div>
+          <div class="item-detalhe"><span class="label">Umidade atual</span><span class="valor" id="tecnico-talhao-umidade">--</span></div>
+          <div class="item-detalhe destaque-fruta"><span class="label">Prioridade do campo</span><span class="valor" id="tecnico-talhao-prioridade">--</span></div>
+        </div>
+
+        <!-- Botão para encerrar ciclo do talhão -->
+        <div class="area-botao-cadastro">
+          <button type="button" id="btn-encerrar-ciclo-talhao" class="btn-secundario"disabled>Encerrar ciclo deste talh&atilde;o</button>
+        </div>
+        <p class="mensagem-feedback" id="mensagem-encerramento-ciclo" aria-live="polite"></p>
+        
       </div>
 
-<div class="cartao card-detalhes-elegante">
-  <div class="cabecalho-detalhes">
-    <span class="badge-status" id="tecnico-talhao-status">Normal</span>
-    <h2 class="titulo-talhao" id="tecnico-titulo-talhao">Detalhes: Talhão A1</h2>
-  </div>
-  <div class="info-grid-detalhes">
-    <div class="item-detalhe"><span class="label">Produto</span><span class="valor" id="tecnico-talhao-produto">--</span></div>
-    <div class="item-detalhe"><span class="label">Variedade</span><span class="valor" id="tecnico-talhao-variedade">--</span></div>
-    <div class="item-detalhe"><span class="label">Área</span><span class="valor" id="tecnico-talhao-area">--</span></div>
-    <div class="item-detalhe"><span class="label">Tipo de solo</span><span class="valor" id="tecnico-talhao-solo">--</span></div>
-    <div class="item-detalhe"><span class="label">Data de plantio</span><span class="valor" id="tecnico-talhao-plantio">--</span></div>
-    <div class="item-detalhe"><span class="label">Previsão de colheita</span><span class="valor" id="tecnico-talhao-colheita">--</span></div>
-    <div class="item-detalhe"><span class="label">Sensor principal</span><span class="valor" id="tecnico-talhao-sensor">--</span></div>
-    <div class="item-detalhe"><span class="label">Temperatura configurada</span><span class="valor" id="tecnico-talhao-limite">--</span></div>
-    <div class="item-detalhe"><span class="label">Temperatura atual</span><span class="valor" id="tecnico-talhao-temperatura">--</span></div>
-    <div class="item-detalhe"><span class="label">Umidade atual</span><span class="valor" id="tecnico-talhao-umidade">--</span></div>
-    <div class="item-detalhe destaque-fruta"><span class="label">Prioridade do campo </span><span class="valor" id="tecnico-talhao-prioridade">--</span></div>
-  </div>
-</div>
-</div>
+      </article>
+    </div>
 </section>
 
     <!-- SEÇÃO GRÁFICOS (GARANTE O GRÁFICO DE COLHEITA ANUAL) -->
@@ -544,6 +549,7 @@
   <script src="js/telemetria-thingspeak.js"></script>
   <script src="js/colheitas.js"></script>
   <script src="js/chatbot.js"></script>
+  <script src="js/editor-mapa-admin.js"></script>
   <script src="js/admin.js"></script>
   <script src="js/pulse-frutlog.js"></script>
   <script src="js/vendor/flatpickr.min.js"></script>
