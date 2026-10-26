@@ -13,8 +13,9 @@ async function db(config, resource, method = "GET", data, query = "") {
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    const message = body.message || body.details || body.hint || `HTTP ${response.status}`;
-    console.error(`PostgREST [${method} ${resource}${query}]:`, message);
+    const detalhes = [body.message, body.details, body.hint].filter(Boolean).join(" | ");
+    const message = detalhes || `HTTP ${response.status}`;
+    console.error(`PostgREST Erro [${method} ${resource}${query}]:`, JSON.stringify(body, null, 2));
     throw new Error(`Falha no banco de dados: ${message}`);
   }
   return response.status === 204 ? [] : response.json();
