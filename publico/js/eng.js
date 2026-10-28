@@ -491,6 +491,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     return codigo;
   }
 
+  // INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: retangulo com 8 pontos de ajuste
+  // Monta um retangulo em volta do ponto clicado: 4 cantos + o meio de cada lado.
+  // Com os pontos do meio o talhao fica mais facil de moldar depois.
+  function retanguloComOitoPontos(centro, largura = 90, altura = 70) {
+    const limitar = (valor, maximo) => Math.min(Math.max(valor, 0), maximo);
+    const esquerda = limitar(centro[0] - largura / 2, 500);
+    const direita = limitar(centro[0] + largura / 2, 500);
+    const topo = limitar(centro[1] - altura / 2, 400);
+    const base = limitar(centro[1] + altura / 2, 400);
+    const meioX = (esquerda + direita) / 2;
+    const meioY = (topo + base) / 2;
+
+    // sentido horario, comecando no canto superior esquerdo
+    return [
+      [esquerda, topo], [meioX, topo], [direita, topo], [direita, meioY],
+      [direita, base], [meioX, base], [esquerda, base], [esquerda, meioY],
+    ];
+  }
+  // FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO
+
   function concluirCriacao() {
     if (!modoCriacao || pontosCriacao.length < 3) {
       exibirMensagemEdicao("Adicione pelo menos três pontos para criar um talhão.", "erro");
@@ -550,11 +570,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     pontosDivisao = [];
     atualizarControlesEdicao();
     renderizarMapa();
+    // INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: mensagem do novo modo de um clique
     exibirMensagemEdicao(
       codigoGeometriaPendente
-        ? `Desenhe os limites do talhão ${codigoGeometriaPendente}. Dê dois cliques para finalizar.`
-        : "Clique no mapa para adicionar pontos. Dê dois cliques para finalizar."
+        ? `Clique no mapa para posicionar o talhão ${codigoGeometriaPendente}. Depois arraste os 8 pontos para ajustar a forma.`
+        : "Clique no mapa para criar o talhão. Depois arraste os 8 pontos para ajustar a forma."
     );
+    // FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO
   }
 
   function iniciarDivisao() {
@@ -1084,9 +1106,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    pontosCriacao.push(ponto);
-    atualizarControlesEdicao();
-    renderizarMapa();
+    // INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: um clique cria um retangulo de 8 pontos
+    pontosCriacao = retanguloComOitoPontos(ponto);
+    concluirCriacao();
+    // FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO
   });
 
   svgMapa?.addEventListener("dblclick", (evento) => {

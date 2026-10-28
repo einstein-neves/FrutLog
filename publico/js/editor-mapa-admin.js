@@ -74,13 +74,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!current() || !Number.isFinite(Number(area.value)) || Number(area.value) <= 0) return;
     current().properties.area_hectares = Number(area.value); current().properties.area = `${area.value} hectares`;
   });
-  button('create', 'Criar', () => { drawing = true; points = []; render(); say('Marque pelo menos três pontos no mapa e clique em Concluir desenho.'); });
-  button('finish', 'Concluir desenho', () => {
+  // INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: mensagem do novo modo de um clique
+  button('create', 'Criar', () => { drawing = true; points = []; render(); say('Clique no mapa para criar o talhão. Depois arraste os 8 pontos para ajustar a forma.'); });
+  // FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO
+  // INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: criacao virou funcao, para o clique no mapa chamar direto
+  function concluirDesenho() {
     if (points.length < 3) return;
     let index = 1; while (features.some(f => f.properties.codigo === `T${index}`)) index++;
     selected = `T${index}`; features.push(FrutLogTalhoes.criarFeature(selected, points)); drawing = false; points = [];
     refreshSelect(); render(); area.focus(); say('Informe a área em hectares do novo talhão antes de salvar.');
-  });
+  }
+  button('finish', 'Concluir desenho', concluirDesenho);
+  // FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO
   button('save', 'Salvar', async () => {
     if (features.some(f => !Number.isFinite(Number(f.properties.area_hectares)) || Number(f.properties.area_hectares) <= 0 || FrutLogTalhoes.obterPontos(f).length < 3)) {
       say('Todos os talhões precisam de área positiva e limites com pelo menos três pontos.', true); return;
@@ -110,11 +115,35 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshSelect(); render(); say('Talhão removido da edição. Clique em Salvar para confirmar.');
   });
   button('cancel', 'Cancelar', () => { editing = false; drawing = false; drag = null; removed = []; sync(); renderizarMapaAdmin(); say('Edição cancelada.'); });
+    // INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: um clique cria um retangulo de 8 pontos
+  // Monta um retangulo em volta do ponto clicado: 4 cantos + o meio de cada lado,
+  // para o talhao novo ja nascer facil de moldar. Mesmo comportamento do painel do engenheiro.
+  function retanguloComOitoPontos(centro, largura = 90, altura = 70) {
+    const limitar = (valor, maximo) => Math.min(Math.max(valor, 0), maximo);
+    const esquerda = limitar(centro[0] - largura / 2, 500);
+    const direita = limitar(centro[0] + largura / 2, 500);
+    const topo = limitar(centro[1] - altura / 2, 400);
+    const base = limitar(centro[1] + altura / 2, 400);
+    const meioX = (esquerda + direita) / 2;
+    const meioY = (topo + base) / 2;
+
+    return [
+      [esquerda, topo], [meioX, topo], [direita, topo], [direita, meioY],
+      [direita, base], [meioX, base], [esquerda, base], [esquerda, meioY],
+    ];
+  }
+  // FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO
   function point(event) {
     const rectangle = svg.getBoundingClientRect();
     return [Math.max(0, Math.min(500, (event.clientX - rectangle.left) * 500 / rectangle.width)), Math.max(0, Math.min(400, (event.clientY - rectangle.top) * 400 / rectangle.height))];
   }
-  svg.addEventListener('click', event => { if (!editing || !drawing || saving) return; points.push(point(event)); render(); });
+   // INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: um clique cria o talhao pronto
+  svg.addEventListener('click', event => {
+    if (!editing || !drawing || saving) return;
+    points = retanguloComOitoPontos(point(event));
+    concluirDesenho();
+  });
+  // FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO
   window.addEventListener('pointermove', event => {
     if (!editing || drag === null || saving || !current()) return;
     const vertices = FrutLogTalhoes.obterPontos(current()); vertices[drag] = point(event);
