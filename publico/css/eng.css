@@ -1,0 +1,246 @@
+/* =========================================================
+   FRUTLOG - ENGENHEIRO AGRONOMO
+   Estilos exclusivos da tela do Engenheiro.
+   ========================================================= */
+
+/* Realce do cadastro e ferramentas de edição dos talhões. */
+.card-cadastro-produto {
+  border-top: 6px solid var(--cor-destaque);
+}
+
+#cadastro-plantio .info-grid-cadastro {
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+}
+
+#cadastro-plantio .item-detalhe-cadastro:last-child {
+  grid-column: span 1;
+}
+
+.resumo-ciclo-atual {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background: #f8faf7;
+  color: var(--cor-texto-escuro);
+}
+
+.resumo-ciclo-atual strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.resumo-ciclo-atual p {
+  margin: 0;
+  color: var(--cor-texto-suave);
+}
+
+#telemetria .fa-bolt,
+#historico .fa-calendar-days {
+  color: var(--cor-destaque);
+}
+
+.destaque-tecnico {
+  background-color: #f5f9ff;
+  border-color: #d9e8fb;
+}
+
+.destaque-tecnico .valor {
+  color: #244766;
+}
+
+.barra-edicao-talhao {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.barra-edicao-talhao label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.barra-edicao-talhao input {
+  width: 120px;
+  min-height: 38px;
+  padding: 6px 8px;
+}
+
+.barra-edicao-talhao .btn-filtro:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.mapa-container.modo-edicao {
+  cursor: crosshair;
+}
+.mapa-container.modo-edicao .camada-talhoes {
+  pointer-events: auto;
+  touch-action: none;
+}
+.mapa-container.modo-edicao .ponto-arrastavel {
+  fill: #fff;
+  stroke: var(--cor-destaque);
+  stroke-width: 2;
+  pointer-events: all;
+  cursor: grab;
+}
+.mapa-container.modo-edicao .ponto-arrastavel:active { cursor: grabbing; }
+
+.mapa-container.modo-divisao {
+  cursor: cell;
+}
+
+.poligono-rascunho {
+  fill: rgba(123, 31, 162, 0.18);
+  stroke: var(--cor-selecao);
+  stroke-dasharray: 5 4;
+  stroke-width: 1.8;
+  pointer-events: none;
+}
+
+.linha-divisao-talhao {
+  fill: none;
+  stroke: var(--cor-selecao);
+  stroke-dasharray: 8 5;
+  stroke-linecap: round;
+  stroke-width: 2.2;
+  pointer-events: none;
+}
+
+.thingspeak-embeds {
+    display: grid;
+    /* Uma coluna por grafico, com minimo de 260px: em tela larga os tres ficam
+       lado a lado e em tela estreita eles quebram sozinhos. */
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+    gap: 20px; /* Espaçamento agradável entre os cartões */
+    margin-top: 20px;
+}
+
+/* Estilo individual de cada cartão de gráfico */
+.thingspeak-embeds article {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Efeito leve ao passar o mouse por cima do gráfico */
+.thingspeak-embeds article:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+}
+
+/* Garante que o iframe preencha o espaço interno perfeitamente */
+.thingspeak-embeds .container-iframe {
+    width: 100%;
+    height: 300px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.thingspeak-embeds iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.card-grafico-thingspeak {
+  width: 100%;
+  margin: 0 0 20px;
+}
+
+.card-grafico-thingspeak > h1 {
+  margin: 0 0 20px;
+  font-size: 1.5rem;
+  color: black;
+}
+
+.container-iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: 300px;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.container-iframe iframe {
+  width: 100%;
+  height: 90%;
+  overflow: hidden;
+  border: none;
+  display: block;
+  justify-content: center;
+  align-items: center;
+}
+
+.graficos-thingspeak {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+.graficos-thingspeak-item {
+  min-width: 0;
+  padding: 18px;
+  background-color: var(--cor-card);
+  border-radius: 10px;
+  box-shadow: var(--sombra-card);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  overflow: hidden;
+  align-items: center;
+}
+
+.graficos-thingspeak-item h2 {
+  margin: 0 0 15px;
+  font-size: 1rem;
+  color: var(--cor-texto-escuro);
+  width: 100%;
+}
+
+.grafico-clima-mensal {
+  position: relative;
+  width: 100%;
+  height: 350px;
+}
+
+/* Ajustes de largura para tablets e celulares. */
+@media (max-width: 900px) {
+  #cadastro-plantio .info-grid-cadastro {
+    grid-template-columns: 1fr;
+  }
+
+  /* Em tablets e ecrãs menores, os gráficos passam a empilhar (100% de largura) */
+  .thingspeak-embeds .container-iframe {
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 760px) {
+  #cadastro-plantio .info-grid-cadastro {
+    grid-template-columns: 1fr;
+  }
+
+  .barra-edicao-talhao .btn-filtro {
+    flex: 1 1 calc(50% - 6px);
+  }
+
+
+  .thingspeak-embeds .container-iframe iframe {
+    height: 450px; /* Reduz ligeiramente a altura em telemóveis para melhor visualização */
+  }
+}
+
+@media (max-width: 1024px) {
+    .thingspeak-embeds {
+        grid-template-columns: 1fr;
+    }
+}

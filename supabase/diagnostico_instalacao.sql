@@ -161,3 +161,15 @@ select
   (select count(*) from public.colheita) as colheitas,
   (select count(*) from public.talhao where coordenadas is not null) as talhoes_com_geometria,
   (select count(*) from public.talhao where coordenadas is null) as talhoes_sem_geometria;
+
+-- Identifica talhoes com mais de um ciclo ativo antes de aplicar a restricao unica.
+select
+  t.id as talhao_id,
+  t.codigo as talhao,
+  count(*) as ciclos_ativos
+from public.ciclo_cultura cc
+join public.talhao t on t.id = cc.talhao_id
+where cc.status = 'ativo'
+group by t.id, t.codigo
+having count(*) > 1
+order by t.codigo;

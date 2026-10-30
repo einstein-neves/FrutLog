@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/pulse-frutlog.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <title>FrutLog - Administracao</title>
+  <link rel="stylesheet" href="css/formularios.css">
+  <link rel="stylesheet" href="css/vendor/flatpickr.min.css">
+  <link rel="stylesheet" href="css/calendarios.css">
+</head>
+
+<body class="layout-dashboard" data-console-role="admin">
+  <aside class="sidebar">
+    <div class="logo-area">
+      <i class="fa-solid fa-leaf logo-icone" aria-hidden="true"></i>
+      <h2>FrutLog</h2>
+    </div>
+
+    <nav class="menu" aria-label="Menu administrativo">
+      <a href="#funcionarios" class="nav-link active"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Funcionarios</a>
+      <a href="#sensores-admin" class="nav-link"><i class="fa-solid fa-microchip" aria-hidden="true"></i> Sensores</a>
+      <a href="#resumo-tecnico" class="nav-link"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i> Dados de Campo</a>
+      <a href="#colheitas-admin" class="nav-link"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> Colheitas</a>
+      <a href="#telemetria-admin" class="nav-link"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i> Telemetria</a>
+      <a href="#relatorios-diarios" class="nav-link"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Relatorios Recebidos</a>
+      <a href="#mapa-fazenda" class="nav-link"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> Mapa</a>
+      <a href="#graficos" class="nav-link"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Graficos</a>
+    </nav>
+    
+    <div class="sidebar-acoes">
+      <button id="btn-logout" class="btn-logout" type="button"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Sair</button>
+    </div>
+  </aside>
+
+  <main class="conteudo-dashboard">
+    <section class="topo">
+      <h1>Administracao do Sistema</h1>
+      <p>Gestão integrada da equipe, sensores, talhões e operação de campo.</p>
+      <p id="mensagem-carregamento-admin" class="mensagem-feedback" aria-live="polite"></p>
+    </section>
+
+    <section id="funcionarios" class="cartao">
+      <div class="cabecalho-cadastro">
+        <span class="badge-status">Equipe</span>
+        <h2 class="titulo-talhao">Cadastro de Funcionarios</h2>
+      </div>
+
+      <form id="form-funcionario">
+        <input type="hidden" id="funcionario-id" name="id">
+        <div class="info-grid-cadastro">
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="funcionario-matricula">Matrícula</label>
+            <input id="funcionario-matricula" name="matricula" class="campo-formulario" readonly required>
+            <span class="texto-ajuda">Gerada automaticamente pelo sistema.</span>
+          </div>
+
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="funcionario-nome">Nome</label>
+            <input id="funcionario-nome" name="nome" class="campo-formulario" required>
+          </div>
+
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="funcionario-cargo">Cargo</label>
+            <input id="funcionario-cargo" name="cargo" class="campo-formulario" placeholder="Ex.: Tecnico agricola" required>
+          </div>
+          
+          <!-- desativado por hora <div class="item-detalhe-cadastro">
+            <label class="label" for="funcionario-profissao">Profissao</label>
+            <input id="funcionario-profissao" name="profissao" class="campo-formulario" maxlength="160" required>
+          </div> -->
+
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="funcionario-perfil">Perfil de acesso</label>
+            <select id="funcionario-perfil" name="perfil" class="campo-formulario" required>
+              <option value="">Selecione</option>
+              <option value="engenheiro">Engenheiro</option>
+              <option value="tecnico">Tecnico</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="funcionario-status">Status</label>
+            <select id="funcionario-status" name="status" class="campo-formulario" required>
+              <option value="ativo">Ativo</option>
+              <option value="inativo">Inativo</option>
+            </select>
+          </div>
+
+          <div class="item-detalhe-cadastro">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <label class="label" for="funcionario-senha" style="margin-bottom:0;">Senha provisoria</label>
+              <button type="button" id="btn-gerar-senha" style="background:none; border:none; color:var(--cor-destaque); font-size:0.8rem; cursor:pointer; font-weight:600;"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> Gerar automatica</button>
+            </div>
+
+            <input type="text" id="funcionario-senha" name="senha" class="campo-formulario" minlength="8" maxlength="10" autocomplete="new-password" placeholder="8 a 10 caracteres" required>
+            <div class="acoes-senha-provisoria">
+              <button type="button" class="btn-secundario" id="btn-mostrar-senha">Mostrar senha</button>
+              <button type="button" class="btn-secundario" id="btn-copiar-senha">Copiar senha</button>
+            </div>
+
+            <span class="texto-ajuda">O funcionário deverá trocá-la no primeiro acesso.</span>
+          </div>
+        </div>
+        <p class="mensagem-feedback" id="mensagem-funcionario" aria-live="polite"></p>
+        <div class="area-botao-cadastro">
+          <button id="btn-salvar-funcionario" type="submit" class="btn-primario"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Cadastrar Funcionario</button>
+          <button id="btn-cancelar-edicao-funcionario" type="button" class="btn-secundario" hidden>Cancelar edicao</button>
+        </div>
+      </form>
+
+      <div class="subsecao-admin">
+        <div class="titulo-cartao"><i class="fa-solid fa-address-book" aria-hidden="true"></i> Funcionarios Cadastrados</div>
+        <div class="filtros-admin">
+          <label for="filtro-funcionarios">Buscar funcionario</label>
+          <input id="filtro-funcionarios" class="campo-formulario" type="search" placeholder="Nome, matricula ou cargo">
+          <label for="filtro-status-funcionarios">Exibir</label>
+          <select id="filtro-status-funcionarios" class="campo-formulario">
+            <option value="todos">Todos</option>
+            <option value="ativo">Ativos</option>
+            <option value="inativo">Inativos</option>
+          </select>
+        </div>
+
+        <div class="tabela-responsiva lista-funcionarios-scroll">
+          <table class="tabela-dados">
+            <thead>
+              <tr>
+                <th>Matricula</th>
+                <th>Nome</th>
+                <th>Cargo</th>
+                <!-- <th>Profissao</th> -->
+                <th>Perfil</th>
+                <th>Status</th>
+                <th>Acoes</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-funcionarios"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="sensores-admin" class="cartao">
+      <div class="cabecalho-cadastro">
+        <span class="badge-status">IoT</span>
+        <h2 class="titulo-talhao">Gestão de Sensores</h2>
+      </div>
+      <form id="form-sensor">
+        <div class="info-grid-cadastro">
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="sensor-identificador">Identificador externo</label>
+            <input id="sensor-identificador" name="sensor" class="campo-formulario" maxlength="80" required>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="sensor-talhao">Talhão</label>
+            <select id="sensor-talhao" name="talhao" class="campo-formulario" required></select>
+          </div>
+
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="sensor-tipo">Metrica</label>
+            <select id="sensor-tipo" name="tipo" class="campo-formulario" required>
+              <option value="">Selecione</option>
+              <option value="temperatura">Temperatura</option>
+              <option value="umidadeSolo">Umidade do solo</option>
+              <option value="umidadeAr">Umidade do ar</option>
+              <option value="chuva">Chuva</option>
+            </select>
+          </div>
+
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="sensor-unidade">Unidade</label>
+            <input id="sensor-unidade" name="unidade" class="campo-formulario" maxlength="20" placeholder="C, %, mm" required>
+          </div>
+        </div>
+
+        <p class="mensagem-feedback" id="mensagem-sensor" aria-live="polite"></p>
+        <div class="area-botao-cadastro">
+          <button type="submit" class="btn-primario"><i class="fa-solid fa-plus" aria-hidden="true"></i> Cadastrar Sensor</button>
+        </div>
+      </form>
+
+      <div class="tabela-responsiva">
+        <table class="tabela-dados">
+          <thead>
+            <tr>
+            <th>Identificador</th>
+            <th>Talhão</th>
+            <th>Metrica</th>
+            <th>Leitura</th>
+            <th>Status</th>
+            <th>Acoes</th>
+          </tr>
+        </thead>
+          <tbody id="tabela-sensores-admin"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="resumo-tecnico" class="cartao">
+      <div class="titulo-cartao"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i> Visao Consolidada da Operacao</div>
+      <p id="mensagem-dados-tecnicos" class="mensagem-feedback" aria-live="polite"></p>
+      <div class="resumo-admin">
+        <article><span>Talhoes</span><strong id="resumo-total-talhoes">--</strong></article>
+        <article><span>Sensores</span><strong id="resumo-total-sensores">--</strong></article>
+        <article><span>Inspecoes</span><strong id="resumo-total-inspecoes">--</strong></article>
+        <article><span>Tarefas pendentes</span><strong id="resumo-total-tarefas">--</strong></article>
+        <article><span>Alertas abertos</span><strong id="resumo-total-alertas">--</strong></article>
+      </div>
+      <div class="tabelas-consolidadas-admin">
+        <article>
+
+          <h3>Talhões e monitoramento</h3>
+          <p class="texto-ajuda">Talhões, áreas, plantios e sensores vêm dos registros da fazenda. Situação e prioridade são calculadas com base no cadastro e nas leituras dos sensores.</p>
+          <div class="tabela-responsiva">
+            <table class="tabela-dados"><thead>
+              <tr>
+                <th>Talhão</th>
+                <th>Produto / variedade</th>
+                <th>Area</th>
+                <th>Sensor</th>
+                <th>Leitura</th>
+                <th>Situacao</th>
+                <th>Prioridade</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-talhoes-admin"></tbody>
+          </table>
+        </div>
+        </article>
+
+        <article>
+          <h3>Plantios ativos</h3>
+          <div class="tabela-responsiva"><table class="tabela-dados"><thead><tr><th>Talhao</th><th>Produto / variedade</th><th>Area</th><th>Plantio</th>
+            <th>Previsao de colheita</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-plantios-admin"></tbody>
+      </table>
+    </div>
+        </article>
+
+        <article>
+          <h3>Ocorrencias de campo</h3>
+          <div class="tabela-responsiva"><table class="tabela-dados"><thead><tr><th>Data</th><th>Talhao</th><th>Tipo</th><th>Observacao</th></tr></thead><tbody id="tabela-ocorrencias-admin"></tbody></table></div>
+        </article>
+
+        <article>
+          <h3>Problemas em sensores</h3>
+          <div class="tabela-responsiva"><table class="tabela-dados"><thead><tr><th>Data</th><th>Sensor</th><th>Talhao</th><th>Problema</th><th>Observacao</th></tr></thead><tbody id="tabela-problemas-admin"></tbody></table></div>
+        </article>
+
+        <article>
+          <h3>Tarefas e alertas</h3>
+          <div class="tabela-responsiva"><table class="tabela-dados"><thead><tr><th>Talhao / assunto</th><th>Prioridade</th><th>Descricao</th><th>Status</th></tr></thead><tbody id="tabela-alertas-admin"></tbody></table></div>
+        </article>
+
+        <article>
+          <h3>Telemetria diaria consolidada</h3>
+          <div class="tabela-responsiva thingspeak-feed-scroll"><table class="tabela-dados"><thead><tr><th>Data</th><th>Talhão</th><th>Metrica</th><th>Media</th><th>Minimo</th><th>Maximo</th><th>Leituras</th></tr></thead><tbody id="tabela-telemetria-admin"></tbody></table></div>
+        </article>
+
+      </div>
+
+    </section>
+
+    <section id="telemetria-admin" class="cartao thingspeak-dashboard" data-thingspeak-panel aria-labelledby="admin-thingspeak-heading">
+        <div class="titulo-cartao" id="admin-thingspeak-heading">ThingSpeak / ESP32 — clima e telemetria</div>
+        <p class="mensagem-feedback" data-thingspeak-status aria-live="polite">Carregando canal ThingSpeak...</p>
+        <div class="thingspeak-summary" data-thingspeak-summary></div>
+        <!-- INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: graficos do ESP32 via Node-RED, um link por grafico, lado a lado -->
+        <div class="thingspeak-embeds" aria-label="Graficos do ESP32 via Node-RED">
+          <article><div class="container-iframe" style="height:300px;"><iframe src="http://localhost:1880/dashboard/temperatura" title="Grafico de temperatura via Node-RED" scrolling="no"></iframe></div></article>
+          <article><div class="container-iframe" style="height:300px;"><iframe src="http://localhost:1880/dashboard/umidade" title="Grafico de umidade via Node-RED" scrolling="no"></iframe></div></article>
+        </div>
+        <!-- FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO -->
+
+
+        <div class="thingspeak-chart"><canvas aria-label="Historico recente das metricas do ThingSpeak"></canvas></div>
+        <div class="thingspeak-feed-scroll">
+          <table class="tabela-dados">
+            <thead><tr><th>Data/hora</th>
+              <th>Temperatura</th>
+              <th>Umidade do ar</th>
+              <th>Umidade do solo</th>
+              <th>Chuva</th>
+            </tr>
+          </thead>
+
+
+
+            <tbody data-thingspeak-rows><tr><td colspan="5">Carregando...</td></tr></tbody>
+          </table>
+        </div>
+    </section>
+
+    <section id="colheitas-admin" class="cartao">
+        <div class="titulo-cartao"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> Registrar colheita</div>
+        <form data-form-colheita>
+          <div class="info-grid-cadastro">
+            <div class="item-detalhe-cadastro"><label class="label">Talhão</label><select name="talhao" class="campo-formulario" required></select></div>
+            <div class="item-detalhe-cadastro"><label class="label">Data da colheita</label><input name="colhidoEm" type="date" class="campo-formulario" required></div>
+            <div class="item-detalhe-cadastro"><label class="label">Quantidade</label><input name="quantidade" type="number" min="0.01" step="0.01" class="campo-formulario" required></div>
+            <div class="item-detalhe-cadastro"><label class="label">Unidade</label>
+              <select name="unidade" class="campo-formulario" required><option value="kg">Quilogramas (kg)</option>
+                <option value="t">Toneladas (t)</option>
+                <option value="sc">Sacas (sc)</option>
+                <option value="cx">Caixas (cx)</option>
+            </select>
+            </div>
+          </div>
+
+          <p class="mensagem-feedback" data-mensagem-colheita aria-live="polite"></p>
+          <div class="area-botao-cadastro"><button type="submit" class="btn-primario">Registrar colheita</button></div>
+        </form>
+    </section>
+
+    <section id="relatorios-diarios" class="cartao">
+      <div class="titulo-cartao"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Relatorios diarios recebidos</div>
+
+      <div class="filtros-relatorios">
+        <label for="filtro-relatorio-texto">Tecnico ou texto</label>
+        <input id="filtro-relatorio-texto" class="campo-formulario" type="search" placeholder="Buscar relatorio">
+        <label for="filtro-relatorio-data">Data</label>
+        <input id="filtro-relatorio-data" class="campo-formulario" type="date">
+        <label for="filtro-relatorio-status">Status</label>
+        <select id="filtro-relatorio-status" class="campo-formulario">
+          <option value="todos">Todos</option>
+          <option value="enviado">Enviado</option>
+          <option value="em_analise">Em analise</option>
+          <option value="concluido">Concluido</option>
+        </select>
+      </div>
+
+      <p id="mensagem-relatorios" class="mensagem-feedback" aria-live="polite"></p>
+      <div class="tabela-responsiva">
+        <table class="tabela-dados">
+          <thead><tr><th>Data</th>
+            <th>Tecnico</th>
+            <th>Relatorio de campo</th>
+            <th>Status</th>
+            <th>Acompanhamento</th>
+          </tr></thead>
+          <tbody id="tabela-relatorios"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="mapa-fazenda" class="cartao cartao-mapa-wrapper">
+      <div class="mapa-header">
+        <div>
+          <h2>Mapa da Fazenda</h2>
+          <p>Mapa administrativo dos talhões cadastrados e respectivos estados de monitoramento.</p>
+        </div>
+        <span class="status-mapa">Monitoramento Ativo</span>
+      </div>
+
+      <div class="mapa-container">
+        <img src="imagem/mapa-FrutLog.jpg" alt="Mapa aereo dos talhões" class="mapa-imagem">
+        <svg id="mapa-talhoes-admin" class="camada-talhoes" viewBox="0 0 500 400" preserveAspectRatio="none" aria-label="Talhões cadastrados"></svg>
+      </div>
+      <p id="mensagem-mapa-admin" class="texto-ajuda" aria-live="polite"></p>
+
+      <div class="legenda-mapa">
+        <div class="legenda-item"><span class="legenda-cor legenda-normal"></span><span>Normal</span></div>
+        <div class="legenda-item"><span class="legenda-cor legenda-atencao"></span><span>Atencao</span></div>
+        <div class="legenda-item"><span class="legenda-cor legenda-critico"></span><span>Critico</span></div>
+        <div class="legenda-item"><span class="legenda-cor legenda-selecao"></span><span>Selecionado</span></div>
+      </div>
+    </section>
+
+    <section id="graficos" class="admin-graficos">
+      <article class="cartao">
+        <div class="header-grafico">
+          <div><div class="titulo-cartao"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Historico Anual de Colheitas</div></div>
+          <div class="filtros-grafico" aria-label="Unidade do grafico de colheita">
+            <button class="btn-filtro active" type="button" data-unidade-admin="t">Toneladas (t)</button>
+            <button class="btn-filtro" type="button" data-unidade-admin="sc">Sacas (sc)</button>
+            <button class="btn-filtro" type="button" data-unidade-admin="kg">Quilogramas (kg)</button>
+            <button class="btn-filtro" type="button" data-unidade-admin="cx">Caixas (cx)</button>
+          </div>
+        </div>
+        <div class="resumo-colheita-admin">
+          <p>Ultima colheita: <strong id="resumo-colheita-ultima">--</strong></p>
+          <p>Menor ano: <strong id="resumo-colheita-menor">--</strong></p>
+          <p>Maior ano: <strong id="resumo-colheita-maior">--</strong></p>
+        </div>
+        <div class="admin-grafico-container">
+          <canvas id="grafico-colheita-anual"></canvas>
+        </div>
+        <p id="mensagem-colheita-admin" class="mensagem-feedback" aria-live="polite"></p>
+      </article>
+
+      <article class="cartao">
+        <div class="titulo-cartao"><i class="fa-solid fa-microchip" aria-hidden="true"></i> Clima Mensal</div>
+        <div class="admin-grafico-container">
+          <canvas id="grafico-clima-mensal"></canvas>
+        </div>
+      </article>
+    </section>
+  </main>
+
+
+  <section id="painel-chatbot" class="painel-chatbot" aria-label="Assistente FrutLog" hidden>
+    <header class="cabecalho-chatbot">
+      <strong>Assistente FrutLog</strong>
+      <button id="fechar-chatbot" type="button" aria-label="Fechar assistente">×</button>
+    </header>
+    <div id="mensagens-chatbot" class="mensagens-chatbot" aria-live="polite">
+      <p class="mensagem-chatbot">Pergunte sobre ocorrências recentes ou o estado dos sensores.</p>
+    </div>
+    <form id="form-chatbot" class="form-chatbot">
+      <label class="sr-only" for="pergunta-chatbot">Sua pergunta</label>
+      <input id="pergunta-chatbot" name="pergunta" maxlength="300" autocomplete="off" placeholder="Digite sua pergunta" required>
+      <button type="submit">Enviar</button>
+    </form>
+  </section>
+  <button id="chatbot" class="chatbot" type="button" aria-label="Abrir assistente" aria-expanded="false" aria-controls="painel-chatbot">
+    <i class="fa-solid fa-comment-dots" aria-hidden="true"></i>
+  </button>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/frutlog-talhoes.js"></script>
+  <script src="js/mapa-talhoes.js"></script>
+  <script src="js/relatorios.js"></script>
+  <script src="js/telemetria-thingspeak.js"></script>
+  <script src="js/colheitas.js"></script>
+  <script src="js/chatbot.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/editor-mapa-admin.js"></script>
+  <script src="js/pulse-frutlog.js"></script>
+  <script src="js/vendor/flatpickr.min.js"></script>
+  <script src="js/vendor/flatpickr-pt.js"></script>
+  <script src="js/calendarios.js"></script>
+</body>
+</html>
