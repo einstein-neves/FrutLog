@@ -23,7 +23,8 @@
     </div>
 
     <nav class="menu" aria-label="Menu do técnico">
-      <a href="#aba-monitoramento" class="nav-link active"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+      <a href="#aba-monitoramento" class="nav-link active"><i class="fa-solid fa-map-location-dot"
+          aria-hidden="true"></i>
         Monitoramento</a>
       <a href="#aba-registros" class="nav-link"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
         Registros de campo</a>
@@ -43,16 +44,7 @@
       <p class="mensagem-feedback" id="mensagem-dados-tecnicos" aria-live="polite"></p>
     </section>
 
-    <div class="abas-tecnico" role="tablist" aria-label="Seções do painel técnico">
-      <button id="tab-monitoramento" class="aba-tecnico ativa" type="button" role="tab" aria-selected="true"
-        aria-controls="aba-monitoramento" tabindex="0">Monitoramento e Detalhes de Talhões</button>
-      <button id="tab-registros" class="aba-tecnico" type="button" role="tab" aria-selected="false"
-        aria-controls="aba-registros" tabindex="-1">Registros de campo e Relatório diário</button>
-      <button id="tab-telemetria" class="aba-tecnico" type="button" role="tab" aria-selected="false"
-        aria-controls="aba-telemetria" tabindex="-1">Telemetria e histórico diário</button>
-    </div>
-
-    <div id="aba-monitoramento" class="painel-aba-tecnico" role="tabpanel" aria-labelledby="tab-monitoramento">
+    <div id="aba-monitoramento" class="painel-aba-tecnico">
       <section id="tarefas-dia" class="cartao">
         <div class="titulo-cartao"><i class="fa-solid fa-list-check" aria-hidden="true"></i> Tarefas do Dia</div>
         <div class="lista-tarefas" id="lista-tarefas"></div>
@@ -117,7 +109,7 @@
           </div>
         </div>
 
-       
+
         <section class="cartao">
           <div class="titulo-cartao"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Métricas dos Sensores
           </div>
@@ -160,9 +152,9 @@
       </section>
     </div>
 
-    <div id="aba-registros" class="painel-aba-tecnico" role="tabpanel" aria-labelledby="tab-registros" hidden>
-            <!-- Inspecoes e ocorrencias registradas durante a visita. -->
-<section id="registro-campo" class="cartao">
+    <div id="aba-registros" class="painel-aba-tecnico" hidden>
+      <!-- Inspecoes e ocorrencias registradas durante a visita. -->
+      <section id="registro-campo" class="cartao">
         <div class="cabecalho-cadastro">
           <span class="badge-status">Campo</span>
           <h2 class="titulo-talhao">Novo registro de campo</h2>
@@ -175,7 +167,7 @@
               class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Inspeção</button>
           <button type="button" class="btn-filtro" data-tipo-registro="ocorrencia" aria-pressed="false"><i
               class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Ocorrência</button>
-          
+
         </div>
 
         <form id="form-registro-campo">
@@ -223,7 +215,7 @@
                 <option>Outro</option>
               </select>
             </div>
-            
+
             <div class="item-detalhe-cadastro campo-largo" data-tipos="inspecao ocorrencia sensor">
               <label class="label" for="registro-observacoes">Observações</label>
               <textarea id="registro-observacoes" name="observacoes" class="campo-formulario"></textarea>
@@ -237,8 +229,8 @@
         </form>
       </section>
 
-            <!-- Relatorio diario enviado pelo tecnico. -->
-<section id="relatorio-diario" class="cartao">
+      <!-- Relatorio diario enviado pelo tecnico. -->
+      <section id="relatorio-diario" class="cartao">
         <div class="cabecalho-cadastro"><span class="badge-status">Relatório</span>
           <h2 class="titulo-talhao">Relatório diário de campo</h2>
         </div>
@@ -274,7 +266,7 @@
               <option value="">Todos</option>
               <option value="inspecao">Inspeções</option>
               <option value="ocorrencia">Ocorrências</option>
-              
+
             </select>
           </div>
         </div>
@@ -296,7 +288,7 @@
       </section>
     </div>
 
-    <div id="aba-telemetria" class="painel-aba-tecnico" role="tabpanel" aria-labelledby="tab-telemetria" hidden>
+    <div id="aba-telemetria" class="painel-aba-tecnico" hidden>
       <section class="cartao">
         <div class="titulo-cartao">Telemetria diária — médias por talhão</div>
         <div class="tabela-responsiva">
@@ -325,8 +317,7 @@
           <article>
             <h3>Temperatura (&deg;C)</h3>
             <div class="container-iframe" style="height:300px;">
-              <iframe loading="lazy" data-nodered-page="temperatura"
-                src="http://localhost:1880/dashboard/temperatura"
+              <iframe loading="lazy" data-nodered-page="temperatura" src="http://localhost:1880/dashboard/temperatura"
                 title="Grafico de temperatura via Node-RED" scrolling="no"></iframe>
             </div>
           </article>
@@ -334,8 +325,7 @@
           <article>
             <h3>Umidade do ar (%)</h3>
             <div class="container-iframe" style="height:300px;">
-              <iframe loading="lazy" data-nodered-page="umidade"
-                src="http://localhost:1880/dashboard/umidade"
+              <iframe loading="lazy" data-nodered-page="umidade" src="http://localhost:1880/dashboard/umidade"
                 title="Grafico de umidade do ar via Node-RED" scrolling="no"></iframe>
             </div>
           </article>
@@ -343,8 +333,7 @@
           <article>
             <h3>Umidade do solo (%)</h3>
             <div class="container-iframe" style="height:300px;">
-              <iframe loading="lazy" data-nodered-page="solo"
-                src="http://localhost:1880/dashboard/solo"
+              <iframe loading="lazy" data-nodered-page="solo" src="http://localhost:1880/dashboard/solo"
                 title="Grafico de umidade do solo via Node-RED" scrolling="no"></iframe>
             </div>
           </article>

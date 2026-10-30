@@ -102,48 +102,33 @@ function dataLocalISO() {
 }
 
 function configurarAbas() {
-  const abas = [...document.querySelectorAll(".aba-tecnico")];
+  const paineis = [...document.querySelectorAll(".painel-aba-tecnico")];
   const links = [...document.querySelectorAll(".menu .nav-link")];
-  const ativar = (abaAtiva) => {
-    abas.forEach((aba) => {
-      const ativa = aba === abaAtiva;
-      aba.classList.toggle("ativa", ativa);
-      aba.setAttribute("aria-selected", String(ativa));
-      aba.tabIndex = ativa ? 0 : -1;
-      document.getElementById(aba.getAttribute("aria-controls")).hidden = !ativa;
+
+  const ativar = (idPainel) => {
+    paineis.forEach((painel) => {
+      painel.hidden = painel.id !== idPainel;
     });
     links.forEach((link) => {
-      const ativo = link.hash === `#${abaAtiva.getAttribute("aria-controls")}`;
+      const ativo = link.hash === `#${idPainel}`;
       link.classList.toggle("active", ativo);
       if (ativo) link.setAttribute("aria-current", "page");
       else link.removeAttribute("aria-current");
     });
   };
 
-  abas.forEach((aba, indice) => {
-    aba.addEventListener("click", () => ativar(aba));
-    aba.addEventListener("keydown", (evento) => {
-      let proximo = indice;
-      if (evento.key === "ArrowRight") proximo = (indice + 1) % abas.length;
-      else if (evento.key === "ArrowLeft") proximo = (indice - 1 + abas.length) % abas.length;
-      else if (evento.key === "Home") proximo = 0;
-      else if (evento.key === "End") proximo = abas.length - 1;
-      else return;
-      evento.preventDefault();
-      abas[proximo].focus();
-      ativar(abas[proximo]);
-    });
-  });
   links.forEach((link) => link.addEventListener("click", (evento) => {
-    const aba = abas.find((item) => item.getAttribute("aria-controls") === link.hash.slice(1));
-    if (!aba) return;
+    const id = link.hash.slice(1);
+    if (!paineis.some((painel) => painel.id === id)) return;
     evento.preventDefault();
-    ativar(aba);
+    ativar(id);
     history.replaceState(null, "", link.hash);
   }));
-  if (abas.length) {
-    const abaInicial = abas.find((aba) => `#${aba.getAttribute("aria-controls")}` === window.location.hash);
-    ativar(abaInicial || abas[0]);
+
+  if (paineis.length) {
+    const idInicial = window.location.hash.slice(1);
+    const existe = paineis.some((painel) => painel.id === idInicial);
+    ativar(existe ? idInicial : paineis[0].id);
   }
 }
 
