@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include "arduino_secrets.h"
 
+// define SoloSensor 
 #define DHTPIN 4
 #define DHTTYPE DHT11
 #define BUZZER_PIN 1
