@@ -504,37 +504,105 @@ module.exports = async (req, res) => {
       );
     }
 
-        if (req.method === "GET" && route === "/telemetria/esp32-mensal") {
+    if (req.method === "GET" && route === "/telemetria/esp32-mensal") {
       if (!c.thingSpeak.channelId) return reply(res, 200, { mensal: [] }, origin);
       try {
         const agora = new Date();
+        const hoje = agora.toISOString().slice(0, 10);
         const inicio = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth() - 11, 1)).toISOString().slice(0, 10);
         const fim = agora.toISOString().slice(0, 19).replace("T", " ");
-        const consulta = `average=daily&start=${encodeURIComponent(`${inicio} 00:00:00`)}&end=${encodeURIComponent(fim)}`
-          + (c.thingSpeak.readApiKey ? `&api_key=${encodeURIComponent(c.thingSpeak.readApiKey)}` : "");
+        const base = `https://api.thingspeak.com/channels/${encodeURIComponent(c.thingSpeak.channelId)}/feeds.json`;
+        const chaveLeitura = c.thingSpeak.readApiKey ? `&api_key=${encodeURIComponent(c.thingSpeak.readApiKey)}` : "";
+        const campos = Object.entries(c.thingSpeak.fields);
+        const valido = (valor) => valor !== null && valor !== undefined && valor !== "" && Number.isFinite(Number(valor));
+
+        // 1) Média diária: serve para descobrir em quais dias o ESP32 enviou dados.
         const resposta = await fetch(
-          `https://api.thingspeak.com/channels/${encodeURIComponent(c.thingSpeak.channelId)}/feeds.json?${consulta}`,
+          `${base}?average=daily&start=${encodeURIComponent(`${inicio} 00:00:00`)}&end=${encodeURIComponent(fim)}${chaveLeitura}`,
           { signal: AbortSignal.timeout(10000) }
         );
         if (!resposta.ok) return reply(res, 200, { mensal: [] }, origin);
         const corpo = await resposta.json();
-        const meses = new Map();
-        (corpo.feeds || []).forEach((feed) => {
-          const mes = String(feed.created_at).slice(0, 7);
-          Object.entries(c.thingSpeak.fields).forEach(([metrica, campo]) => {
-            const bruto = feed[`field${campo}`];
-            if (bruto === null || bruto === undefined || !Number.isFinite(Number(bruto))) return;
-            const chave = `${metrica}:${mes}`;
-            const item = meses.get(chave) || { mes, codigo_metrica: metrica, soma: 0, n: 0 };
-            item.soma += Number(bruto);
-            item.n += 1;
-            meses.set(chave, item);
+        const feedsDiarios = (corpo.feeds || []).filter((feed) => campos.some(([, campo]) => valido(feed[`field${campo}`])));
+
+        // 2) Leituras brutas de cada dia com dados: dão mínimo, máximo e quantidade de leituras.
+        //    Dias passados não mudam, então ficam guardados em memória; o dia de hoje é consultado de novo a cada 60 s.
+        if (!globalThis.__cacheEsp32Dias) globalThis.__cacheEsp32Dias = new Map();
+        const cache = globalThis.__cacheEsp32Dias;
+        const estatisticasDoDia = async (dia) => {
+          const guardado = cache.get(dia);
+          if (guardado && (dia < hoje || Date.now() - guardado.em < 60000)) return guardado.estatisticas;
+          const brutas = await fetch(
+            `${base}?results=8000&start=${encodeURIComponent(`${dia} 00:00:00`)}&end=${encodeURIComponent(`${dia} 23:59:59`)}${chaveLeitura}`,
+            { signal: AbortSignal.timeout(10000) }
+          );
+          if (!brutas.ok) throw new Error(`ThingSpeak respondeu HTTP ${brutas.status} para ${dia}`);
+          const dados = await brutas.json();
+          const estatisticas = {};
+          (dados.feeds || []).forEach((feed) => {
+            campos.forEach(([metrica, campo]) => {
+              const bruto = feed[`field${campo}`];
+              if (!valido(bruto)) return;
+              const numero = Number(bruto);
+              const item = estatisticas[metrica] || { soma: 0, n: 0, min: numero, max: numero };
+              item.soma += numero;
+              item.n += 1;
+              item.min = Math.min(item.min, numero);
+              item.max = Math.max(item.max, numero);
+              estatisticas[metrica] = item;
+            });
           });
-        });
-        const mensal = [...meses.values()].map(({ mes, codigo_metrica, soma, n }) => ({
-          mes,
-          codigo_metrica,
-          valor_medio: Number((soma / n).toFixed(2))
+          cache.set(dia, { estatisticas, em: Date.now() });
+          return estatisticas;
+        };
+
+        const meses = new Map();
+        let completo = true;
+        const dias = feedsDiarios.map((feed) => String(feed.created_at).slice(0, 10));
+        try {
+          for (let i = 0; i < dias.length; i += 4) {
+            const lote = dias.slice(i, i + 4);
+            const resultados = await Promise.all(lote.map(estatisticasDoDia));
+            resultados.forEach((estatisticas, indice) => {
+              const mes = lote[indice].slice(0, 7);
+              Object.entries(estatisticas).forEach(([metrica, dado]) => {
+                const chave = `${metrica}:${mes}`;
+                const item = meses.get(chave) || { mes, codigo_metrica: metrica, soma: 0, n: 0, min: dado.min, max: dado.max };
+                item.soma += dado.soma;
+                item.n += dado.n;
+                item.min = Math.min(item.min, dado.min);
+                item.max = Math.max(item.max, dado.max);
+                meses.set(chave, item);
+              });
+            });
+          }
+        } catch (erro) {
+          // Se as leituras brutas falharem, volta para a média das médias diárias (sem mínimo, máximo e leituras).
+          console.error("ThingSpeak: leituras brutas indisponíveis, usando só a média diária:", erro.message);
+          completo = false;
+          meses.clear();
+          feedsDiarios.forEach((feed) => {
+            const mes = String(feed.created_at).slice(0, 7);
+            campos.forEach(([metrica, campo]) => {
+              const bruto = feed[`field${campo}`];
+              if (!valido(bruto)) return;
+              const chave = `${metrica}:${mes}`;
+              const item = meses.get(chave) || { mes, codigo_metrica: metrica, soma: 0, n: 0 };
+              item.soma += Number(bruto);
+              item.n += 1;
+              meses.set(chave, item);
+            });
+          });
+        }
+        const mensal = [...meses.values()].map((item) => ({
+          mes: item.mes,
+          codigo_metrica: item.codigo_metrica,
+          valor_medio: Number((item.soma / item.n).toFixed(2)),
+          ...(completo ? {
+            valor_minimo: Number(item.min.toFixed(2)),
+            valor_maximo: Number(item.max.toFixed(2)),
+            leituras_contabilizadas: item.n
+          } : {})
         }));
         return reply(res, 200, { mensal }, origin);
       } catch (error) {

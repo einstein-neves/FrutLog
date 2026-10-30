@@ -367,13 +367,10 @@ function renderizarResumoTelemetriaDiaria() {
 function renderizarTelemetriaMensal() {
   const tabela = document.getElementById("tabela-telemetria-mensal-tecnico");
   if (!tabela) return;
-  // O ESP32 (ThingSpeak) não é vinculado a talhão e só informa a média mensal.
+  // O ESP32 (ThingSpeak) não é vinculado a talhão; mínimo, máximo e leituras vêm calculados pelo servidor.
   const linhasEsp32 = telemetriaMensalEsp32.map((item) => ({
     ...item,
     talhao: "ESP32 (ThingSpeak)",
-    valor_minimo: null,
-    valor_maximo: null,
-    leituras_contabilizadas: null,
   }));
   const linhas = [...telemetriaMensal, ...linhasEsp32]
     .sort((a, b) => String(b.mes).localeCompare(String(a.mes)));
