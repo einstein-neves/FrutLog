@@ -9,6 +9,35 @@ const FrutLogMapaTalhoes = (() => {
     tecnico: ["tecnico"],
   };
 
+  // Codigos de talhoes arquivados: saem do mapa, mas continuam ocupados no banco.
+  // Guardamos aqui para o editor nunca reaproveitar um deles ao criar ou dividir.
+  let codigosArquivados = new Set();
+
+  function registrarCodigosArquivados(codigos) {
+    codigosArquivados = new Set(
+      (Array.isArray(codigos) ? codigos : [])
+        .map((codigo) => String(codigo || "").trim())
+        .filter(Boolean)
+    );
+    return codigosArquivados;
+  }
+
+  function adicionarCodigosArquivados(codigos) {
+    (Array.isArray(codigos) ? codigos : [])
+      .map((codigo) => String(codigo || "").trim())
+      .filter(Boolean)
+      .forEach((codigo) => codigosArquivados.add(codigo));
+    return codigosArquivados;
+  }
+
+  function codigoArquivado(codigo) {
+    return codigosArquivados.has(String(codigo || "").trim());
+  }
+
+  function listarCodigosArquivados() {
+    return [...codigosArquivados];
+  }
+
   function normalizarStatus(status) {
     const normalizado = String(status || "normal")
       .toLowerCase()
@@ -41,6 +70,7 @@ const FrutLogMapaTalhoes = (() => {
     if (!Array.isArray(resposta?.talhoes)) {
       throw new Error("A API retornou uma lista de talhões inválida.");
     }
+    registrarCodigosArquivados(resposta.codigos_arquivados);
     return FrutLogTalhoes.carregarDoServidor(resposta.talhoes);
   }
 
@@ -82,5 +112,12 @@ const FrutLogMapaTalhoes = (() => {
     return renderizados;
   }
 
-  return { carregarMapaTalhoes, renderizarMapaTalhoes };
+  return {
+    carregarMapaTalhoes,
+    renderizarMapaTalhoes,
+    registrarCodigosArquivados,
+    adicionarCodigosArquivados,
+    listarCodigosArquivados,
+    codigoArquivado,
+  };
 })();

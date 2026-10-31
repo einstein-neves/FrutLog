@@ -13,12 +13,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const mensagemLogin = document.getElementById("mensagem-login");
 
   function exibirMensagem(texto, tipo = "") {
-    if (!mensagemLogin) {
-      return;
+    if (mensagemLogin) {
+      mensagemLogin.textContent = texto;
+      mensagemLogin.className = `mensagem-feedback ${tipo}`.trim();
     }
-
-    mensagemLogin.textContent = texto;
-    mensagemLogin.className = `mensagem-feedback ${tipo}`.trim();
+    if (tipo === "erro") FrutLogFeedback.toast(texto, tipo);
   }
 
   function alternarVisibilidadeSenha() {

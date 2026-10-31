@@ -7,13 +7,20 @@ const FrutLogTalhoes = (() => {
   const CHAVE_RASCUNHO = "frutlog_talhoes_geojson";
   const CHAVE_RASCUNHO_SESSAO = "frutlog_talhoes_geojson";
 
+  // Escala do mapa: 1 unidade do viewBox (500x400) ao quadrado vale 1/1000 hectare.
+  // A barra do mapa nao tem mais o campo "Area do talhao (ha)", por isso a area
+  // passa a ser calculada a partir da propria geometria desenhada. O divisor 1000
+  // ja era a convencao usada no editor do admin e foi centralizado aqui para que
+  // Engenharia e Administracao cheguem sempre ao mesmo numero.
+  const UNIDADES_SVG_POR_HECTARE = 1000;
+
   const dadosIniciais = {
     type: "FeatureCollection",
     features: [
       {
         type: "Feature",
         id: "talhao-a1",
-        properties: { codigo: "A1" },
+        properties: { codigo: "A1", area_hectares: 15.5, area: "15.5 hectares" },
         geometry: {
           type: "Polygon",
           coordinates: [[[180, 135], [278, 14], [298, 18], [340, 55], [285, 120], [260, 140], [202, 141], [180, 135]]],
@@ -22,7 +29,7 @@ const FrutLogTalhoes = (() => {
       {
         type: "Feature",
         id: "talhao-a2",
-        properties: { codigo: "A2" },
+        properties: { codigo: "A2", area_hectares: 12.0, area: "12.0 hectares" },
         geometry: {
           type: "Polygon",
           coordinates: [[[116, 120], [136, 127], [172, 127], [195, 142], [240, 147], [235, 215], [185, 215], [145, 205], [115, 190], [116, 120]]],
@@ -31,7 +38,7 @@ const FrutLogTalhoes = (() => {
       {
         type: "Feature",
         id: "talhao-b1",
-        properties: { codigo: "B1" },
+        properties: { codigo: "B1", area_hectares: 18.2, area: "18.2 hectares" },
         geometry: {
           type: "Polygon",
           coordinates: [[[285, 120], [305, 85], [340, 95], [380, 140], [350, 170], [320, 205], [285, 235], [250, 220], [235, 185], [250, 150], [270, 135], [285, 120]]],
@@ -40,7 +47,7 @@ const FrutLogTalhoes = (() => {
       {
         type: "Feature",
         id: "talhao-b2",
-        properties: { codigo: "B2" },
+        properties: { codigo: "B2", area_hectares: 10.8, area: "10.8 hectares" },
         geometry: {
           type: "Polygon",
           coordinates: [[[75, 85], [115, 120], [187, 107], [230, 105], [220, 85], [280, 5], [230, 5], [75, 85]]],
@@ -152,24 +159,42 @@ const FrutLogTalhoes = (() => {
     };
   }
 
+  function sanitizarAreasColecao(colecao) {
+    const iniciaisPorCodigo = new Map(dadosIniciais.features.map((f) => [f.properties.codigo, f]));
+    (colecao.features || []).forEach((feature) => {
+      if (!feature.properties) feature.properties = {};
+      const areaAtual = Number(feature.properties.area_hectares);
+      if (!Number.isFinite(areaAtual) || areaAtual <= 0) {
+        const inicial = iniciaisPorCodigo.get(feature.properties.codigo);
+        const parsed = Number(String(feature.properties.area || "").replace(/[^\d,.-]/g, "").replace(",", "."));
+        const fallback = Number.isFinite(parsed) && parsed > 0
+          ? parsed
+          : (inicial?.properties?.area_hectares || 10.0);
+        feature.properties.area_hectares = fallback;
+        feature.properties.area = `${fallback} hectares`;
+      }
+    });
+    return colecao;
+  }
+
   function obterColecao() {
     const rascunho = lerRascunhoSalvo();
 
     if (!rascunho) {
-      return aplicarMonitoramentoColecao(clonar(dadosIniciais));
+      return aplicarMonitoramentoColecao(sanitizarAreasColecao(clonar(dadosIniciais)));
     }
 
     try {
-      return aplicarMonitoramentoColecao(JSON.parse(rascunho));
+      return aplicarMonitoramentoColecao(sanitizarAreasColecao(JSON.parse(rascunho)));
     } catch (erro) {
       console.error("GeoJSON de talhões inválido:", erro);
       removerRascunhoInvalido();
-      return aplicarMonitoramentoColecao(clonar(dadosIniciais));
+      return aplicarMonitoramentoColecao(sanitizarAreasColecao(clonar(dadosIniciais)));
     }
   }
 
   function salvarColecao(colecao) {
-    const colecaoMonitorada = aplicarMonitoramentoColecao(colecao);
+    const colecaoMonitorada = aplicarMonitoramentoColecao(sanitizarAreasColecao(colecao));
 
     gravarRascunhoSalvo(colecaoMonitorada);
     return clonar(colecaoMonitorada);
@@ -202,7 +227,11 @@ const FrutLogTalhoes = (() => {
         ? { type: "Polygon", coordinates: [coordenadas] }
         : geometriaLocal || { type: "Polygon", coordinates: [[]] };
 
-      const area = Number(registro.area_hectares);
+      const areaInformada = Number(registro.area_hectares);
+      const areaLocal = Number(local?.properties?.area_hectares) || Number(inicial?.properties?.area_hectares);
+      const area = Number.isFinite(areaInformada) && areaInformada > 0
+        ? areaInformada
+        : (Number.isFinite(areaLocal) && areaLocal > 0 ? areaLocal : 10.0);
       const geometriaPendente = geometria.coordinates?.[0]?.length < 4;
       return {
         type: "Feature",
@@ -211,8 +240,8 @@ const FrutLogTalhoes = (() => {
           ...(local?.properties || {}),
           codigo,
           nome: registro.nome || local?.properties?.nome || codigo,
-          area_hectares: Number.isFinite(area) ? area : null,
-          area: Number.isFinite(area) ? `${area} hectares` : local?.properties?.area || "--",
+          area_hectares: area,
+          area: `${area} hectares`,
           parametros: {
             ...(local?.properties?.parametros || {}),
             temperaturaMaxima: registro.temperatura_maxima === null || registro.temperatura_maxima === undefined
@@ -252,6 +281,8 @@ const FrutLogTalhoes = (() => {
 
   function criarFeature(codigo, pontos, propriedades = {}) {
     const anel = fecharAnel(pontos);
+    const areaInformada = Number(propriedades.area_hectares);
+    const areaValida = Number.isFinite(areaInformada) && areaInformada > 0 ? areaInformada : 10.0;
 
     return {
       type: "Feature",
@@ -261,7 +292,8 @@ const FrutLogTalhoes = (() => {
         status: "Normal",
         produto: "--",
         variedade: "--",
-        area: "--",
+        area_hectares: areaValida,
+        area: `${areaValida} hectares`,
         solo: "--",
         plantio: "--",
         colheita: "--",
@@ -281,6 +313,62 @@ const FrutLogTalhoes = (() => {
       },
       geometry: { type: "Polygon", coordinates: [anel] },
     };
+  }
+
+  /**
+   * Area do poligono em unidades do viewBox do mapa (formula do sapateiro).
+   * @param {Array<Array<number>>} pontos - Vertices do talhao, sem repetir o primeiro.
+   * @returns {number} Area em unidades SVG ao quadrado; 0 quando nao ha poligono.
+   */
+  function calcularAreaSvg(pontos) {
+    if (!Array.isArray(pontos) || pontos.length < 3) return 0;
+
+    return Math.abs(pontos.reduce((soma, ponto, indice) => {
+      const proximo = pontos[(indice + 1) % pontos.length];
+      return soma + (ponto[0] * proximo[1]) - (proximo[0] * ponto[1]);
+    }, 0)) / 2;
+  }
+
+  /**
+   * Recalcula a area do talhao a partir da forma desenhada no mapa.
+   *
+   * Substitui o antigo campo manual "Area do talhao (ha)" da barra de ferramentas:
+   * - com `pontosAnteriores`, a area muda na mesma proporcao da geometria, para
+   *   que um talhao ja cadastrado com area conferida em campo nao perca o valor
+   *   real so porque um vertice foi arrastado;
+   * - sem `pontosAnteriores` (talhao novo), a area vem da escala do mapa.
+   *
+   * ATENCAO (banco): o valor gravado em `properties.area_hectares` e o mesmo
+   * enviado em PUT /talhoes/geometrias e usado por POST /plantios, que recusa
+   * talhao sem area positiva.
+   *
+   * @param {object} feature - Feature GeoJSON do talhao (alterada no lugar).
+   * @param {Array<Array<number>>} [pontosAnteriores] - Vertices antes da edicao.
+   * @returns {number|null} Area em hectares com 2 casas, ou null sem geometria.
+   */
+  function recalcularAreaAutomatica(feature, pontosAnteriores) {
+    if (!feature) return null;
+    if (!feature.properties) feature.properties = {};
+
+    const areaAtualSvg = calcularAreaSvg(obterPontos(feature));
+    if (areaAtualSvg <= 0) return null;
+
+    const areaAnteriorSvg = calcularAreaSvg(pontosAnteriores);
+    const hectaresAnteriores = Number(feature.properties.area_hectares);
+    const podeEscalar = areaAnteriorSvg > 0
+      && Number.isFinite(hectaresAnteriores)
+      && hectaresAnteriores > 0;
+
+    const hectares = podeEscalar
+      ? (hectaresAnteriores * areaAtualSvg) / areaAnteriorSvg
+      : areaAtualSvg / UNIDADES_SVG_POR_HECTARE;
+
+    const arredondado = Number(hectares.toFixed(2));
+    if (!Number.isFinite(arredondado) || arredondado <= 0) return null;
+
+    feature.properties.area_hectares = arredondado;
+    feature.properties.area = `${arredondado} hectares`;
+    return arredondado;
   }
 
   function fecharAnel(pontos) {
@@ -304,8 +392,10 @@ const FrutLogTalhoes = (() => {
     criarFeature,
     aplicarMonitoramento,
     atualizarTelemetriaTalhao,
+    calcularAreaSvg,
     calcularStatusMonitoramento,
     fecharAnel,
+    recalcularAreaAutomatica,
     carregarDoServidor,
     obterColecao,
     obterPontos,

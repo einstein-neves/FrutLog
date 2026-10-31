@@ -17,15 +17,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const mensagemEncerramentoCiclo = document.getElementById("mensagem-encerramento-ciclo");
   const mensagemEdicao = document.getElementById("mensagem-edicao-talhao");
   const filtrosGrafico = document.querySelectorAll(".btn-filtro[data-unidade]");
+  // Barra do mapa padronizada: Editar talhao, Criar, Salvar e Excluir.
+  // Recarregar mapa, Dividir, Cancelar e o campo manual de area foram removidos.
   const btnEditar = document.getElementById("btn-editar-talhoes");
   const btnCriar = document.getElementById("btn-criar-talhao");
-  const btnConcluirDesenho = document.getElementById("btn-concluir-desenho");
-  const btnDividir = document.getElementById("btn-dividir-talhao");
   const btnExcluir = document.getElementById("btn-excluir-talhao");
   const btnSalvar = document.getElementById("btn-salvar-talhao");
-  const btnCancelar = document.getElementById("btn-cancelar-talhao");
-  const campoAreaTalhao = document.getElementById("talhao-area-hectares");
-  const btnAplicarArea = document.getElementById("btn-aplicar-area-talhao");
 
   let talhoes = FrutLogTalhoes.obterTalhoes();
   let talhaoSelecionado = talhoes[0]?.properties.codigo || "";
@@ -33,10 +30,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   let mapaApiPronto = !FrutLog.AUTENTICACAO_API_ATIVA;
   let modoEdicao = false;
   let modoCriacao = false;
-  let modoDivisao = false;
   let pontosCriacao = [];
   let codigoGeometriaPendente = "";
-  let pontosDivisao = [];
   let verticeArrastado = null;
   let talhaoArrastado = null;
   let graficoColheita = null;
@@ -130,14 +125,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       selectedCode: talhaoSelecionado,
       statusFor: atualizarStatusTalhao,
       onSelect: (feature, evento) => {
-        if (modoCriacao || modoDivisao) return;
+        if (modoCriacao) return;
         evento.stopPropagation();
         if (!talhaoArrastado?.moveu) selecionarTalhao(feature.properties.codigo);
       },
       onPolygon: (poligono, feature) => {
         const codigo = feature.properties.codigo;
         poligono.addEventListener("pointerdown", (evento) => {
-          if (!modoEdicao || modoCriacao || modoDivisao || codigo !== talhaoSelecionado) return;
+          if (!modoEdicao || modoCriacao || codigo !== talhaoSelecionado) return;
           evento.preventDefault();
           talhaoArrastado = {
             codigo,
@@ -158,13 +153,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       rascunho.setAttribute("points", pontosParaString(pontosCriacao));
       rascunho.classList.add("poligono-rascunho");
       svgMapa.appendChild(rascunho);
-    }
-
-    if (modoDivisao && pontosDivisao.length > 0) {
-      const linhaDivisao = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-      linhaDivisao.setAttribute("points", pontosParaString(pontosDivisao));
-      linhaDivisao.classList.add("linha-divisao-talhao");
-      svgMapa.appendChild(linhaDivisao);
     }
   }
 
@@ -235,32 +223,35 @@ document.addEventListener("DOMContentLoaded", async () => {
     select.disabled = false;
   }
 
+  /**
+   * Sincroniza a barra de ferramentas do mapa com o estado da edição.
+   *
+   * Criar, Salvar e Excluir só ficam liberados dentro do modo de edição;
+   * "Editar talhão" é o único sempre disponível (depende apenas do mapa já ter
+   * vindo do servidor) e alterna o próprio rótulo para encerrar a edição.
+   * @returns {void}
+   */
   function atualizarControlesEdicao() {
     const habilitarFerramentas = modoEdicao;
 
-    [btnCriar, btnDividir, btnExcluir, btnSalvar, btnCancelar].forEach((botao) => {
+    [btnCriar, btnExcluir, btnSalvar].forEach((botao) => {
       if (botao) botao.disabled = !habilitarFerramentas;
     });
 
     btnEditar?.classList.toggle("active", modoEdicao);
     if (btnEditar) btnEditar.disabled = !mapaApiPronto;
-    if (btnEditar) btnEditar.textContent = modoEdicao ? "Encerrar Edição" : "Editar Talhões";
-    if (btnAplicarArea) btnAplicarArea.disabled = !modoEdicao || !talhaoSelecionado;
+    if (btnEditar) btnEditar.textContent = modoEdicao ? "Encerrar edição" : "Editar talhão";
     btnCriar?.classList.toggle("active", modoCriacao);
-    if (btnConcluirDesenho) {
-      btnConcluirDesenho.hidden = !modoCriacao;
-      btnConcluirDesenho.disabled = pontosCriacao.length < 3;
-    }
-    btnDividir?.classList.toggle("active", modoDivisao);
-    if (btnDividir) btnDividir.textContent = modoDivisao ? "Divisão Ativa" : "Dividir";
     mapaContainer?.classList.toggle("modo-edicao", modoEdicao);
-    mapaContainer?.classList.toggle("modo-divisao", modoDivisao);
   }
 
   function exibirMensagemEdicao(texto, tipo = "sucesso") {
-    if (!mensagemEdicao) return;
-    mensagemEdicao.textContent = texto;
-    mensagemEdicao.className = `mensagem-feedback ${tipo}`;
+    if (mensagemEdicao) {
+      mensagemEdicao.textContent = texto;
+      mensagemEdicao.className = `mensagem-feedback ${tipo}`;
+    }
+    // Erro vira toast; os avisos de progresso ficam so na linha de mensagem.
+    if (tipo === "erro") FrutLogFeedback.toast(texto, tipo);
   }
 
   function selecionarTalhao(codigo) {
@@ -270,7 +261,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     talhaoSelecionado = codigo;
     const props = feature.properties;
     const status = atualizarStatusTalhao(feature);
-    if (campoAreaTalhao) campoAreaTalhao.value = String(obterAreaHectares(feature) || "");
 
     preencherTexto("titulo-talhao", `Detalhes: Talhão ${codigo}`);
     preencherTexto("talhao-area", props.area);
@@ -479,11 +469,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderizarMapa();
   }
 
+  // Um código já usado por talhão arquivado continua ocupado no banco e faria o
+  // salvamento do mapa inteiro falhar, por isso ele também é pulado aqui.
+  function codigoIndisponivel(codigo) {
+    return Boolean(obterFeature(codigo)) || FrutLogMapaTalhoes.codigoArquivado(codigo);
+  }
+
   function gerarCodigoNovo() {
     let indice = talhoes.length + 1;
     let codigo = `T${indice}`;
 
-    while (obterFeature(codigo)) {
+    while (codigoIndisponivel(codigo)) {
       indice += 1;
       codigo = `T${indice}`;
     }
@@ -511,29 +507,33 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   // FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO
 
+  /**
+   * Fecha o desenho em andamento e grava a geometria no rascunho do mapa.
+   *
+   * Sem o campo manual "Área do talhão (ha)", a área em hectares passa a ser
+   * calculada pela forma desenhada (FrutLogTalhoes.recalcularAreaAutomatica),
+   * garantindo que todo talhão novo chegue ao banco com área positiva — o que
+   * PUT /talhoes/geometrias e POST /plantios exigem.
+   * @returns {void}
+   */
   function concluirCriacao() {
     if (!modoCriacao || pontosCriacao.length < 3) {
       exibirMensagemEdicao("Adicione pelo menos três pontos para criar um talhão.", "erro");
       return;
     }
 
-    const areaInicial = Number(campoAreaTalhao?.value);
     const codigo = codigoGeometriaPendente || gerarCodigoNovo();
     const geometria = { type: "Polygon", coordinates: [FrutLogTalhoes.fecharAnel(pontosCriacao)] };
     if (codigoGeometriaPendente) {
       const feature = obterFeature(codigoGeometriaPendente);
       feature.geometry = geometria;
       feature.properties.geometriaPendente = false;
-      if (Number.isFinite(areaInicial) && areaInicial > 0) {
-        feature.properties.area_hectares = areaInicial;
-        feature.properties.area = `${areaInicial} hectares`;
-      }
+      // Talhão que ainda não tinha limites: a área vem toda da forma desenhada.
+      FrutLogTalhoes.recalcularAreaAutomatica(feature);
     } else {
-      talhoes.push(FrutLogTalhoes.criarFeature(codigo, pontosCriacao, {
-        ...(Number.isFinite(areaInicial) && areaInicial > 0
-          ? { area_hectares: areaInicial, area: `${areaInicial} hectares` }
-          : {}),
-      }));
+      const novo = FrutLogTalhoes.criarFeature(codigo, pontosCriacao);
+      FrutLogTalhoes.recalcularAreaAutomatica(novo);
+      talhoes.push(novo);
     }
     modoCriacao = false;
     pontosCriacao = [];
@@ -541,21 +541,49 @@ document.addEventListener("DOMContentLoaded", async () => {
     selecionarTalhao(codigo);
     atualizarControlesEdicao();
     atualizarSelectCadastro();
-    exibirMensagemEdicao(`Geometria do talhão ${codigo} atualizada. Clique em Salvar para persistir.`);
+    const area = obterFeature(codigo)?.properties.area_hectares;
+    exibirMensagemEdicao(`Talhão ${codigo} com ${area} hectares calculados pela forma. Clique em Salvar para persistir.`);
   }
 
-  function ativarOuDesativarEdicao() {
-    modoEdicao = !modoEdicao;
+  /**
+   * Alterna o modo de edição do mapa (botão "Editar talhão").
+   *
+   * Ao entrar, relê o servidor; ao sair, descarta o rascunho não salvo — papel
+   * que antes era do botão "Cancelar", removido da barra de ferramentas.
+   * @returns {Promise<void>}
+   */
+  async function ativarOuDesativarEdicao() {
+    // Sair da edição joga fora o que não foi salvo, no lugar do antigo Cancelar.
+    if (modoEdicao) {
+      modoEdicao = false;
+      cancelarAlteracoesMapa();
+      return;
+    }
+
+    // Administração também edita o mesmo mapa. Entrar na edição sempre relendo o
+    // servidor evita que o engenheiro parta de uma versão antiga e sobrescreva
+    // alterações salvas pelo admin (e já traz os códigos arquivados do momento).
+    if (FrutLog.AUTENTICACAO_API_ATIVA) {
+      if (btnEditar) btnEditar.disabled = true;
+      exibirMensagemEdicao("Carregando a versão mais recente dos talhões...");
+      try {
+        await carregarDadosPainel();
+      } catch (erro) {
+        exibirMensagemEdicao(`Não foi possível carregar a versão atual do mapa: ${erro.message}`, "erro");
+        atualizarControlesEdicao();
+        return;
+      }
+    }
+
+    modoEdicao = true;
     modoCriacao = false;
-    modoDivisao = false;
     pontosCriacao = [];
     codigoGeometriaPendente = "";
-    pontosDivisao = [];
     verticeArrastado = null;
     talhaoArrastado = null;
     atualizarControlesEdicao();
     renderizarMapa();
-    exibirMensagemEdicao(modoEdicao ? "Arraste os pontos para alterar a forma ou o interior para mover o talhão. Use Criar para desenhar um novo limite e Aplicar área para ajustar o tamanho. Clique em Salvar ao terminar." : "Modo de edição desativado.");
+    exibirMensagemEdicao("Arraste os pontos para alterar a forma ou o interior para mover o talhão. Use Criar para desenhar um novo limite; a área em hectares é recalculada sozinha. Clique em Salvar ao terminar.");
   }
 
   function iniciarCriacao() {
@@ -565,9 +593,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       ? talhaoSelecionado
       : "";
     modoCriacao = true;
-    modoDivisao = false;
     pontosCriacao = [];
-    pontosDivisao = [];
     atualizarControlesEdicao();
     renderizarMapa();
     // INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: mensagem do novo modo de um clique
@@ -579,158 +605,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     // FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO
   }
 
-  function iniciarDivisao() {
-    if (!modoEdicao || !talhaoSelecionado) return;
+  // O recurso "Dividir" saiu da barra de ferramentas do mapa, e com ele as
+  // rotinas de geometria que só ele usava (ladoDaLinha, calcularIntersecaoLinha,
+  // recortarPoligonoPorLinha, removerPontosDuplicados, dividirTalhaoSelecionado
+  // e gerarCodigoFilho). Para dividir um talhão hoje: exclua e desenhe os novos
+  // limites com Criar, que já nascem com a área calculada pela forma.
 
-    modoCriacao = false;
-    modoDivisao = !modoDivisao;
-    pontosCriacao = [];
-    codigoGeometriaPendente = "";
-    pontosDivisao = [];
-    atualizarControlesEdicao();
-    renderizarMapa();
-    exibirMensagemEdicao(
-      modoDivisao
-        ? `Clique em dois pontos atravessando o talhão ${talhaoSelecionado} para dividir.`
-        : "Divisão cancelada."
-    );
-  }
-
-  function ladoDaLinha(ponto, linhaInicio, linhaFim) {
-    return ((linhaFim[0] - linhaInicio[0]) * (ponto[1] - linhaInicio[1]))
-      - ((linhaFim[1] - linhaInicio[1]) * (ponto[0] - linhaInicio[0]));
-  }
-
-  function calcularIntersecaoLinha(inicio, fim, linhaInicio, linhaFim) {
-    const distanciaInicio = ladoDaLinha(inicio, linhaInicio, linhaFim);
-    const distanciaFim = ladoDaLinha(fim, linhaInicio, linhaFim);
-    const divisor = distanciaInicio - distanciaFim;
-
-    if (divisor === 0) return fim;
-
-    const proporcao = distanciaInicio / divisor;
-    return [
-      Math.round(inicio[0] + (fim[0] - inicio[0]) * proporcao),
-      Math.round(inicio[1] + (fim[1] - inicio[1]) * proporcao),
-    ];
-  }
-
-  function recortarPoligonoPorLinha(pontos, linhaInicio, linhaFim, manterPositivo) {
-    const resultado = [];
-
-    pontos.forEach((fim, index) => {
-      const inicio = pontos[(index - 1 + pontos.length) % pontos.length];
-      const inicioLado = ladoDaLinha(inicio, linhaInicio, linhaFim);
-      const fimLado = ladoDaLinha(fim, linhaInicio, linhaFim);
-      const inicioDentro = manterPositivo ? inicioLado >= 0 : inicioLado <= 0;
-      const fimDentro = manterPositivo ? fimLado >= 0 : fimLado <= 0;
-
-      if (fimDentro) {
-        if (!inicioDentro) resultado.push(calcularIntersecaoLinha(inicio, fim, linhaInicio, linhaFim));
-        resultado.push(fim);
-      } else if (inicioDentro) {
-        resultado.push(calcularIntersecaoLinha(inicio, fim, linhaInicio, linhaFim));
-      }
-    });
-
-    return removerPontosDuplicados(resultado);
-  }
-
-  function removerPontosDuplicados(pontos) {
-    return pontos.filter((ponto, index) => {
-      const anterior = pontos[index - 1];
-      const primeiro = index === pontos.length - 1 ? pontos[0] : null;
-      const repeteAnterior = anterior && anterior[0] === ponto[0] && anterior[1] === ponto[1];
-      const repetePrimeiro = primeiro && primeiro[0] === ponto[0] && primeiro[1] === ponto[1];
-      return !repeteAnterior && !repetePrimeiro;
-    });
-  }
-
-  function dividirTalhaoSelecionado(linhaInicio, linhaFim) {
-    if (!modoEdicao) return;
-
-    const feature = obterFeature(talhaoSelecionado);
-    if (!feature) return;
-
-    if (linhaInicio[0] === linhaFim[0] && linhaInicio[1] === linhaFim[1]) {
-      exibirMensagemEdicao("Escolha dois pontos diferentes para dividir o talhão.", "erro");
-      pontosDivisao = [];
-      renderizarMapa();
-      return;
-    }
-
-    const pontos = obterPontos(feature);
-    const lados = pontos.map((ponto) => ladoDaLinha(ponto, linhaInicio, linhaFim));
-    const atravessaTalhao = lados.some((lado) => lado > 0) && lados.some((lado) => lado < 0);
-
-    if (!atravessaTalhao) {
-      exibirMensagemEdicao("A linha precisa atravessar o interior do talhão selecionado.", "erro");
-      pontosDivisao = [];
-      renderizarMapa();
-      return;
-    }
-
-    const parteUm = recortarPoligonoPorLinha(pontos, linhaInicio, linhaFim, true);
-    const parteDois = recortarPoligonoPorLinha(pontos, linhaInicio, linhaFim, false);
-
-    if (parteUm.length < 3 || parteDois.length < 3) {
-      exibirMensagemEdicao("A linha precisa atravessar o talhão para gerar duas áreas.", "erro");
-      return;
-    }
-
-    const propriedadesBase = {
-      ...feature.properties,
-      sensor: "Não associado",
-      apontamentoTecnico: {
-        data: "--",
-        tecnico: "--",
-        problema: "Talhão dividido. Sensor ainda não associado.",
-        recomendacao: "Associar sensor ao novo talhão.",
-      },
-      prioridade: "Associar sensor",
-    };
-
-    const codigoBase = feature.properties.codigo;
-    const codigoUm = gerarCodigoFilho(codigoBase, 1);
-    const codigoDois = gerarCodigoFilho(codigoBase, 2);
-    const novoUm = FrutLogTalhoes.criarFeature(codigoUm, parteUm, propriedadesBase);
-    const novoDois = FrutLogTalhoes.criarFeature(codigoDois, parteDois, propriedadesBase);
-    const areaBase = obterAreaHectares(feature);
-    const areaUm = calcularAreaPoligono(parteUm);
-    const areaDois = calcularAreaPoligono(parteDois);
-    if (areaBase && areaUm + areaDois > 0) {
-      const hectaresUm = areaBase * areaUm / (areaUm + areaDois);
-      const hectaresDois = areaBase - hectaresUm;
-      novoUm.properties.area_hectares = hectaresUm;
-      novoUm.properties.area = `${hectaresUm.toFixed(2)} hectares`;
-      novoDois.properties.area_hectares = hectaresDois;
-      novoDois.properties.area = `${hectaresDois.toFixed(2)} hectares`;
-    }
-    novoUm.properties.codigo = codigoUm;
-    novoDois.properties.codigo = codigoDois;
-
-    talhoes = talhoes.filter((item) => item.properties.codigo !== codigoBase);
-    talhoes.push(novoUm, novoDois);
-    modoDivisao = false;
-    pontosDivisao = [];
-    atualizarControlesEdicao();
-    selecionarTalhao(novoUm.properties.codigo);
-    atualizarSelectCadastro();
-    exibirMensagemEdicao(`${codigoBase} dividido em ${novoUm.properties.codigo} e ${novoDois.properties.codigo}. Clique em Salvar.`);
-  }
-
-  function gerarCodigoFilho(codigoBase, indiceInicial) {
-    let indice = indiceInicial;
-    let codigo = `${codigoBase}.${indice}`;
-
-    while (obterFeature(codigo)) {
-      indice += 1;
-      codigo = `${codigoBase}.${indice}`;
-    }
-
-    return codigo;
-  }
-
+  /**
+   * Remove o talhão selecionado do rascunho do mapa (botão "Excluir").
+   *
+   * ATENÇÃO (banco): nada é apagado aqui; a remoção só chega ao Supabase no
+   * PUT /talhoes/geometrias disparado pelo botão Salvar, que arquiva o código.
+   * @returns {void}
+   */
   function excluirTalhaoSelecionado() {
     if (!modoEdicao || talhoes.length <= 1) return;
 
@@ -741,6 +628,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     exibirMensagemEdicao("Talhão removido do rascunho. Clique em Salvar para confirmar.");
   }
 
+  /**
+   * Lê a área em hectares já gravada na feature do talhão.
+   *
+   * O cálculo em si mora em FrutLogTalhoes (compartilhado com o editor do
+   * Administrador), para que os dois painéis cheguem sempre ao mesmo número.
+   * @param {object} feature - Feature GeoJSON do talhão.
+   * @returns {number|null} Área positiva em hectares ou null quando não há.
+   */
   function obterAreaHectares(feature) {
     const valor = feature.properties.area_hectares
       ?? String(feature.properties.area || "").replace(/[^\d,.-]/g, "").replace(",", ".");
@@ -748,34 +643,36 @@ document.addEventListener("DOMContentLoaded", async () => {
     return Number.isFinite(area) && area > 0 ? area : null;
   }
 
-  function calcularAreaPoligono(pontos) {
-    return Math.abs(pontos.reduce((soma, ponto, indice) => {
-      const proximo = pontos[(indice + 1) % pontos.length];
-      return soma + ponto[0] * proximo[1] - proximo[0] * ponto[1];
-    }, 0)) / 2;
-  }
-
-  function aplicarAreaTalhao() {
-    if (!modoEdicao) return;
+  /**
+   * Atualiza a área do talhão selecionado depois de arrastar pontos ou movê-lo.
+   *
+   * Substitui o par "Área do talhão (ha)" + "Aplicar área", removidos da barra:
+   * a área acompanha a forma na mesma proporção, então um talhão já medido em
+   * campo não perde o valor real por causa de um ajuste fino no desenho.
+   * @param {Array<Array<number>>} pontosAnteriores - Vértices antes do arraste.
+   * @returns {void}
+   */
+  function recalcularAreaTalhaoEditado(pontosAnteriores) {
     const feature = obterFeature(talhaoSelecionado);
-    const area = Number(campoAreaTalhao?.value);
-    if (!feature || !Number.isFinite(area) || area <= 0) {
-      exibirMensagemEdicao("Informe uma área valida, maior que zero hectares.", "erro");
-      campoAreaTalhao?.focus();
-      return;
-    }
-    feature.properties.area_hectares = area;
-    feature.properties.area = `${area} hectares`;
+    if (!feature) return;
+
+    const area = FrutLogTalhoes.recalcularAreaAutomatica(feature, pontosAnteriores);
+    if (area === null) return;
     preencherTexto("talhao-area", feature.properties.area);
-    exibirMensagemEdicao(`Área do talhão ${talhaoSelecionado} atualizada no rascunho.`);
   }
 
+  /**
+   * Persiste geometrias e áreas do mapa (botão "Salvar").
+   *
+   * ATENÇÃO (API): PUT /talhoes/geometrias grava o rascunho inteiro no Supabase
+   * e devolve a versão oficial, que volta a alimentar os painéis. Talhão sem
+   * área positiva é recusado pela rota, por isso a checagem antes do envio.
+   * @returns {Promise<void>}
+   */
   async function salvarAlteracoesMapa() {
     modoCriacao = false;
-    modoDivisao = false;
     pontosCriacao = [];
     codigoGeometriaPendente = "";
-    pontosDivisao = [];
     const dadosTalhoes = talhoes.map((feature) => ({
       ...feature,
       properties: {
@@ -784,8 +681,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       },
     }));
 
+    // A área é automática, mas um talhão sem limites desenhados não gera área:
+    // nesse caso o desenho precisa ser concluído antes de salvar.
     if (dadosTalhoes.some((feature) => !feature.properties.area_hectares)) {
-      exibirMensagemEdicao("Defina a área em hectares de todos os talhões antes de salvar.", "erro");
+      exibirMensagemEdicao("Há talhão sem limites desenhados no mapa. Use Criar para fechar a forma antes de salvar.", "erro");
       return;
     }
 
@@ -793,13 +692,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (botao) botao.disabled = true;
     try {
       if (!mapaApiPronto) throw new Error("As geometrias do servidor ainda não foram carregadas.");
+      const removidos = [...codigosIniciais].filter((codigo) => !dadosTalhoes.some((feature) => feature.properties.codigo === codigo));
       const resposta = await FrutLog.apiFetch("/talhoes/geometrias", {
         method: "PUT",
         body: JSON.stringify({
           talhoes: dadosTalhoes,
-          removidos: [...codigosIniciais].filter((codigo) => !dadosTalhoes.some((feature) => feature.properties.codigo === codigo)),
+          removidos,
         }),
       });
+      // Os removidos acabaram de virar histórico: seus códigos seguem ocupados.
+      FrutLogMapaTalhoes.adicionarCodigosArquivados(removidos);
       talhoes = FrutLogTalhoes.carregarDoServidor(resposta.talhoes || []);
       codigosIniciais = new Set(talhoes.map((feature) => feature.properties.codigo));
       talhaoSelecionado = obterFeature(talhaoSelecionado)?.properties.codigo || talhoes[0]?.properties.codigo || "";
@@ -817,18 +719,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  /**
+   * Descarta o rascunho do mapa e volta para a última versão conhecida.
+   *
+   * O botão "Cancelar" saiu da barra de ferramentas; esta função passou a ser
+   * chamada quando o usuário encerra a edição pelo botão "Editar talhão".
+   * @returns {void}
+   */
   function cancelarAlteracoesMapa() {
     talhoes = FrutLogTalhoes.obterTalhoes();
     modoCriacao = false;
-    modoDivisao = false;
     pontosCriacao = [];
     codigoGeometriaPendente = "";
-    pontosDivisao = [];
     talhaoSelecionado = obterFeature(talhaoSelecionado)?.properties.codigo || talhoes[0]?.properties.codigo || "";
     atualizarControlesEdicao();
     selecionarTalhao(talhaoSelecionado);
     atualizarSelectCadastro();
-    exibirMensagemEdicao("Alteracoes não salvas foram descartadas.");
+    exibirMensagemEdicao("Modo de edição encerrado. As alterações não salvas foram descartadas.");
   }
 
   btnEncerrarCiclo?.addEventListener("click", async (evento) => {
@@ -858,16 +765,29 @@ document.addEventListener("DOMContentLoaded", async () => {
       botao.disabled = false;
     }
   });
+  /**
+   * Cadastra um ciclo de plantio para o talhão escolhido.
+   * ATENÇÃO (API): POST /plantios cria o ciclo no banco; depois recarregamos o
+   * painel inteiro para que mapa, resumo e selects reflitam o novo ciclo.
+   * @param {SubmitEvent} evento - Envio do formulário de plantio.
+   * @returns {Promise<void>}
+   */
   async function registrarPlantio(evento) {
     evento.preventDefault();
+
+    // Validação pré-envio: evita bater na API com campo obrigatório vazio.
+    if (!FrutLogFeedback.validarObrigatorios(formularioPlantio)) return;
 
     const dadosFormulario = Object.fromEntries(new FormData(formularioPlantio));
     const feature = obterFeature(dadosFormulario.talhao);
 
-    if (!feature) return;
+    if (!feature) {
+      FrutLogFeedback.toast("Selecione um talhão válido antes de cadastrar o plantio.", "aviso");
+      return;
+    }
 
     const botao = formularioPlantio.querySelector('[type="submit"]');
-    if (botao) botao.disabled = true;
+    const liberarBotao = FrutLogFeedback.ocupar(botao, "Cadastrando...");
     try {
       await FrutLog.apiFetch("/plantios", {
         method: "POST",
@@ -881,8 +801,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (erro) {
       mensagemPlantio.textContent = erro.message;
       mensagemPlantio.className = "mensagem-feedback erro";
+      FrutLogFeedback.toast(erro.message, "erro");
     } finally {
-      if (botao) botao.disabled = false;
+      liberarBotao();
     }
   }
 
@@ -1061,53 +982,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     atualizarResumoColheita();
   }
 
+  // Barra do mapa: apenas Editar talhao, Criar, Salvar e Excluir.
   btnEditar?.addEventListener("click", ativarOuDesativarEdicao);
-  document.getElementById("btn-recarregar-mapa")?.addEventListener("click", async (evento) => {
-    if (modoEdicao) {
-      exibirMensagemEdicao("Salve ou cancele a edição antes de recarregar o mapa.", "erro");
-      return;
-    }
-    const botao = evento.currentTarget;
-    botao.disabled = true;
-    exibirMensagemEdicao("Carregando talhões do servidor...");
-    try {
-      await carregarDadosPainel();
-      exibirMensagemEdicao("Mapa carregado. Clique em Editar Talhões para ajustar os limites.");
-    } catch (erro) {
-      exibirMensagemEdicao(`Falha ao carregar o mapa: ${erro.message}`, "erro");
-    } finally {
-      botao.disabled = false;
-      atualizarControlesEdicao();
-    }
-  });
   btnCriar?.addEventListener("click", iniciarCriacao);
-  btnConcluirDesenho?.addEventListener("click", concluirCriacao);
-  btnDividir?.addEventListener("click", iniciarDivisao);
   btnExcluir?.addEventListener("click", excluirTalhaoSelecionado);
   btnSalvar?.addEventListener("click", salvarAlteracoesMapa);
-  btnCancelar?.addEventListener("click", cancelarAlteracoesMapa);
-  btnAplicarArea?.addEventListener("click", aplicarAreaTalhao);
 
   svgMapa?.addEventListener("click", (evento) => {
-    if (!modoCriacao && !modoDivisao) return;
-
-    const ponto = obterPontoSvg(evento);
-
-    if (modoDivisao) {
-      pontosDivisao.push(ponto);
-
-      if (pontosDivisao.length === 2) {
-        dividirTalhaoSelecionado(pontosDivisao[0], pontosDivisao[1]);
-        return;
-      }
-
-      renderizarMapa();
-      exibirMensagemEdicao("Agora clique no segundo ponto da linha de divisão.");
-      return;
-    }
+    if (!modoCriacao) return;
 
     // INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: um clique cria um retangulo de 8 pontos
-    pontosCriacao = retanguloComOitoPontos(ponto);
+    pontosCriacao = retanguloComOitoPontos(obterPontoSvg(evento));
     concluirCriacao();
     // FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO
   });
@@ -1117,11 +1002,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     concluirCriacao();
   });
 
+  // Guarda a forma antes do arraste para recalcular a área ao soltar o ponto.
+  let pontosAntesDoArraste = null;
+
   window.addEventListener("pointermove", (evento) => {
+    if ((verticeArrastado !== null || talhaoArrastado !== null) && !pontosAntesDoArraste) {
+      const feature = obterFeature(talhaoSelecionado);
+      if (feature) pontosAntesDoArraste = obterPontos(feature).map((ponto) => [...ponto]);
+    }
     atualizarVertice(evento);
     moverTalhao(evento);
   });
   window.addEventListener("pointerup", () => {
+    // Soltou o ponto: a área em hectares acompanha a nova forma do talhão.
+    if (pontosAntesDoArraste) recalcularAreaTalhaoEditado(pontosAntesDoArraste);
+    pontosAntesDoArraste = null;
     verticeArrastado = null;
     talhaoArrastado = null;
   });

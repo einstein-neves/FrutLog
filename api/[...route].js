@@ -698,7 +698,7 @@ module.exports = async (req, res) => {
       ))[0];
       const finalizarCiclo = d.finalizarCiclo === true || d.finalizarCiclo === "true";
       if (finalizarCiclo && !cicloAtivo) {
-        return reply(res, 409, { mensagem: "NÃ£o hÃ¡ plantio ativo neste talhÃ£o para encerrar." }, origin);
+        return reply(res, 409, { mensagem: "Não há plantio ativo neste talhão para encerrar." }, origin);
       }
       if (finalizarCiclo) {
         await db(c, "ciclo_cultura", "PATCH", { status: "encerrado", encerrado_em: colhidoEm }, `?id=eq.${encodeURIComponent(cicloAtivo.id)}`);
@@ -842,11 +842,22 @@ module.exports = async (req, res) => {
     if (req.method === "GET" && route === "/talhoes") {
       const farms = await farmsForOrganization(c);
       if (!farms.length) return reply(res, 503, { mensagem: "Fazenda não configurada." }, origin);
-      const plots = await listarTalhoesComTemperatura(
-        c,
-        `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&arquivado_em=is.null&select=id,codigo,nome,area_hectares,coordenadas,temperatura_maxima&order=codigo`
+      const filtroFazendas = `fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})`;
+      const [plots, arquivados] = await Promise.all([
+        listarTalhoesComTemperatura(
+          c,
+          `?${filtroFazendas}&arquivado_em=is.null&select=id,codigo,nome,area_hectares,coordenadas,temperatura_maxima&order=codigo`
+        ),
+        db(c, "talhao", "GET", undefined, `?${filtroFazendas}&arquivado_em=not.is.null&select=codigo&order=codigo`)
+      ]);
+      // Os códigos arquivados seguem ocupados no banco: o editor usa esta lista
+      // para nunca gerar um código novo que colida com um talhão do histórico.
+      return reply(
+        res,
+        200,
+        { talhoes: plots, codigos_arquivados: arquivados.map((plot) => plot.codigo) },
+        origin
       );
-      return reply(res, 200, { talhoes: plots }, origin);
     }
 
     if (req.method === "PUT" && route === "/talhoes/geometrias") {
@@ -914,11 +925,8 @@ module.exports = async (req, res) => {
           `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&codigo=in.(${candidateCodes.map(encodeURIComponent).join(",")})&select=id,codigo,fazenda_id,arquivado_em`
         )
         : [];
-      const codigosArquivados = new Set(existingPlots.filter((plot) => plot.arquivado_em).map((plot) => plot.codigo));
-      if (d.talhoes.some((feature) => codigosArquivados.has(feature.properties.codigo))) {
-        return reply(res, 409, { mensagem: "Existe um talhÃ£o arquivado com este cÃ³digo. Restaure-o no histÃ³rico antes de editar o mapa." }, origin);
-      }
-      const farmIds = new Set(existingPlots.map((plot) => plot.fazenda_id));
+      const plotsAtivos = existingPlots.filter((plot) => !plot.arquivado_em);
+      const farmIds = new Set(plotsAtivos.map((plot) => plot.fazenda_id));
       if (farmIds.size > 1) {
         return reply(
           res,
@@ -929,6 +937,29 @@ module.exports = async (req, res) => {
       }
       const farmId = farmIds.values().next().value || farms[0].id;
       const farm = farms.find((item) => item.id === farmId);
+
+      // O código só está realmente ocupado quando o talhão arquivado é da mesma
+      // fazenda que está sendo salva. Antes qualquer homônimo de outra fazenda
+      // bloqueava o mapa inteiro, mesmo sem nenhuma relação com a edição atual.
+      const codigosArquivados = new Set(
+        existingPlots
+          .filter((plot) => plot.arquivado_em && plot.fazenda_id === farm.id)
+          .map((plot) => plot.codigo)
+      );
+      const conflitos = d.talhoes
+        .map((feature) => feature.properties.codigo)
+        .filter((codigo) => codigosArquivados.has(codigo));
+      if (conflitos.length) {
+        return reply(
+          res,
+          409,
+          {
+            mensagem: `Já existe um talhão arquivado com o código ${conflitos.join(", ")}. Renomeie o talhão ou restaure o original no histórico antes de salvar o mapa.`,
+            codigos_arquivados: conflitos
+          },
+          origin
+        );
+      }
 
       const result = await db(c, "rpc/salvar_geometrias_talhoes", "POST", {
         p_fazenda_id: farm.id,
@@ -1100,6 +1131,15 @@ module.exports = async (req, res) => {
     }
 
     // 11. Painéis Compostos (BFF - Backend for Frontend)
+    /**
+     * PATCH /admin/historico-operacao/:tipo/:id
+     * Arquiva ou restaura um registro do histórico sem apagá-lo do banco.
+     * Somente perfil admin. O :tipo aceita "talhao", "ciclo" ou "colheita".
+     * Corpo esperado: { arquivado: boolean }.
+     * Responde 200 { sucesso, arquivado, registro }; 400 se o corpo não trouxer
+     * o booleano; 404 se o registro não existir ou for de outra organização;
+     * 409 se tentar arquivar um ciclo que ainda está ativo.
+     */
     const archiveMatch = route.match(/^\/admin\/historico-operacao\/(talhao|ciclo|colheita)\/([^/]+)$/);
     if (req.method === "PATCH" && archiveMatch) {
       if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissao." }, origin);
@@ -1112,8 +1152,19 @@ module.exports = async (req, res) => {
       const farms = await farmsForOrganization(c);
       const farmIds = farms.map((farm) => farm.id);
       if (!farmIds.length) return reply(res, 503, { mensagem: "Fazenda nao configurada." }, origin);
-      const resource = { talhao: "talhao", ciclo: "ciclo_cultura", colheita: "colheita" }[type];
-      const record = (await db(c, resource, "GET", undefined, `?id=eq.${encodeURIComponent(id)}&select=id,talhao_id,status,arquivado_em&limit=1`))[0];
+      // ATENCAO (Supabase/PostgREST): cada tabela tem colunas diferentes e o
+      // PostgREST devolve 400 ("column ... does not exist") se pedirmos uma
+      // coluna ausente. Antes isto pedia id,talhao_id,status para as tres
+      // tabelas, o que quebrava "Arquivar colheita" (colheita nao tem status) e
+      // "Arquivar talhao" (talhao nao tem status nem talhao_id). Ao mexer aqui,
+      // confira o esquema real em supabase/schema_oficial_atualizado.sql.
+      const recursos = {
+        talhao: { tabela: "talhao", colunas: "id,arquivado_em" },
+        ciclo: { tabela: "ciclo_cultura", colunas: "id,talhao_id,status,arquivado_em" },
+        colheita: { tabela: "colheita", colunas: "id,talhao_id,arquivado_em" }
+      };
+      const { tabela: resource, colunas } = recursos[type];
+      const record = (await db(c, resource, "GET", undefined, `?id=eq.${encodeURIComponent(id)}&select=${colunas}&limit=1`))[0];
       if (!record) return reply(res, 404, { mensagem: "Registro historico nao encontrado." }, origin);
       const plotId = type === "talhao" ? record.id : record.talhao_id;
       const plot = (await db(c, "talhao", "GET", undefined, `?id=eq.${encodeURIComponent(plotId)}&fazenda_id=in.(${farmIds.join(",")})&select=id&limit=1`))[0];
@@ -1420,7 +1471,7 @@ module.exports = async (req, res) => {
       const areaPlantada = Number(plot.area_hectares);
       const temperaturaMaxima = Number(String(d.temperaturaMaxima ?? "").replace(",", "."));
       if (!Number.isFinite(temperaturaMaxima) || temperaturaMaxima < 0 || temperaturaMaxima > 100) {
-        return reply(res, 400, { mensagem: "Informe uma temperatura mÃ¡xima entre 0 e 100 C." }, origin);
+        return reply(res, 400, { mensagem: "Informe uma temperatura máxima entre 0 e 100 C." }, origin);
       }
       if (!Number.isFinite(areaPlantada) || areaPlantada <= 0) {
         return reply(res, 409, { mensagem: "Defina uma área valida para o talhão antes de cadastrar o produto." }, origin);

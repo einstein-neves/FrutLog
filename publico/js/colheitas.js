@@ -2,12 +2,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   const formularios = [...document.querySelectorAll("[data-form-colheita]")];
   if (!formularios.length) return;
 
+  /**
+   * Mostra o retorno de uma operação de colheita no próprio formulário e,
+   * quando é resultado de ação, também como toast.
+   * ATENÇÃO (DOM): a linha de mensagem é o elemento [data-mensagem-colheita]
+   * dentro do formulário, não um id fixo — há um formulário por tela.
+   * @param {HTMLFormElement} formulario - Formulário onde escrever.
+   * @param {string} texto - Mensagem a exibir.
+   * @param {string} [tipo=""] - "sucesso" | "erro" | "" (status em andamento).
+   * @returns {void}
+   */
   const exibirMensagem = (formulario, texto, tipo = "") => {
     const mensagem = formulario.querySelector("[data-mensagem-colheita]");
     if (mensagem) {
       mensagem.textContent = texto;
       mensagem.className = `mensagem-feedback ${tipo}`.trim();
     }
+    if (tipo === "erro" || tipo === "sucesso") FrutLogFeedback.toast(texto, tipo);
   };
 
   const optionsTalhoes = async () => {
@@ -63,10 +74,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     selectTalhao.addEventListener("change", atualizarResumoCiclo);
     atualizarResumoCiclo();
 
+    /**
+     * Registra uma colheita do talhão selecionado.
+     * ATENÇÃO (API): POST /colheitas pode encerrar o ciclo automaticamente
+     * quando a colheita fecha a safra; a resposta traz cicloEncerrado e, nesse
+     * caso, avisamos as outras telas pelos eventos de atualização.
+     * @param {SubmitEvent} evento - Envio do formulário de colheita.
+     * @returns {Promise<void>}
+     */
     formulario.addEventListener("submit", async (evento) => {
       evento.preventDefault();
+      // Validação pré-envio: evita bater na API com campo obrigatório vazio.
+      if (!FrutLogFeedback.validarObrigatorios(formulario)) return;
       const botao = formulario.querySelector('[type="submit"]');
-      botao.disabled = true;
+      const liberarBotao = FrutLogFeedback.ocupar(botao, "Registrando...");
       try {
         const dados = Object.fromEntries(new FormData(formulario));
         const resposta = await FrutLog.apiFetch("/colheitas", {
@@ -87,7 +108,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       } catch (erro) {
         exibirMensagem(formulario, erro.message, "erro");
       } finally {
-        botao.disabled = false;
+        liberarBotao();
       }
     });
   }

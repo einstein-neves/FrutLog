@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/feedback.css">
   <link rel="stylesheet" href="css/dashboard.css">
   <link rel="stylesheet" href="css/tec.css">
   <link rel="stylesheet" href="css/pulse-frutlog.css">
@@ -43,16 +44,9 @@
       <p class="mensagem-feedback" id="mensagem-dados-tecnicos" aria-live="polite"></p>
     </section>
 
-    <div class="abas-tecnico" role="tablist" aria-label="Seções do painel técnico">
-      <button id="tab-monitoramento" class="aba-tecnico ativa" type="button" role="tab" aria-selected="true"
-        aria-controls="aba-monitoramento" tabindex="0">Monitoramento e Detalhes de Talhões</button>
-      <button id="tab-registros" class="aba-tecnico" type="button" role="tab" aria-selected="false"
-        aria-controls="aba-registros" tabindex="-1">Registros de campo e Relatório diário</button>
-      <button id="tab-telemetria" class="aba-tecnico" type="button" role="tab" aria-selected="false"
-        aria-controls="aba-telemetria" tabindex="-1">Telemetria e histórico diário</button>
-    </div>
-
-    <div id="aba-monitoramento" class="painel-aba-tecnico" role="tabpanel" aria-labelledby="tab-monitoramento">
+    <!-- A barra de sub-abas horizontais foi removida: a navegacao entre secoes
+         acontece somente pela sidebar da esquerda (FrutLog.configurarAbasSidebar). -->
+    <div id="aba-monitoramento" class="painel-aba-tecnico" aria-label="Monitoramento e detalhes de talhoes">
       <section id="tarefas-dia" class="cartao">
         <div class="titulo-cartao"><i class="fa-solid fa-list-check" aria-hidden="true"></i> Tarefas do Dia</div>
         <div class="lista-tarefas" id="lista-tarefas"></div>
@@ -160,7 +154,7 @@
       </section>
     </div>
 
-    <div id="aba-registros" class="painel-aba-tecnico" role="tabpanel" aria-labelledby="tab-registros" hidden>
+    <div id="aba-registros" class="painel-aba-tecnico" aria-label="Registros de campo e relatorio diario" hidden>
             <!-- Inspecoes e ocorrencias registradas durante a visita. -->
 <section id="registro-campo" class="cartao">
         <div class="cabecalho-cadastro">
@@ -296,7 +290,7 @@
       </section>
     </div>
 
-    <div id="aba-telemetria" class="painel-aba-tecnico" role="tabpanel" aria-labelledby="tab-telemetria" hidden>
+    <div id="aba-telemetria" class="painel-aba-tecnico" aria-label="Telemetria e historico diario" hidden>
       <section class="cartao">
         <div class="titulo-cartao">Telemetria diária — médias por talhão</div>
         <div class="tabela-responsiva">
@@ -440,6 +434,7 @@
   </main>
 
   <script src="js/auth.js"></script>
+  <script src="js/feedback.js"></script>
   <script src="js/frutlog-talhoes.js"></script>
   <script src="js/mapa-talhoes.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

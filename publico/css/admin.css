@@ -80,6 +80,20 @@
   font-size: 0.78rem;
 }
 
+/* Cadastro de produto espelhado do painel do Engenheiro: as regras abaixo
+   repetem as de eng.css porque admin.html nao carrega aquela folha. */
+.card-cadastro-produto {
+  border-top: 6px solid var(--cor-destaque);
+}
+
+#cadastro-plantio .info-grid-cadastro {
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+}
+
+#cadastro-plantio .item-detalhe-cadastro:last-child {
+  grid-column: span 1;
+}
+
 .resumo-ciclo-atual {
   margin-top: 14px;
   padding: 12px 14px;
@@ -266,13 +280,199 @@
   margin: 0 0 10px;
 }
 
+/* ---- Historico de talhoes e cultivos ----
+   A tabela mostra so o essencial de cada ciclo; datas, sensores, colheitas e
+   alertas ficam na linha de detalhe que o botao "Detalhes" abre. Com isso a
+   tabela cabe na tela sem rolagem horizontal e cada linha tem altura fixa. */
 .historico-operacao-admin .tabela-dados {
-  min-width: 1250px;
+  min-width: 720px;
 }
 
 .historico-operacao-admin .tabela-dados td {
-  vertical-align: top;
-  line-height: 1.45;
+  vertical-align: middle;
+  line-height: 1.4;
+}
+
+.historico-operacao-admin .linha-historico > td {
+  border-bottom: none;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.historico-operacao-admin .linha-historico:hover > td {
+  background: #faf8f5;
+}
+
+/* Segunda linha de cada registro: so o produto/area principal fica em destaque,
+   o resto desce para esta linha de apoio em tom suave. */
+.historico-operacao-admin .historico-subtexto {
+  display: block;
+  margin-top: 2px;
+  color: var(--cor-texto-suave);
+  font-size: 0.82rem;
+}
+
+.historico-operacao-admin .celula-historico-vazia {
+  color: var(--cor-texto-suave);
+}
+
+.historico-operacao-admin .seta-periodo {
+  margin: 0 2px;
+  color: var(--cor-texto-suave);
+}
+
+/* Contadores de sensores, colheitas e alertas. Substituem as antigas listas
+   que estouravam a celula; o numero basta para decidir se vale abrir. */
+.historico-operacao-admin .chips-historico {
+  display: flex;
+  gap: 6px;
+}
+
+.historico-operacao-admin .chip-historico {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 46px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(46, 125, 50, 0.1);
+  color: var(--cor-destaque);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.historico-operacao-admin .chip-historico i {
+  font-size: 0.72rem;
+}
+
+.historico-operacao-admin .chip-historico-vazio {
+  background: rgba(117, 117, 117, 0.1);
+  color: var(--cor-texto-suave);
+}
+
+.historico-operacao-admin .chip-historico-alerta {
+  background: rgba(198, 40, 40, 0.1);
+  color: var(--cor-critico);
+}
+
+.historico-operacao-admin .celula-acoes-historico {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* O "Ver detalhes" reusa a pilula verde do leitor de relatorios para as duas
+   telas abrirem conteudo com o mesmo botao. */
+.historico-operacao-admin .btn-abrir-relatorio {
+  margin-top: 0;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+/* Arquivar segue na pilula vermelha padrao; restaurar recebe o verde
+   institucional. Regra restrita ao historico para nao mexer nos botoes das
+   outras tabelas do painel. */
+.historico-operacao-admin .btn-acao-admin:not(.btn-excluir-admin):not(:disabled) {
+  border-color: var(--cor-destaque);
+  color: var(--cor-destaque);
+}
+
+.historico-operacao-admin .btn-acao-admin:not(.btn-excluir-admin):not(:disabled):hover {
+  background: rgba(46, 125, 50, 0.1);
+}
+
+/* ---- Leitor de detalhes do historico ----
+   O dialog nasce no <body>, fora de .historico-operacao-admin, entao estas
+   regras usam o id dele. A moldura (fundo, cabecalho, metadados, rodape) vem de
+   .modal-leitura-relatorio, a mesma do "Abrir relatório". */
+#modal-detalhe-historico .modal-leitura-corpo.detalhe-historico {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 20px;
+  max-height: 52vh;
+  overflow-y: auto;
+}
+
+#modal-detalhe-historico .detalhe-bloco h3 {
+  margin: 0 0 10px;
+  color: var(--cor-texto-suave);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+#modal-detalhe-historico .detalhe-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  margin: 0;
+  padding: 0 4px 0 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+#modal-detalhe-historico .detalhe-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#modal-detalhe-historico .detalhe-item-simples,
+#modal-detalhe-historico .detalhe-texto {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+}
+
+#modal-detalhe-historico .detalhe-texto:last-child {
+  margin-bottom: 0;
+}
+
+#modal-detalhe-historico .detalhe-apoio {
+  color: var(--cor-texto-suave);
+}
+
+#modal-detalhe-historico .detalhe-pendencia {
+  font-weight: 600;
+}
+
+#modal-detalhe-historico .detalhe-vazio {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+}
+
+#modal-detalhe-historico .detalhe-rodape {
+  flex-wrap: wrap;
+  gap: 8px;
+  border-top: 1px solid var(--cor-borda);
+}
+
+/* Restaurar em verde, arquivar na pilula vermelha padrao. */
+#modal-detalhe-historico .btn-acao-admin:not(.btn-excluir-admin):not(:disabled) {
+  border-color: var(--cor-destaque);
+  color: var(--cor-destaque);
+}
+
+#modal-detalhe-historico .btn-acao-admin:not(.btn-excluir-admin):not(:disabled):hover {
+  background: rgba(46, 125, 50, 0.1);
+}
+
+@media (max-width: 768px) {
+  .historico-operacao-admin .celula-acoes-historico {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #modal-detalhe-historico .detalhe-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
 }
 
 .resumo-colheita-admin {

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="css/global.css">
+<link rel="stylesheet" href="css/feedback.css">
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/admin.css">
 <link rel="stylesheet" href="css/pulse-frutlog.css">
@@ -23,13 +24,22 @@
 
   <nav class="menu" aria-label="Menu administrativo">
     <a href="#funcionarios" class="nav-link active"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Funcionários</a>
+
     <a href="#sensores-admin" class="nav-link"><i class="fa-solid fa-microchip" aria-hidden="true"></i> Sensores</a>
+
     <a href="#resumo-tecnico" class="nav-link"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i> Dados de Campo</a>
+
     <a href="#colheitas-admin" class="nav-link"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> Colheitas</a>
+
     <a href="#telemetria-admin" class="nav-link"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i> Telemetria</a>
+
     <a href="#relatorios-diarios" class="nav-link"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Relatórios Recebidos</a>
+
 <!--correção de titulo na barra de navehagação -->
     <a href="#monitoramento" class="nav-link"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>monitoramento </a>
+
+<!--Cadastro de produto espelhado do painel do engenheiro-->
+    <a href="#cadastro-plantio" class="nav-link"><i class="fa-solid fa-seedling" aria-hidden="true"></i> Cadastrar Produto</a>
 
     <a href="#graficos" class="nav-link"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Gráficos</a>
   </nav>
@@ -96,6 +106,7 @@
           <span class="texto-ajuda">O funcionário deverá trocá-la no primeiro acesso.</span>
         </div>
       </div>
+      
       <p class="mensagem-feedback" id="mensagem-funcionario" aria-live="polite"></p>
       <div class="area-botao-cadastro">
         <button id="btn-salvar-funcionario" type="submit" class="btn-primario"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Cadastrar Funcionário</button>
@@ -157,7 +168,7 @@
           <option value="temperatura">Temperatura</option>
           <option value="umidadeSolo">Umidade do solo</option>
           <option value="umidadeAr">Umidade do ar</option>
-          <option value="chuva">Chuva</option>
+        <!--  <option value="chuva">Chuva</option> -->
         </select>
       </div>
 
@@ -205,7 +216,7 @@
 <div class="tabelas-consolidadas-admin historico-operacao-admin">
   <article>
     <h3>Hist&oacute;rico de talh&otilde;es e cultivos</h3>
-    <p class="texto-ajuda">Cada linha representa um ciclo de cultivo, ativo ou encerrado. Talh&otilde;es sem plantio tamb&eacute;m aparecem para registrar o cadastro e os dados associados.</p>
+    <p class="texto-ajuda">Cada linha representa um ciclo de cultivo, ativo ou encerrado. Talh&otilde;es sem plantio tamb&eacute;m aparecem. Use <strong>Ver detalhes</strong> para abrir datas, sensores, colheitas e alertas do registro.</p>
     <label class="filtro-historico-admin" for="filtro-historico-admin">Exibi&ccedil;&atilde;o do hist&oacute;rico
       <select id="filtro-historico-admin" class="campo-formulario">
         <option value="ativos">Registros ativos</option>
@@ -217,8 +228,8 @@
       <table class="tabela-dados">
         <thead>
           <tr>
-            <th>Cadastro</th><th>Talh&atilde;o / produto</th><th>&Aacute;reas</th><th>Per&iacute;odo</th>
-            <th>Sensores</th><th>Colheitas</th><th>Pend&ecirc;ncias / alertas</th><th>Situa&ccedil;&atilde;o atual</th><th>A&ccedil;&otilde;es</th>
+            <th>Talh&atilde;o / cultivo</th><th>Ciclo</th><th>&Aacute;rea</th>
+            <th>Registros</th><th>Situa&ccedil;&atilde;o atual</th><th>A&ccedil;&otilde;es</th>
           </tr>
         </thead>
         <tbody id="tabela-historico-admin"></tbody>
@@ -403,86 +414,268 @@
 
 
 
+<!--mapas-->
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!-- edição de mapa fazenda para monitoramento.-->
-  <!-- SEÇÃO MAPA DA FAZENDA -->
-  <section id="monitoramento" class="cartao cartao-mapa-wrapper">
-    <div class="mapa-header">
-      <div>
-        <h2>Mapa da Fazenda</h2>
-        <p>Mapa administrativo dos talhões cadastrados e respectivos estados de monitoramento.</p>
-      </div>
-      <span class="status-mapa">Monitoramento Ativo</span>
-    </div>
-
-    <div class="secao-mapa-detalhes painel-mapa-tecnico">
-      <article class="cartao cartao-mapa-wrapper mapa-admin-card">
+<section id="monitoramento" class="secao-mapa-detalhes" aria-label="Monitoramento dos talhões">
+      <div class="cartao cartao-mapa-wrapper">
         <div class="mapa-header">
-          <div><p>Selecione um talhão para consultar a situação em campo.</p></div>
-          <div class="botoes-do-talhao" id="botoes-talhao" aria-label="Seleção de talhão"></div>
+          <div>
+            <h2>Visão dos Talhões</h2>
+            <p>Selecione um talhão para visualizar seus dados.</p>
+          </div>
+
+<div class="botoes-do-talhao" id="botoes-talhao" aria-label="Seleção de talhão"></div>
+          <span class="status-mapa">Monitoramento Ativo</span>
         </div>
-        <p class="texto-ajuda">Edite os limites, crie ou remova talhões e salve as alterações.</p>
+
+        <p class="texto-ajuda">Edi&ccedil;&atilde;o dos limites: clique em Editar talh&atilde;o para desenhar e mover
+          os pontos. A &aacute;rea em hectares &eacute; recalculada sozinha pela forma do talh&atilde;o.</p>
+
+        <!-- Barra de ferramentas do mapa padronizada: apenas as 4 acoes essenciais.
+             Recarregar mapa, Dividir, Cancelar, o campo "Area do talhao (ha)" e o
+             botao "Aplicar area" foram removidos; a area passou a ser calculada
+             pela propria geometria (FrutLogTalhoes.recalcularAreaAutomatica). -->
+        <div class="barra-edicao-talhao" aria-label="Ferramentas de edicao de talhoes">
+          <button class="btn-filtro" type="button" id="btn-editar-talhoes">Editar talh&atilde;o</button>
+          <button class="btn-filtro" type="button" id="btn-criar-talhao" disabled>Criar</button>
+          <button class="btn-filtro" type="button" id="btn-salvar-talhao" disabled>Salvar</button>
+          <button class="btn-filtro" type="button" id="btn-excluir-talhao" disabled>Excluir</button>
+        </div>
+
+        <p class="mensagem-feedback" id="mensagem-edicao-talhao" aria-live="polite"></p>
+
         <div class="mapa-container">
-          <img src="imagem/mapa-FrutLog.jpg" alt="Mapa aéreo dos talhões" class="mapa-imagem">
-          <svg class="camada-talhoes" id="camada-talhoes" viewBox="0 0 500 400" preserveAspectRatio="none" aria-label="Talhões da fazenda"></svg>
-        </div>
+          <img src="imagem/mapa-FrutLog.jpg" alt="Mapa aereo dos talhões" class="mapa-imagem">
+
+
+
+<!-- presta atenção hilccer tu duplicou duas vezes como  ?  --> 
+
+          <svg class="camada-talhoes" id="camada-talhoes" viewBox="0 0 500 400" preserveAspectRatio="none"
+            aria-label="Talhões da fazenda">
+          </svg>
+</div>
+
+<!--quadros de cores msg de geometrioa de talhao-->
         <p class="texto-ajuda" id="mensagem-geometria-talhoes" aria-live="polite"></p>
+
         <div class="legenda-mapa">
           <div class="legenda-item"><span class="legenda-cor legenda-normal"></span><span>Normal</span></div>
           <div class="legenda-item"><span class="legenda-cor legenda-atencao"></span><span>Atenção</span></div>
           <div class="legenda-item"><span class="legenda-cor legenda-critico"></span><span>Crítico</span></div>
           <div class="legenda-item"><span class="legenda-cor legenda-selecao"></span><span>Selecionado</span></div>
         </div>
-      </article>
-      <article class="cartao card-detalhes-elegante">
-        <div class="cabecalho-detalhes"><span class="badge-status" id="tecnico-talhao-status">Normal</span><h2 class="titulo-talhao" id="tecnico-titulo-talhao">Detalhes: Talhão A1</h2></div>
-        <div class="info-grid-detalhes">
-          <div class="item-detalhe"><span class="label">Produto</span><span class="valor" id="tecnico-talhao-produto">--</span></div>
-          <div class="item-detalhe"><span class="label">Variedade</span><span class="valor" id="tecnico-talhao-variedade">--</span></div>
-          <div class="item-detalhe"><span class="label">Área</span><span class="valor" id="tecnico-talhao-area">--</span></div>
-          <div class="item-detalhe"><span class="label">Tipo de solo</span><span class="valor" id="tecnico-talhao-solo">--</span></div>
-          <div class="item-detalhe"><span class="label">Data de plantio</span><span class="valor" id="tecnico-talhao-plantio">--</span></div>
-          <div class="item-detalhe"><span class="label">Previsão de colheita</span><span class="valor" id="tecnico-talhao-colheita">--</span></div>
-          <div class="item-detalhe"><span class="label">Sensor principal</span><span class="valor" id="tecnico-talhao-sensor">--</span></div>
-          <div class="item-detalhe"><span class="label">Temperatura configurada</span><span class="valor" id="tecnico-talhao-limite">--</span></div>
-          <div class="item-detalhe"><span class="label">Temperatura atual</span><span class="valor" id="tecnico-talhao-temperatura">--</span></div>
-          <div class="item-detalhe"><span class="label">Umidade atual</span><span class="valor" id="tecnico-talhao-umidade">--</span></div>
-          <div class="item-detalhe destaque-fruta"><span class="label">Prioridade do campo</span><span class="valor" id="tecnico-talhao-prioridade">--</span></div>
-        </div>
-
-        <!-- Botão para encerrar ciclo do talhão -->
-        <div class="area-botao-cadastro">
-          <button type="button" id="btn-encerrar-ciclo-talhao" class="btn-secundario"disabled>Encerrar ciclo deste talh&atilde;o</button>
-        </div>
-        <p class="mensagem-feedback" id="mensagem-encerramento-ciclo" aria-live="polite"></p>
-        
       </div>
 
-      </article>
+<!--detalhes de talhao -->
+      <div class="cartao card-detalhes-elegante">
+        <div class="cabecalho-detalhes">
+          <span class="badge-status" id="talhao-status">Normal</span>
+          <h2 class="titulo-talhao" id="titulo-talhao">Detalhes: Talhão A1</h2>
+        </div>
+
+        <div class="info-grid-detalhes">
+
+          <div class="item-detalhe"><span class="label">Área</span>
+            <span class="valor" id="talhao-area">--</span>
+          </div>
+
+          <div class="item-detalhe"><span class="label">Tipo de Solo</span>
+            <span class="valor" id="talhao-solo">--</span>
+          </div>
+
+          <div class="item-detalhe"><span class="label">Data de Plantio</span>
+            <span class="valor" id="talhao-plantio">--</span>
+          </div>
+
+          <div class="item-detalhe"><span class="label">Previsão de Colheita</span>
+            <span class="valor" id="talhao-colheita">--</span>
+          </div>
+
+          <div class="item-detalhe"><span class="label">Produto</span>
+            <span class="valor" id="talhao-produto">--</span>
+          </div>
+          
+          <div class="item-detalhe destaque-fruta">
+            <span class="label">Variedade Cultivada</span>
+            <span class="valor" id="talhao-variedade">--</span>
+          </div>
+
+          <div class="item-detalhe">
+            <span class="label">Temperatura Configurada</span>
+            <span class="valor" id="talhao-temperatura-maxima">--</span>
+          </div>
+
+          <div class="item-detalhe"><span class="label">Última Inspeção</span>
+            <span class="valor" id="talhao-inspecao-data">--</span>
+          </div>
+
+          <div class="item-detalhe"><span class="label">Técnico Responsável</span>
+            <span class="valor" id="talhao-inspecao-tecnico">--</span>
+          </div>
+
+          <div class="item-detalhe destaque-tecnico">
+            <span class="label">Problema Apontado</span>
+            <span class="valor" id="talhao-inspecao-problema">--</span>
+          </div>
+
+          <div class="item-detalhe destaque-tecnico">
+            <span class="label">Recomendação Tecnica</span>
+            <span class="valor" id="talhao-inspecao-recomendacao">--</span>
+          </div>
+
+        </div>
+
+        <!-- Botão para encerrar o ciclo do talhão. -->
+        <div class="area-botao-cadastro">
+          <button type="button" id="btn-encerrar-ciclo-talhao" class="btn-secundario" disabled>Encerrar ciclo deste talh&atilde;o</button>
+        </div>
+
+        <p class="mensagem-feedback" id="mensagem-encerramento-ciclo" aria-live="polite"></p>
+
+      </div>
+
+    </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <!-- CADASTRO DE PRODUTO (espelho do painel do Engenheiro)
+       Cadastra um novo ciclo de cultivo para um talhao. O select de talhoes e
+       populado com os talhoes desenhados no mapa + os talhoes do painel tecnico. -->
+  <section id="cadastro-plantio" class="cartao card-cadastro-produto">
+    <div class="cabecalho-cadastro">
+      <span class="badge-status">Planejamento Agr&iacute;cola</span>
+      <h2 class="titulo-talhao">Cadastrar Produto</h2>
+      <p class="subtitulo-cadastro">Cadastre um novo produto e vincule-o a um talh&atilde;o controlado pelo sistema.</p>
     </div>
-</section>
+
+    <form id="formulario-plantio">
+      <div class="info-grid-cadastro">
+        <div class="item-detalhe-cadastro">
+          <label class="label" for="produto">Produto</label>
+          <input type="text" id="produto" name="produto" class="campo-formulario" placeholder="Ex.: Manga" required>
+        </div>
+        <div class="item-detalhe-cadastro">
+          <label class="label" for="variedade">Variedade</label>
+          <input type="text" id="variedade" name="variedade" class="campo-formulario" placeholder="Ex.: Palmer"
+            required>
+        </div>
+        <div class="item-detalhe-cadastro">
+          <label class="label" for="talhao">Talh&atilde;o</label>
+          <select id="talhao" name="talhao" class="campo-formulario" required>
+            <option value="">Nenhum talh&atilde;o cadastrado</option>
+          </select>
+        </div>
+        <div class="item-detalhe-cadastro">
+          <label class="label" for="solo">Tipo de Solo</label>
+          <select id="solo" name="solo" class="campo-formulario" required>
+            <option value="">Selecione</option>
+            <option value="Arenoso">Arenoso</option>
+            <option value="Franco Arenoso">Franco Arenoso</option>
+            <option value="Argiloso">Argiloso</option>
+          </select>
+        </div>
+        <div class="item-detalhe-cadastro">
+          <label class="label" for="data-plantio">Data de Plantio</label>
+          <input type="date" id="data-plantio" name="dataPlantio" class="campo-formulario" required>
+        </div>
+        <div class="item-detalhe-cadastro">
+          <label class="label" for="data-colheita">Previs&atilde;o de Colheita</label>
+          <input type="date" id="data-colheita" name="dataColheita" class="campo-formulario" required>
+        </div>
+        <div class="item-detalhe-cadastro">
+          <label class="label" for="temperatura-maxima">Temperatura maxima</label>
+          <div class="campo-com-unidade">
+            <input type="number" id="temperatura-maxima" name="temperaturaMaxima" class="campo-formulario" min="0"
+              step="0.1" placeholder="Ex.: 30" required>
+            <span>C</span>
+          </div>
+        </div>
+        <div class="item-detalhe-cadastro">
+          <label class="label" for="sensor-associado">Sensores cadastrados neste talh&atilde;o</label>
+          <select id="sensor-associado" class="campo-formulario" disabled>
+            <option>Nenhum sensor ativo cadastrado para este talh&atilde;o</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="resumo-ciclo-atual" id="resumo-ciclo-atual" aria-live="polite">
+        <strong>Ciclo atual do talh&atilde;o selecionado</strong>
+        <p id="dados-ciclo-atual">Carregando os dados do talh&atilde;o...</p>
+      </div>
+
+      <p class="mensagem-feedback" id="mensagem-plantio" aria-live="polite"></p>
+
+      <div class="area-botao-cadastro">
+        <button type="submit" id="btn-cadastrar-plantio" class="btn-primario">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i> Cadastrar Produto
+        </button>
+      </div>
+    </form>
+  </section>
 
     <!-- SEÇÃO GRÁFICOS (GARANTE O GRÁFICO DE COLHEITA ANUAL) -->
     <section id="graficos" class="admin-graficos">
@@ -545,6 +738,7 @@
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="js/auth.js"></script>
+  <script src="js/feedback.js"></script>
   <script src="js/frutlog-talhoes.js"></script>
   <script src="js/mapa-talhoes.js"></script>
   <script src="js/relatorios.js"></script>

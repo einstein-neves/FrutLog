@@ -287,6 +287,21 @@
   color: #ffffff;
 }
 
+.barra-edicao-talhao {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+/* A barra do mapa ficou so com os 4 botoes essenciais: as regras de label e
+   input do antigo campo "Area do talhao (ha)" sairam junto com o markup. */
+.barra-edicao-talhao .btn-filtro:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .status-mapa {
   color: var(--cor-destaque);
   font-size: 0.82rem;
@@ -383,7 +398,35 @@
   stroke-width: 3.25;
 }
 
+.mapa-container.modo-edicao {
+  cursor: crosshair;
+}
+.mapa-container.modo-edicao .camada-talhoes {
+  pointer-events: auto;
+  touch-action: none;
+}
+.mapa-container.modo-edicao .ponto-arrastavel,
 .ponto-arrastavel {
+  fill: #fff;
+  stroke: var(--cor-destaque);
+  stroke-width: 2;
+  pointer-events: all;
+  cursor: grab;
+}
+.mapa-container.modo-edicao .ponto-arrastavel:active,
+.ponto-arrastavel:active {
+  cursor: grabbing;
+}
+/* As classes .mapa-container.modo-divisao e .linha-divisao-talhao sairam junto
+   com o botao "Dividir", que nao existe mais na barra do mapa. */
+.poligono-rascunho {
+  fill: rgba(123, 31, 162, 0.18);
+  stroke: var(--cor-selecao);
+  stroke-dasharray: 5 4;
+  stroke-width: 1.8;
+  pointer-events: none;
+}
+.ponto-arrastavel-legado {
   fill: #2e7d32;
   stroke: #ffffff;
   stroke-width: 2;

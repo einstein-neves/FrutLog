@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/feedback.css">
   <link rel="stylesheet" href="css/dashboard.css">
   <link rel="stylesheet" href="css/eng.css">
   <link rel="stylesheet" href="css/pulse-frutlog.css">
@@ -46,7 +47,14 @@
       <p>Acompanhamento dos produtos em desenvolvimento nos talhões.</p>
     </section>
 
+
+<!-- MAPAAAAAAAAAAAAAAAAAAAAAA-->
+
+
+
+
     <!-- Mapa e detalhes do talhao selecionado. -->
+
     <section id="monitoramento" class="secao-mapa-detalhes" aria-label="Monitoramento dos talhões">
       <div class="cartao cartao-mapa-wrapper">
         <div class="mapa-header">
@@ -59,30 +67,27 @@
           <span class="status-mapa">Monitoramento Ativo</span>
         </div>
 
-        <p class="texto-ajuda">Edição dos limites: clique em Editar Talhões para desenhar, mover pontos e ajustar a
-          área.</p>
-        <div class="barra-edicao-talhao" aria-label="Ferramentas de edição de talhões">
-          <button class="btn-filtro" type="button" id="btn-editar-talhoes">Editar Talhões</button>
-          <button class="btn-filtro" type="button" id="btn-recarregar-mapa">Recarregar mapa</button>
+        <p class="texto-ajuda">Edi&ccedil;&atilde;o dos limites: clique em Editar talh&atilde;o para desenhar e mover
+          os pontos. A &aacute;rea em hectares &eacute; recalculada sozinha pela forma do talh&atilde;o.</p>
+
+        <!-- Barra de ferramentas do mapa padronizada: apenas as 4 acoes essenciais.
+             Recarregar mapa, Dividir, Cancelar, o campo "Area do talhao (ha)" e o
+             botao "Aplicar area" foram removidos; a area passou a ser calculada
+             pela propria geometria (FrutLogTalhoes.recalcularAreaAutomatica). -->
+        <div class="barra-edicao-talhao" aria-label="Ferramentas de edicao de talhoes">
+          <button class="btn-filtro" type="button" id="btn-editar-talhoes">Editar talh&atilde;o</button>
           <button class="btn-filtro" type="button" id="btn-criar-talhao" disabled>Criar</button>
-          <button class="btn-filtro" type="button" id="btn-concluir-desenho" hidden disabled>Concluir desenho</button>
-          <button class="btn-filtro" type="button" id="btn-dividir-talhao" disabled>Dividir</button>
-          <button class="btn-filtro" type="button" id="btn-excluir-talhao" disabled>Excluir</button>
           <button class="btn-filtro" type="button" id="btn-salvar-talhao" disabled>Salvar</button>
-          <button class="btn-filtro" type="button" id="btn-cancelar-talhao" disabled>Cancelar</button>
-          <label for="talhao-area-hectares">Área do talhão (há)</label>
-
-          <input id="talhao-area-hectares" class="campo-formulario" type="number" min="0.01" step="0.01"
-            inputmode="decimal" aria-label="Área do talhão em hectares">
-
-          <button class="btn-filtro" type="button" id="btn-aplicar-area-talhao" disabled>Aplicar área</button>
+          <button class="btn-filtro" type="button" id="btn-excluir-talhao" disabled>Excluir</button>
         </div>
 
         <p class="mensagem-feedback" id="mensagem-edicao-talhao" aria-live="polite"></p>
         <!-- SVG sao os nosso pontos de referencia pra trilhas  ou criar divisa para talhao . -->
+
         <div class="mapa-container">
           <img src="imagem/mapa-FrutLog.jpg" alt="Mapa aereo dos talhões" class="mapa-imagem">
 
+<!-- quando copia pro admin ele duplica os botoes -->
           <svg class="camada-talhoes" id="camada-talhoes" viewBox="0 0 500 400" preserveAspectRatio="none"
             aria-label="Talhões da fazenda">
           </svg>
@@ -139,6 +144,7 @@
           <div class="item-detalhe"><span class="label">Última Inspeção</span>
             <span class="valor" id="talhao-inspecao-data">--</span>
           </div>
+
           <div class="item-detalhe"><span class="label">Técnico Responsável</span>
             <span class="valor" id="talhao-inspecao-tecnico">--</span>
           </div>
@@ -151,6 +157,7 @@
             <span class="valor" id="talhao-inspecao-recomendacao">--</span>
           </div>
         </div>
+
 <!-- Botão para encerrar o ciclo do talhão. -->
         <div class="area-botao-cadastro">
           <button type="button" id="btn-encerrar-ciclo-talhao" class="btn-secundario" disabled>Encerrar ciclo deste talh&atilde;o</button>
@@ -159,6 +166,14 @@
 
       </div>
     </section>
+
+
+
+
+
+
+
+    
 
 
     <!-- EDIÇÃO -->
@@ -173,7 +188,7 @@
                 <th>Temperatura (C)</th>
                 <th>Umidade Ar (%)</th>
                 <th>Umidade Solo (%)</th>
-                <th>Chuva (mm)</th>
+                <!-- <th>Chuva (mm)</th> -->
               </tr>
             </thead>
             <tbody id="tabela-telemetria-diaria"></tbody>
@@ -190,6 +205,7 @@
       <!-- HILCCER ROCHA DE ARAUJO MELO - Alteracao grafico Inicio: 3 graficos do ESP32 via Node-RED (temperatura, umidade do ar e umidade do solo), um link por grafico -->
         <!-- Graficos do ESP32 servidos pelo Node-RED. O endereco abaixo e o padrao local;
              js/telemetria-thingspeak.js reescreve o host quando outro e configurado. -->
+
         <div class="thingspeak-embeds" aria-label="Graficos do ESP32 via Node-RED">
           <article>
             <h3>Temperatura (&deg;C)</h3>
@@ -247,6 +263,7 @@
             </table>
           </div>
         </section>
+      </section>
     </div>
 
     <div id="historico" hidden>
@@ -260,7 +277,7 @@
                 <th>Temperatura (C)</th>
                 <th>Umidade Ar (%)</th>
                 <th>Umidade Solo (%)</th>
-                <th>Chuva (mm)</th>
+                <!-- <th>Chuva (mm)</th> -->
                 <th>Previsão Colheita</th>
                 <th>Qtd. Colhida</th>
               </tr>
@@ -461,6 +478,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="js/auth.js"></script>
+  <script src="js/feedback.js"></script>
   <script src="js/frutlog-talhoes.js"></script>
   <script src="js/mapa-talhoes.js"></script>
   <script src="js/relatorios.js"></script>

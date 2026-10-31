@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   configurarAcoesTabelas();
   configurarGraficos();
   configurarEncerramentoCicloAdmin();
+  configurarCadastroProduto();
   configurarAcoesHistorico();
   carregarHistoricoQuandoVisivel();
   preencherSelectTalhoes();
@@ -86,9 +87,13 @@ function formatarData(valor) {
 
 function exibirMensagem(id, texto, tipo = "") {
   const elemento = document.getElementById(id);
-  if (!elemento) return;
-  elemento.textContent = texto;
-  elemento.className = `mensagem-feedback ${tipo}`.trim();
+  if (elemento) {
+    elemento.textContent = texto;
+    elemento.className = `mensagem-feedback ${tipo}`.trim();
+  }
+  // Resultado de ação também vira toast: a mensagem da seção pode estar fora da
+  // área visível. Texto sem tipo é status em andamento, não merece toast.
+  if (tipo === "erro" || tipo === "sucesso") FrutLogFeedback.toast(texto, tipo);
 }
 
 function mostrarLinhasVazias(id, colunas, texto = "Nenhum registro encontrado.") {
@@ -159,8 +164,18 @@ function configurarFormularioFuncionario() {
     exibirMensagem("mensagem-funcionario", "");
   });
 
+  /**
+   * Cadastra ou atualiza um funcionário.
+   * ATENÇÃO (API): POST /funcionarios cria e devolve a matrícula gerada pelo
+   * banco; PUT /funcionarios/:id atualiza. A senha provisória só vai no corpo
+   * quando preenchida — enviá-la vazia numa edição mantém a senha atual.
+   * @param {SubmitEvent} evento - Envio do formulário #form-funcionario.
+   * @returns {Promise<void>}
+   */
   formulario?.addEventListener("submit", async (evento) => {
     evento.preventDefault();
+    // Validação pré-envio: evita bater na API com campo obrigatório vazio.
+    if (!FrutLogFeedback.validarObrigatorios(formulario)) return;
     const dados = Object.fromEntries(new FormData(formulario));
     const mensagemId = "mensagem-funcionario";
 
@@ -173,7 +188,7 @@ function configurarFormularioFuncionario() {
     }
 
     const botao = formulario.querySelector('[type="submit"]');
-    if (botao) botao.disabled = true;
+    const liberarBotao = FrutLogFeedback.ocupar(botao, editando ? "Salvando..." : "Cadastrando...");
     try {
       const payload = {
         nome: dados.nome,
@@ -219,11 +234,16 @@ function configurarFormularioFuncionario() {
       campoSenha.type = "text";
       botaoMostrarSenha.textContent = "Ocultar senha";
       botaoCancelar.hidden = true;
+      // ATENCAO (DOM): liberar ANTES de reescrever o rótulo. liberarBotao()
+      // devolve o conteúdo que o botão tinha ao entrar em carregamento, então
+      // chamá-lo depois desfaria a volta ao texto de cadastro. A segunda
+      // chamada, no finally, é inofensiva: liberar() só age uma vez.
+      liberarBotao();
       botaoSalvar.innerHTML = '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Cadastrar Funcionario';
     } catch (erro) {
       exibirMensagem(mensagemId, erro.message, "erro");
     } finally {
-      if (botao) botao.disabled = false;
+      liberarBotao();
     }
   });
 }
@@ -323,14 +343,16 @@ function configurarAcoesTabelas() {
     const funcionario = funcionarios.find((item) => String(item.id) === String(id));
     if (!funcionario || !window.confirm(`Excluir ${funcionario.nome} do sistema?`)) return;
 
-    botao.disabled = true;
+    // Trava o botão: sem isso, dois cliques disparam dois DELETE e o segundo
+    // volta com 404.
+    const liberarBotao = FrutLogFeedback.ocupar(botao, "Excluindo...");
     try {
       await FrutLog.apiFetch(`/funcionarios/${encodeURIComponent(id)}`, { method: "DELETE" });
       funcionarios = funcionarios.filter((item) => String(item.id) !== String(id));
       renderizarFuncionarios();
       exibirMensagem("mensagem-funcionario", "Funcionario excluido.", "sucesso");
     } catch (erro) {
-      botao.disabled = false;
+      liberarBotao();
       exibirMensagem("mensagem-funcionario", erro.message, "erro");
     }
   });
@@ -346,7 +368,8 @@ function configurarAcoesTabelas() {
     if (!sensor) return;
     if (excluir && !window.confirm(`Excluir o sensor ${sensor.sensor || sensor.id_externo}?`)) return;
 
-    botao.disabled = true;
+    // Trava o botão durante a ida ao servidor, evitando requisições duplicadas.
+    const liberarBotao = FrutLogFeedback.ocupar(botao, excluir ? "Excluindo..." : "Atualizando...");
     try {
       if (excluir) {
         await FrutLog.apiFetch(`/sensores/${encodeURIComponent(id)}`, { method: "DELETE" });
@@ -365,7 +388,7 @@ function configurarAcoesTabelas() {
       renderizarSensores();
       renderizarPainelTecnico();
     } catch (erro) {
-      botao.disabled = false;
+      liberarBotao();
       exibirMensagem("mensagem-sensor", erro.message, "erro");
     }
   });
@@ -373,11 +396,20 @@ function configurarAcoesTabelas() {
 
 function configurarFormularioSensor() {
   const formulario = document.getElementById("form-sensor");
+  /**
+   * Cadastra um sensor e o associa a um talhão.
+   * ATENÇÃO (API): POST /sensores devolve o sensor já persistido; usamos o
+   * id_externo retornado porque o painel exibe esse código, não o uuid.
+   * @param {SubmitEvent} evento - Envio do formulário #form-sensor.
+   * @returns {Promise<void>}
+   */
   formulario?.addEventListener("submit", async (evento) => {
     evento.preventDefault();
+    // Validação pré-envio: evita bater na API com campo obrigatório vazio.
+    if (!FrutLogFeedback.validarObrigatorios(formulario)) return;
     const dados = Object.fromEntries(new FormData(formulario));
     const botao = formulario.querySelector('[type="submit"]');
-    if (botao) botao.disabled = true;
+    const liberarBotao = FrutLogFeedback.ocupar(botao, "Cadastrando...");
 
     try {
       const resposta = await FrutLog.apiFetch("/sensores", {
@@ -404,7 +436,7 @@ function configurarFormularioSensor() {
     } catch (erro) {
       exibirMensagem("mensagem-sensor", erro.message, "erro");
     } finally {
-      if (botao) botao.disabled = false;
+      liberarBotao();
     }
   });
 }
@@ -421,19 +453,158 @@ function renderizarFuncionarios() {
   carregarFuncionarios();
 }
 
-function preencherSelectTalhoes() {
-  const select = document.getElementById("sensor-talhao");
-  if (!select) return;
-  const selecionado = select.value;
+/**
+ * Lista os códigos de talhão disponíveis para os selects do painel.
+ *
+ * A base são os talhões desenhados no mapa (mesma fonte do editor de mapa), e
+ * em seguida entram os talhões que só aparecem no painel técnico, para não
+ * perder nenhum código já existente no banco.
+ * @returns {Array<string>} Códigos de talhão, sem repetição.
+ */
+function obterCodigosTalhoesAdmin() {
   const codigos = (typeof FrutLogTalhoes === "undefined" ? [] : FrutLogTalhoes.obterTalhoes())
     .map((feature) => feature.properties.codigo);
   for (const talhao of painelTecnico.talhoes || []) {
     if (talhao.id && !codigos.includes(talhao.id)) codigos.push(talhao.id);
   }
-  select.innerHTML = '<option value="">Selecione o talhao</option>' + codigos
+  return codigos;
+}
+
+/**
+ * Preenche os selects de talhão do painel administrativo.
+ *
+ * Atende o cadastro de sensores e o cadastro de produto, de modo que todo
+ * talhão criado no mapa apareça nos dois assim que o mapa é recarregado
+ * (carregarMapaAdmin) ou o painel técnico é renderizado.
+ * @returns {void}
+ */
+function preencherSelectTalhoes() {
+  const codigos = obterCodigosTalhoesAdmin();
+  const opcoes = codigos
     .map((codigo) => `<option value="${escaparHtml(codigo)}">${escaparHtml(codigo)}</option>`)
     .join("");
-  if (codigos.includes(selecionado)) select.value = selecionado;
+
+  const select = document.getElementById("sensor-talhao");
+  if (select) {
+    const selecionado = select.value;
+    select.innerHTML = '<option value="">Selecione o talhao</option>' + opcoes;
+    if (codigos.includes(selecionado)) select.value = selecionado;
+  }
+
+  // Cadastro de produto: mesmo recurso do painel do Engenheiro.
+  const selectProduto = document.getElementById("talhao");
+  if (selectProduto) {
+    const selecionadoProduto = selectProduto.value;
+    const vazio = codigos.length ? "Selecione o talhão" : "Nenhum talhão cadastrado";
+    selectProduto.innerHTML = `<option value="">${vazio}</option>` + opcoes;
+    if (codigos.includes(selecionadoProduto)) selectProduto.value = selecionadoProduto;
+    atualizarSensoresDoTalhaoProduto();
+    atualizarResumoCicloAtualAdmin();
+  }
+}
+
+/**
+ * Lista no cadastro de produto os sensores ativos do talhão escolhido.
+ * @returns {void}
+ */
+function atualizarSensoresDoTalhaoProduto() {
+  const select = document.getElementById("sensor-associado");
+  if (!select) return;
+
+  const codigoTalhao = document.getElementById("talhao")?.value;
+  const disponiveis = (painelTecnico.sensores || sensores || [])
+    .filter((sensor) => sensor.talhao === codigoTalhao && sensor.ativo);
+
+  if (!disponiveis.length) {
+    select.innerHTML = '<option value="Nenhum sensor ativo cadastrado para este talhao">Nenhum sensor ativo cadastrado para este talhão</option>';
+    select.disabled = true;
+    return;
+  }
+
+  select.innerHTML = disponiveis.map((sensor) => {
+    const situacao = sensor.status === "Online" ? "Online" : "Cadastrado, aguardando leitura";
+    return `<option>${escaparHtml(sensor.sensor)} - ${escaparHtml(sensor.tipo)} (${situacao})</option>`;
+  }).join("");
+  select.disabled = false;
+}
+
+/**
+ * Mostra o ciclo de cultivo ativo do talhão escolhido no cadastro de produto.
+ *
+ * ATENÇÃO (API): POST /plantios devolve 409 quando o talhão já tem ciclo ativo,
+ * então o aviso aqui evita que o usuário tente cadastrar duas vezes.
+ * @returns {object|null} Ciclo ativo do talhão, ou null quando não há.
+ */
+function atualizarResumoCicloAtualAdmin() {
+  const codigo = document.getElementById("talhao")?.value;
+  const saida = document.getElementById("dados-ciclo-atual");
+  const ciclo = (painelTecnico.plantios || []).find((item) => item.talhao === codigo);
+  if (!saida) return ciclo || null;
+
+  if (!codigo) {
+    saida.textContent = "Selecione um talhão para consultar o ciclo ativo.";
+  } else if (ciclo) {
+    const produto = [ciclo.produto, ciclo.variedade].filter(Boolean).join(" / ") || "Produto sem identificação";
+    saida.textContent = `${produto} · plantado em ${formatarData(ciclo.plantado_em)} · previsão de colheita ${formatarData(ciclo.previsao_colheita)}.`;
+  } else {
+    saida.textContent = "Não há ciclo ativo neste talhão. Você já pode cadastrar um produto.";
+  }
+  return ciclo || null;
+}
+
+/**
+ * Liga o formulário "Cadastrar Produto" do painel administrativo.
+ *
+ * É o mesmo recurso do painel do Engenheiro (eng.html/eng.js), com os mesmos
+ * campos e a mesma rota, para que Administração e Engenharia cadastrem ciclos
+ * de cultivo exatamente da mesma forma.
+ *
+ * ATENÇÃO (API): POST /plantios aceita os perfis engenheiro e admin, cria
+ * cultura/cultivar quando ainda não existem, grava a temperatura máxima no
+ * talhão e exige que o talhão tenha área em hectares positiva.
+ * @returns {void}
+ */
+function configurarCadastroProduto() {
+  const formulario = document.getElementById("formulario-plantio");
+  if (!formulario) return;
+
+  document.getElementById("talhao")?.addEventListener("change", () => {
+    atualizarSensoresDoTalhaoProduto();
+    atualizarResumoCicloAtualAdmin();
+  });
+
+  formulario.addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+
+    // Validação pré-envio: evita bater na API com campo obrigatório vazio.
+    if (!FrutLogFeedback.validarObrigatorios(formulario)) return;
+
+    const dados = Object.fromEntries(new FormData(formulario));
+    if (!obterCodigosTalhoesAdmin().includes(dados.talhao)) {
+      FrutLogFeedback.toast("Selecione um talhão válido antes de cadastrar o produto.", "aviso");
+      return;
+    }
+
+    const botao = formulario.querySelector('[type="submit"]');
+    const liberarBotao = FrutLogFeedback.ocupar(botao, "Cadastrando...");
+    try {
+      await FrutLog.apiFetch("/plantios", {
+        method: "POST",
+        body: JSON.stringify(dados),
+      });
+      // Recarrega o painel para que mapa, detalhes e resumo mostrem o ciclo novo.
+      await carregarDadosConectados();
+      renderizarMapaAdmin();
+      exibirMensagem("mensagem-plantio", "Produto cadastrado no banco de dados.", "sucesso");
+      formulario.reset();
+      preencherSelectTalhoes();
+      FrutLog.notificarAtualizacaoTalhoes();
+    } catch (erro) {
+      exibirMensagem("mensagem-plantio", erro.message, "erro");
+    } finally {
+      liberarBotao();
+    }
+  });
 }
 
 function renderizarSensores() {
@@ -490,17 +661,213 @@ function carregarHistoricoQuandoVisivel() {
 async function carregarHistoricoOperacao() {
   const tabela = document.getElementById("tabela-historico-admin");
   if (!tabela) return;
-  tabela.innerHTML = '<tr><td colspan="9">Carregando histórico...</td></tr>';
+  tabela.innerHTML = '<tr><td colspan="6">Carregando histórico...</td></tr>';
   try {
     const resposta = await FrutLog.apiFetch("/admin/historico-operacao");
     historicoOperacao = Array.isArray(resposta.historico) ? resposta.historico : [];
     historicoOperacaoCarregado = true;
     renderizarHistoricoAdmin();
   } catch (erro) {
-    mostrarLinhasVazias("tabela-historico-admin", 9, `Falha ao carregar histórico: ${erro.message}`);
+    mostrarLinhasVazias("tabela-historico-admin", 6, `Falha ao carregar histórico: ${erro.message}`);
   }
 }
 
+// Registro aberto no leitor de detalhes. Guardado fora da renderizacao para que
+// o modal se atualize sozinho depois de arquivar algo, que recarrega a tabela.
+let detalheHistoricoAberto = "";
+
+/**
+ * Formata uma área em hectares no padrão pt-BR (vírgula decimal).
+ * @param {number|string} valor - Área em hectares.
+ * @returns {string} Ex.: "15,5 ha"; "--" quando o valor não é numérico.
+ */
+function formatarArea(valor) {
+  const numero = Number(valor);
+  if (!Number.isFinite(numero)) return "--";
+  return `${numero.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ha`;
+}
+
+/**
+ * Monta a chave que identifica um registro do histórico de forma única.
+ * Usa o id vindo da API e cai para tipo:registroId caso ele falte.
+ * @param {object} item - Registro devolvido por GET /admin/historico-operacao.
+ * @returns {string} Chave usada pelo botão "Ver detalhes" e pelo leitor.
+ */
+function chaveHistorico(item) {
+  return item.id || `${item.tipo}:${item.registroId}`;
+}
+
+/**
+ * Monta o contador em pílula exibido na coluna "Registros".
+ * Substitui as listas que antes estouravam a célula da tabela.
+ * @param {string} icone - Classe do ícone FontAwesome (ex.: "fa-microchip").
+ * @param {number} total - Quantidade a exibir.
+ * @param {string} rotulo - Nome do que está sendo contado, para leitor de tela.
+ * @param {boolean} [alerta=false] - true pinta de vermelho quando total > 0.
+ * @returns {string} HTML do chip.
+ */
+function chipHistorico(icone, total, rotulo, alerta = false) {
+  const vazio = !total;
+  return `<span class="chip-historico${vazio ? " chip-historico-vazio" : ""}${alerta && total ? " chip-historico-alerta" : ""}" title="${escaparHtml(`${total} ${rotulo}`)}">
+    <i class="fa-solid ${icone}" aria-hidden="true"></i>${total}<span class="sr-only"> ${escaparHtml(rotulo)}</span>
+  </span>`;
+}
+
+/**
+ * Envolve um trecho do leitor de detalhes numa seção com título.
+ * @param {string} titulo - Título da seção (ex.: "Sensores").
+ * @param {string} conteudo - HTML já montado do corpo da seção.
+ * @returns {string} HTML da seção.
+ */
+function blocoDetalheHistorico(titulo, conteudo) {
+  return `<section class="detalhe-bloco"><h3>${escaparHtml(titulo)}</h3>${conteudo}</section>`;
+}
+
+/**
+ * Monta uma lista do leitor de detalhes ou a frase de lista vazia.
+ * @param {string[]} itens - Itens já em HTML (<li>...</li>).
+ * @param {string} vazio - Texto exibido quando não há itens.
+ * @returns {string} HTML da <ul> ou do parágrafo de vazio.
+ */
+function listaDetalheHistorico(itens, vazio) {
+  if (!itens.length) return `<p class="detalhe-vazio">${escaparHtml(vazio)}</p>`;
+  return `<ul class="detalhe-lista">${itens.join("")}</ul>`;
+}
+
+/**
+ * Monta uma colheita como linha do leitor: dado à esquerda, ação à direita.
+ * @param {object} colheita - Registro cru da tabela colheita. ATENÇÃO: vem do
+ *   banco em snake_case (arquivado_em, colhido_em), diferente dos ciclos.
+ * @returns {string} HTML do <li> com o botão de arquivar ou restaurar.
+ */
+function linhaColheitaHistorico(colheita) {
+  const arquivada = Boolean(colheita.arquivado_em);
+  return `<li class="detalhe-item">
+    <span>${formatarData(colheita.colhido_em)} · ${escaparHtml(colheita.quantidade)} ${escaparHtml(colheita.unidade)}</span>
+    <button class="btn-acao-admin${arquivada ? "" : " btn-excluir-admin"}" type="button" data-alternar-arquivo="${escaparHtml(colheita.id)}" data-tipo-historico="colheita">${arquivada ? "Restaurar" : "Arquivar"}</button>
+  </li>`;
+}
+
+/**
+ * Cria (uma vez) e devolve o <dialog> do leitor de detalhes do histórico.
+ * ATENÇÃO (DOM): o dialog nasce no <body>, FORA de .historico-operacao-admin,
+ * por isso o CSS dele é escopado por #modal-detalhe-historico.
+ * Os cliques são delegados aqui: fechar e os botões de arquivar/restaurar que
+ * aparecem dentro do leitor passam por este mesmo listener.
+ * @returns {HTMLDialogElement} O dialog pronto para receber conteúdo.
+ */
+function garantirModalHistorico() {
+  let modal = document.getElementById("modal-detalhe-historico");
+  if (modal) return modal;
+
+  modal = document.createElement("dialog");
+  modal.id = "modal-detalhe-historico";
+  modal.className = "modal-leitura-relatorio";
+  modal.setAttribute("aria-labelledby", "modal-detalhe-historico-titulo");
+  document.body.append(modal);
+
+  modal.addEventListener("click", (evento) => {
+    if (evento.target === modal || evento.target.closest("[data-fechar-detalhe]")) {
+      modal.close();
+      return;
+    }
+    const botao = evento.target.closest("[data-alternar-arquivo]");
+    if (botao) alternarArquivoHistorico(botao);
+  });
+  modal.addEventListener("close", () => { detalheHistoricoAberto = ""; });
+  return modal;
+}
+
+/**
+ * Monta o HTML interno do leitor de detalhes de um registro do histórico.
+ * Reaproveita as classes .modal-leitura-* do leitor de relatórios para as duas
+ * telas terem a mesma aparência.
+ * @param {object} item - Registro do histórico (ciclo, colheita ou talhão).
+ * @param {object} [operacaoAtual] - Situação atual do talhão vinda de
+ *   /painel-tecnico, usada no bloco "Situação em campo".
+ * @returns {string} HTML completo do dialog (cabeçalho, metadados, corpo, rodapé).
+ */
+function conteudoModalHistorico(item, operacaoAtual) {
+  const sensores = listaDetalheHistorico(
+    (item.sensores || []).map((sensor) => `<li class="detalhe-item-simples">${escaparHtml(sensor.identificador)} · ${escaparHtml(sensor.metrica)} <span class="detalhe-apoio">(${escaparHtml(sensor.status)})</span></li>`),
+    "Nenhum sensor associado."
+  );
+  const colheitas = listaDetalheHistorico(
+    (item.colheitas || []).map(linhaColheitaHistorico),
+    "Nenhuma colheita registrada."
+  );
+  const alertas = listaDetalheHistorico(
+    (item.alertas || []).map((alerta) => `<li class="detalhe-item-simples">${escaparHtml(alerta.titulo)} <span class="detalhe-apoio">(${escaparHtml(alerta.status)})</span></li>`),
+    "Nenhum alerta registrado."
+  );
+  const pendencia = operacaoAtual && operacaoAtual.situacao !== "Normal"
+    ? `<p class="detalhe-texto detalhe-pendencia">${escaparHtml(operacaoAtual.prioridade)}</p>`
+    : '<p class="detalhe-vazio">Sem pendência aberta.</p>';
+  const ciclo = item.tipo === "talhao"
+    ? '<span class="detalhe-apoio">Sem ciclo cadastrado</span>'
+    : `${formatarData(item.plantadoEm)} → ${formatarData(item.encerradoEm || item.previsaoColheita)}`;
+  const situacao = operacaoAtual?.situacao || (item.tipo === "talhao" ? "Sem ciclo cadastrado" : item.status);
+  const arquivado = Boolean(item.arquivadoEm);
+  const acaoRegistro = !arquivado && item.tipo === "ciclo" && item.status === "ativo"
+    ? '<button class="btn-acao-admin" type="button" disabled title="Encerre o ciclo antes de arquivar">Ciclo ativo</button>'
+    : `<button class="btn-acao-admin${arquivado ? "" : " btn-excluir-admin"}" type="button" data-alternar-arquivo="${escaparHtml(item.registroId)}" data-tipo-historico="${escaparHtml(item.tipo)}">${arquivado ? "Restaurar registro" : "Arquivar registro"}</button>`;
+  const acaoTalhao = item.tipo === "talhao"
+    ? ""
+    : `<button class="btn-acao-admin${item.talhaoArquivadoEm ? "" : " btn-excluir-admin"}" type="button" data-alternar-arquivo="${escaparHtml(item.talhaoId)}" data-tipo-historico="talhao">${item.talhaoArquivadoEm ? "Restaurar talhão" : "Arquivar talhão"}</button>`;
+
+  return `
+    <div class="modal-leitura-cabecalho">
+      <div>
+        <p class="modal-leitura-sobretitulo">Histórico de talhões e cultivos</p>
+        <h2 id="modal-detalhe-historico-titulo">Talhão ${escaparHtml(item.talhao)} · ${escaparHtml(item.produto)}${item.variedade ? ` / ${escaparHtml(item.variedade)}` : ""}</h2>
+      </div>
+      <button type="button" class="modal-leitura-fechar" data-fechar-detalhe aria-label="Fechar detalhes">&times;</button>
+    </div>
+    <dl class="modal-leitura-metadados">
+      <div><dt>Cadastro do talhão</dt><dd>${formatarData(item.talhaoCriadoEm)}</dd></div>
+      <div><dt>Ciclo</dt><dd>${ciclo}</dd></div>
+      <div><dt>Área</dt><dd>${formatarArea(item.areaTalhao)}${item.areaPlantada != null ? ` · ${formatarArea(item.areaPlantada)} plantados` : ""}</dd></div>
+    </dl>
+    <div class="modal-leitura-corpo detalhe-historico">
+      ${blocoDetalheHistorico("Situação em campo", `<p class="detalhe-texto"><span class="badge-status ${normalizarStatus(situacao)}">${escaparHtml(FrutLog.textoInterface(situacao))}</span></p>${pendencia}`)}
+      ${blocoDetalheHistorico("Sensores", sensores)}
+      ${blocoDetalheHistorico("Colheitas", colheitas)}
+      ${blocoDetalheHistorico("Alertas", alertas)}
+    </div>
+    <div class="modal-leitura-rodape detalhe-rodape">${acaoRegistro}${acaoTalhao}</div>`;
+}
+
+/**
+ * Abre o leitor de detalhes de um registro, ou o atualiza se já estiver aberto.
+ * Chamado pelo botão "Ver detalhes" e também ao fim de cada re-renderização,
+ * para o leitor refletir os dados novos depois de arquivar algo.
+ * @param {string} chave - Valor devolvido por chaveHistorico().
+ * @returns {void} Fecha o leitor se o registro não existir mais.
+ */
+function abrirDetalhesHistorico(chave) {
+  const modalAberto = document.getElementById("modal-detalhe-historico");
+  const item = historicoOperacao.find((registro) => chaveHistorico(registro) === chave);
+  if (!item) {
+    // O registro sumiu do histórico: fecha o leitor em vez de deixar dado velho.
+    if (modalAberto?.open) modalAberto.close();
+    return;
+  }
+  const operacaoAtual = (painelTecnico.talhoes || []).find((talhao) => talhao.id === item.talhao);
+  const modal = garantirModalHistorico();
+  modal.innerHTML = conteudoModalHistorico(item, operacaoAtual);
+  detalheHistoricoAberto = chave;
+  if (!modal.open) modal.showModal();
+}
+
+/**
+ * Redesenha a tabela "Histórico de talhões e cultivos".
+ * Mostra uma linha enxuta por registro (talhão, ciclo, área, contadores,
+ * situação e ações); o conteúdo pesado fica no leitor de detalhes.
+ * Respeita o filtro ativo (ativos / arquivados / todos).
+ * ATENÇÃO (DOM): lê as globais historicoOperacao, painelTecnico e
+ * filtroHistoricoOperacao, e escreve no <tbody> #tabela-historico-admin.
+ * @returns {void}
+ */
 function renderizarHistoricoAdmin() {
   const situacaoAtualPorTalhao = new Map((painelTecnico.talhoes || []).map((item) => [item.id, item]));
   const registrosFiltrados = historicoOperacao.filter((item) => {
@@ -509,78 +876,109 @@ function renderizarHistoricoAdmin() {
     if (filtroHistoricoOperacao === "ativos") return !estaArquivado;
     return true;
   });
-  preencherTabela("tabela-historico-admin", 9, registrosFiltrados.map((item) => {
-    const sensoresTexto = item.sensores?.length
-      ? item.sensores.map((sensor) => `${escaparHtml(sensor.identificador)} · ${escaparHtml(sensor.metrica)} (${escaparHtml(sensor.status)})`).join("<br>")
-      : "Sem sensor associado";
-    const colheitasTexto = item.colheitas?.length
-      ? item.colheitas.map((colheita) => {
-        const arquivada = Boolean(colheita.arquivado_em);
-        const acao = `<button class="btn-acao-admin${arquivada ? "" : " btn-excluir-admin"}" type="button" data-alternar-arquivo="${escaparHtml(colheita.id)}" data-tipo-historico="colheita">${arquivada ? "Restaurar colheita" : "Arquivar colheita"}</button>`;
-        return `${formatarData(colheita.colhido_em)} · ${escaparHtml(colheita.quantidade)} ${escaparHtml(colheita.unidade)} ${acao}`;
-      }).join("<br>")
-      : "Sem colheita registrada";
-    const alertas = item.alertas || [];
-    const alertasTexto = alertas.length
-      ? `${alertas.length} registro(s): ${alertas.map((alerta) => `${escaparHtml(alerta.titulo)} (${escaparHtml(alerta.status)})`).join("; ")}`
-      : "Sem alertas";
+  preencherTabela("tabela-historico-admin", 6, registrosFiltrados.map((item) => {
     const operacaoAtual = situacaoAtualPorTalhao.get(item.talhao);
-    const pendenciaAtual = operacaoAtual && operacaoAtual.situacao !== "Normal"
-      ? `<strong>${escaparHtml(operacaoAtual.prioridade)}</strong><br>`
-      : "";
-    const situacao = item.tipo === "talhao" ? "Sem ciclo cadastrado" : item.status;
+    const situacao = operacaoAtual?.situacao || (item.tipo === "talhao" ? "Sem ciclo cadastrado" : item.status);
     const arquivado = Boolean(item.arquivadoEm);
+
+    const ciclo = item.tipo === "talhao"
+      ? '<span class="celula-historico-vazia">Sem ciclo cadastrado</span>'
+      : `${formatarData(item.plantadoEm)} <span class="seta-periodo" aria-hidden="true">→</span> ${formatarData(item.encerradoEm || item.previsaoColheita)}<span class="historico-subtexto">${item.encerradoEm ? "Encerrado" : "Previsão de colheita"}</span>`;
+
     const acaoArquivar = !arquivado && item.tipo === "ciclo" && item.status === "ativo"
       ? '<button class="btn-acao-admin" type="button" disabled title="Encerre o ciclo antes de arquivar">Ciclo ativo</button>'
       : `<button class="btn-acao-admin${arquivado ? "" : " btn-excluir-admin"}" type="button" data-alternar-arquivo="${escaparHtml(item.registroId)}" data-tipo-historico="${escaparHtml(item.tipo)}">${arquivado ? "Restaurar" : "Arquivar"}</button>`;
-    const acaoTalhao = item.tipo === "talhao" ? "" : ` <button class="btn-acao-admin${item.talhaoArquivadoEm ? "" : " btn-excluir-admin"}" type="button" data-alternar-arquivo="${escaparHtml(item.talhaoId)}" data-tipo-historico="talhao">${item.talhaoArquivadoEm ? "Restaurar talhão" : "Arquivar talhão"}</button>`;
-    const ciclo = item.tipo === "talhao"
-      ? "Talhão cadastrado, sem ciclo de cultivo"
-      : `Plantio: ${formatarData(item.plantadoEm)}<br>Previsão: ${formatarData(item.previsaoColheita)}${item.encerradoEm ? `<br>Encerrado: ${formatarData(item.encerradoEm)}` : ""}`;
-    return `<tr>
-      <td>${formatarData(item.talhaoCriadoEm)}</td>
-      <td><strong>${escaparHtml(item.talhao)}</strong><br>${escaparHtml(item.produto)}${item.variedade ? ` / ${escaparHtml(item.variedade)}` : ""}</td>
-      <td>Talhão: ${escaparHtml(item.areaTalhao)} ha${item.areaPlantada != null ? `<br>Plantada: ${escaparHtml(item.areaPlantada)} ha` : ""}</td>
+
+    return `<tr class="linha-historico">
+      <td>
+        <strong>${escaparHtml(item.talhao)}</strong>
+        <span class="historico-subtexto">${escaparHtml(item.produto)}${item.variedade ? ` / ${escaparHtml(item.variedade)}` : ""}</span>
+      </td>
       <td>${ciclo}</td>
-      <td>${sensoresTexto}</td>
-      <td>${colheitasTexto}</td>
-      <td>${pendenciaAtual}${alertasTexto}</td>
-      <td><span class="badge-status ${normalizarStatus(operacaoAtual?.situacao || situacao)}">${escaparHtml(operacaoAtual?.situacao || situacao)}</span>${operacaoAtual?.prioridade ? `<br><small>${escaparHtml(operacaoAtual.prioridade)}</small>` : ""}</td>
-      <td>${acaoArquivar}${acaoTalhao}</td>
+      <td>${formatarArea(item.areaTalhao)}${item.areaPlantada != null ? `<span class="historico-subtexto">${formatarArea(item.areaPlantada)} plantados</span>` : ""}</td>
+      <td>
+        <div class="chips-historico">
+          ${chipHistorico("fa-microchip", (item.sensores || []).length, "sensor(es)")}
+          ${chipHistorico("fa-box-open", (item.colheitas || []).length, "colheita(s)")}
+          ${chipHistorico("fa-triangle-exclamation", (item.alertas || []).length, "alerta(s)", true)}
+        </div>
+      </td>
+      <td><span class="badge-status ${normalizarStatus(situacao)}">${escaparHtml(FrutLog.textoInterface(situacao))}</span></td>
+      <td>
+        <div class="celula-acoes-historico">
+          <button class="btn-abrir-relatorio" type="button" data-detalhe-historico="${escaparHtml(chaveHistorico(item))}">Ver detalhes</button>
+          ${acaoArquivar}
+        </div>
+      </td>
     </tr>`;
   }));
+
+  // A tabela foi reconstruida: recarrega o leitor aberto com os dados novos.
+  if (detalheHistoricoAberto) abrirDetalhesHistorico(detalheHistoricoAberto);
 }
 
+/**
+ * Arquiva ou restaura o registro do botão clicado.
+ * Fica fora do listener porque os mesmos botões aparecem na tabela e dentro do
+ * leitor de detalhes. Decide o sentido da ação pelo estado atual do registro.
+ * @param {HTMLButtonElement} botao - Botão com data-alternar-arquivo (id) e
+ *   data-tipo-historico ("talhao" | "ciclo" | "colheita").
+ * @returns {Promise<void>} Recarrega o histórico ao concluir; em caso de falha
+ *   mostra a mensagem do servidor e mantém a tela como estava.
+ */
+async function alternarArquivoHistorico(botao) {
+  const tipo = botao.dataset.tipoHistorico;
+  const id = botao.dataset.alternarArquivo;
+  const registro = tipo === "colheita"
+    ? historicoOperacao.flatMap((item) => item.colheitas || []).find((item) => String(item.id) === String(id))
+    : historicoOperacao.find((item) => item.tipo === tipo && String(item.registroId) === String(id));
+  if (!registro) return;
+  // Ciclos e talhões chegam com arquivadoEm; as colheitas vêm cruas do banco,
+  // com arquivado_em. Sem olhar os dois, "Restaurar colheita" voltava a arquivar.
+  const arquivar = !(registro.arquivadoEm || registro.arquivado_em);
+  // Trava o botão durante a ida ao servidor: sem isso, dois cliques rápidos
+  // disparam dois PATCH e o segundo desfaz o primeiro.
+  const liberarBotao = FrutLogFeedback.ocupar(botao, arquivar ? "Arquivando..." : "Restaurando...");
+  try {
+    // ATENÇÃO (API): esta rota não apaga nada, só preenche ou limpa
+    // arquivado_em. Ciclos, colheitas e talhões continuam no banco.
+    await FrutLog.apiFetch(`/admin/historico-operacao/${encodeURIComponent(tipo)}/${encodeURIComponent(id)}`, {
+      method: "PATCH", body: JSON.stringify({ arquivado: arquivar }),
+    });
+    exibirMensagem("mensagem-dados-tecnicos", arquivar ? "Registro arquivado e preservado." : "Registro restaurado.", "sucesso");
+    await carregarHistoricoOperacao();
+    if (tipo === "talhao") {
+      FrutLog.notificarAtualizacaoTalhoes();
+      window.dispatchEvent(new Event("frutlog:talhoes-atualizados"));
+    }
+  } catch (erro) {
+    exibirMensagem("mensagem-dados-tecnicos", erro.message, "erro");
+  } finally {
+    // O botão pode ter sumido do DOM na re-renderização da tabela; liberar()
+    // trata esse caso sem erro.
+    liberarBotao();
+  }
+}
+
+/**
+ * Liga os eventos da seção de histórico: troca de filtro e cliques na tabela.
+ * ATENÇÃO (DOM): usa delegação no <tbody>, então funciona para as linhas que
+ * ainda serão criadas em re-renderizações futuras.
+ * @returns {void}
+ */
 function configurarAcoesHistorico() {
   document.getElementById("filtro-historico-admin")?.addEventListener("change", (evento) => {
     filtroHistoricoOperacao = evento.currentTarget.value;
     renderizarHistoricoAdmin();
   });
-  document.getElementById("tabela-historico-admin")?.addEventListener("click", async (evento) => {
-    const botao = evento.target.closest("[data-alternar-arquivo]");
-    if (!botao) return;
-    const tipo = botao.dataset.tipoHistorico;
-    const id = botao.dataset.alternarArquivo;
-    const registro = tipo === "colheita"
-      ? historicoOperacao.flatMap((item) => item.colheitas || []).find((item) => String(item.id) === String(id))
-      : historicoOperacao.find((item) => item.tipo === tipo && String(item.registroId) === String(id));
-    if (!registro) return;
-    const arquivar = !registro.arquivadoEm;
-    botao.disabled = true;
-    try {
-      await FrutLog.apiFetch(`/admin/historico-operacao/${encodeURIComponent(tipo)}/${encodeURIComponent(id)}`, {
-        method: "PATCH", body: JSON.stringify({ arquivado: arquivar }),
-      });
-      exibirMensagem("mensagem-dados-tecnicos", arquivar ? "Registro arquivado e preservado." : "Registro restaurado.", "sucesso");
-      await carregarHistoricoOperacao();
-      if (tipo === "talhao") {
-        FrutLog.notificarAtualizacaoTalhoes();
-        window.dispatchEvent(new Event("frutlog:talhoes-atualizados"));
-      }
-    } catch (erro) {
-      botao.disabled = false;
-      exibirMensagem("mensagem-dados-tecnicos", erro.message, "erro");
+  document.getElementById("tabela-historico-admin")?.addEventListener("click", (evento) => {
+    const botaoDetalhe = evento.target.closest("[data-detalhe-historico]");
+    if (botaoDetalhe) {
+      abrirDetalhesHistorico(botaoDetalhe.dataset.detalheHistorico);
+      return;
     }
+    const botao = evento.target.closest("[data-alternar-arquivo]");
+    if (botao) alternarArquivoHistorico(botao);
   });
 }
 
@@ -637,11 +1035,21 @@ function selecionarTalhaoAdmin(codigo) {
   renderizarDetalhesTalhaoAdmin(codigo);
 }
 
+/**
+ * Preenche o cartão "Detalhes do Talhão" da seção de monitoramento.
+ *
+ * Os ids `talhao-*` são os do cartão em admin.html e os `tecnico-talhao-*` os
+ * do painel do Técnico; a função escreve nos dois porque `preencher` ignora
+ * elemento ausente, então o mesmo código serve aos dois layouts.
+ * @param {string} codigo - Código do talhão selecionado no mapa.
+ * @returns {void}
+ */
 function renderizarDetalhesTalhaoAdmin(codigo) {
   const feature = FrutLogTalhoes.obterTalhoes().find((item) => item.properties.codigo === codigo);
   if (!feature) return;
   const dadosTalhao = (painelTecnico.talhoes || []).find((item) => item.id === codigo) || {};
   const plantio = (painelTecnico.plantios || []).find((item) => item.talhao === codigo) || {};
+  const inspecao = (painelTecnico.inspecoes || []).find((item) => item.talhao === codigo) || {};
   const botaoEncerrarCiclo = document.getElementById("btn-encerrar-ciclo-talhao");
   if (botaoEncerrarCiclo) botaoEncerrarCiclo.disabled = encerrandoCicloAdmin || !plantio.id;
   const sensores = (painelTecnico.sensores || []).filter((item) => item.talhao === codigo);
@@ -679,8 +1087,29 @@ function renderizarDetalhesTalhaoAdmin(codigo) {
     : "--");
   preencher("tecnico-talhao-prioridade", monitorado.prioridade || "Rotina de acompanhamento");
   preencher("tecnico-talhao-status", FrutLog.textoInterface(monitorado.status || "Sem leitura"));
-  const badge = document.getElementById("tecnico-talhao-status");
-  if (badge) badge.className = `badge-status ${normalizarStatus(monitorado.status || "sem-leitura")}`;
+
+  // Cartão de detalhes do admin.html (ids sem o prefixo "tecnico-").
+  preencher("titulo-talhao", `Detalhes: Talhão ${codigo}`);
+  preencher("talhao-produto", plantio.produto || props.produto || "--");
+  preencher("talhao-variedade", plantio.variedade || props.variedade || "--");
+  preencher("talhao-area", props.area_hectares ? `${props.area_hectares} hectares` : props.area || "--");
+  preencher("talhao-solo", plantio.solo || props.solo || "--");
+  preencher("talhao-plantio", plantio.plantado_em ? formatarData(plantio.plantado_em) : (props.plantio || "--"));
+  preencher("talhao-colheita", plantio.previsao_colheita ? formatarData(plantio.previsao_colheita) : (props.colheita || "--"));
+  preencher("talhao-temperatura-maxima", props.parametros?.temperaturaMaxima != null ? `${props.parametros.temperaturaMaxima} °C` : "--");
+  preencher("talhao-inspecao-data", inspecao.data ? formatarData(inspecao.data) : "--");
+  preencher("talhao-inspecao-tecnico", inspecao.data ? "Registrado em campo" : "--");
+  preencher("talhao-inspecao-problema", inspecao.problemas || "Nenhuma inspeção registrada.");
+  preencher("talhao-inspecao-recomendacao", inspecao.observacoes || "--");
+
+  const textoStatus = FrutLog.textoInterface(monitorado.status || "Sem leitura");
+  const classeStatus = `badge-status ${normalizarStatus(monitorado.status || "sem-leitura")}`;
+  ["tecnico-talhao-status", "talhao-status"].forEach((id) => {
+    const badge = document.getElementById(id);
+    if (!badge) return;
+    badge.textContent = textoStatus;
+    badge.className = classeStatus;
+  });
 }
 
 function configurarEncerramentoCicloAdmin() {
@@ -693,7 +1122,9 @@ function configurarEncerramentoCicloAdmin() {
     if (!window.confirm(`Encerrar o ciclo atual do talhão ${codigo}? O registro ficará no histórico.`)) return;
 
     encerrandoCicloAdmin = true;
-    botao.disabled = true;
+    // Trava o botão enquanto a API processa: encerrar o mesmo ciclo duas vezes
+    // devolve 409 e confunde o usuário.
+    const liberarBotao = FrutLogFeedback.ocupar(botao, "Encerrando...");
     const mensagem = document.getElementById("mensagem-encerramento-ciclo");
     try {
       // A API registra o encerramento no banco; atualizar os painéis remove o ciclo da visão atual.
@@ -704,6 +1135,8 @@ function configurarEncerramentoCicloAdmin() {
       await carregarDadosConectados();
       if (historicoOperacaoCarregado) await carregarHistoricoOperacao();
       renderizarMapaAdmin();
+      // Ciclo encerrado: o cadastro de produto volta a aceitar este talhão.
+      preencherSelectTalhoes();
       if (mensagem) {
         mensagem.textContent = `Ciclo do talhão ${codigo} encerrado e mantido no histórico. Já é possível cadastrar outro produto.`;
         mensagem.className = "mensagem-feedback sucesso";
@@ -714,8 +1147,10 @@ function configurarEncerramentoCicloAdmin() {
         mensagem.textContent = erro.message;
         mensagem.className = "mensagem-feedback erro";
       }
+      FrutLogFeedback.toast(erro.message, "erro");
     } finally {
       encerrandoCicloAdmin = false;
+      liberarBotao();
       renderizarDetalhesTalhaoAdmin(codigo);
     }
   });

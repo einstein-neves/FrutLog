@@ -6,7 +6,9 @@
 document.addEventListener("DOMContentLoaded", async () => {
   verificarSessao();
   FrutLog.configurarLogout();
-  configurarAbas();
+  // Navegacao exclusiva pela sidebar, igual ao admin e ao engenheiro.
+  // A barra de sub-abas horizontais do topo foi removida do HTML.
+  FrutLog.configurarAbasSidebar();
   configurarRelatorioDiario();
   document.getElementById("relatorio-data").value = dataLocalISO();
   const dataRegistro = document.getElementById("registro-data");
@@ -101,51 +103,11 @@ function dataLocalISO() {
   return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
 }
 
-function configurarAbas() {
-  const abas = [...document.querySelectorAll(".aba-tecnico")];
-  const links = [...document.querySelectorAll(".menu .nav-link")];
-  const ativar = (abaAtiva) => {
-    abas.forEach((aba) => {
-      const ativa = aba === abaAtiva;
-      aba.classList.toggle("ativa", ativa);
-      aba.setAttribute("aria-selected", String(ativa));
-      aba.tabIndex = ativa ? 0 : -1;
-      document.getElementById(aba.getAttribute("aria-controls")).hidden = !ativa;
-    });
-    links.forEach((link) => {
-      const ativo = link.hash === `#${abaAtiva.getAttribute("aria-controls")}`;
-      link.classList.toggle("active", ativo);
-      if (ativo) link.setAttribute("aria-current", "page");
-      else link.removeAttribute("aria-current");
-    });
-  };
-
-  abas.forEach((aba, indice) => {
-    aba.addEventListener("click", () => ativar(aba));
-    aba.addEventListener("keydown", (evento) => {
-      let proximo = indice;
-      if (evento.key === "ArrowRight") proximo = (indice + 1) % abas.length;
-      else if (evento.key === "ArrowLeft") proximo = (indice - 1 + abas.length) % abas.length;
-      else if (evento.key === "Home") proximo = 0;
-      else if (evento.key === "End") proximo = abas.length - 1;
-      else return;
-      evento.preventDefault();
-      abas[proximo].focus();
-      ativar(abas[proximo]);
-    });
-  });
-  links.forEach((link) => link.addEventListener("click", (evento) => {
-    const aba = abas.find((item) => item.getAttribute("aria-controls") === link.hash.slice(1));
-    if (!aba) return;
-    evento.preventDefault();
-    ativar(aba);
-    history.replaceState(null, "", link.hash);
-  }));
-  if (abas.length) {
-    const abaInicial = abas.find((aba) => `#${aba.getAttribute("aria-controls")}` === window.location.hash);
-    ativar(abaInicial || abas[0]);
-  }
-}
+// A funcao configurarAbas() foi removida junto com a barra de sub-abas do topo:
+// ela duplicava a navegacao da sidebar. Quem alterna as secoes agora e o
+// FrutLog.configurarAbasSidebar() (js/auth.js), o mesmo usado nos paineis do
+// Administrador e do Engenheiro, trocando o atributo hidden dos paineis
+// #aba-monitoramento, #aba-registros e #aba-telemetria.
 
 function configurarRelatorioDiario() {
   const formulario = document.getElementById("form-relatorio-diario");
@@ -161,11 +123,20 @@ function configurarRelatorioDiario() {
     atualizarRelatorioAutomatico({ forcar: true });
     exibirMensagem("mensagem-relatorio-diario", "Texto regenerado com os registros mais recentes.", "sucesso");
   });
+  /**
+   * Envia o relatório diário do técnico.
+   * ATENÇÃO (API): POST /relatorios-diarios exige sessão autenticada; sem a API
+   * ativa o envio é bloqueado antes da requisição.
+   * @param {SubmitEvent} evento - Envio do formulário de relatório diário.
+   * @returns {Promise<void>}
+   */
   formulario?.addEventListener("submit", async (evento) => {
     evento.preventDefault();
+    // Validação pré-envio: evita bater na API com campo obrigatório vazio.
+    if (!FrutLogFeedback.validarObrigatorios(formulario)) return;
     const dados = Object.fromEntries(new FormData(formulario));
     const botao = formulario.querySelector('[type="submit"]');
-    if (botao) botao.disabled = true;
+    const liberarBotao = FrutLogFeedback.ocupar(botao, "Enviando...");
     try {
       if (!FrutLog.AUTENTICACAO_API_ATIVA) {
         throw new Error("O envio de relatórios requer a API autenticada.");
@@ -184,7 +155,7 @@ function configurarRelatorioDiario() {
     } catch (erro) {
       exibirMensagem("mensagem-relatorio-diario", erro.message, "erro");
     } finally {
-      if (botao) botao.disabled = false;
+      liberarBotao();
     }
   });
 }
@@ -926,10 +897,13 @@ function carregarAlertas() {
 
 function exibirMensagem(id, texto, tipo = "sucesso") {
   const elemento = document.getElementById(id);
-  if (!elemento) return;
-
-  elemento.textContent = texto;
-  elemento.className = `mensagem-feedback ${tipo}`;
+  if (elemento) {
+    elemento.textContent = texto;
+    elemento.className = `mensagem-feedback ${tipo}`;
+  }
+  // Resultado de acao tambem vira toast: a mensagem da secao pode estar fora da
+  // area visivel.
+  if (tipo === "erro" || tipo === "sucesso") FrutLogFeedback.toast(texto, tipo);
 }
 
 async function atualizarDadosAposRegistro() {
