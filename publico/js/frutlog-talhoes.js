@@ -82,9 +82,82 @@ const FrutLogTalhoes = (() => {
     return Number.isNaN(numero) ? null : numero;
   }
 
+  // =========================================================
+  // VEREDITO DO PREDADOR (servidor) - fonte unica da regra agronomica
+  // =========================================================
+  // Ate aqui o navegador julgava o talhao sozinho, olhando so a temperatura e a
+  // media do dia. O mesmo julgamento existia tambem em src/ia/predador-nucleo.js,
+  // olhando temperatura E umidade do solo, sobre a ultima leitura de cada sensor.
+  // Duas regras diferentes para a mesma pergunta: o mapa podia ficar verde
+  // enquanto o Predador via ATENCAO no mesmo talhao, e ninguem sabia qual valia.
+  //
+  // Agora quem julga e o nucleo, no servidor, e este arquivo so pinta o que
+  // recebeu. O calculo local continua logo abaixo como rede de seguranca, para
+  // quando a rota GET /predador/analise ainda nao respondeu ou falhou.
+  const diagnosticosPorTalhao = new Map();
+
+  // O nucleo fala NORMAL/ATENCAO/ALERTA_CRITICO/SEM_DADOS; a tela fala
+  // Normal/Atencao/Critico/Sem leitura (ver FrutLog.textoInterface em auth.js e
+  // as classes .status-* em css/dashboard.css). A traducao mora aqui porque e
+  // assunto de apresentacao: o nucleo nao precisa saber como a interface escreve.
+  const STATUS_NUCLEO_PARA_TELA = {
+    NORMAL: "Normal",
+    ATENCAO: "Atencao",
+    ALERTA_CRITICO: "Critico",
+    SEM_DADOS: "Sem leitura",
+    // Talhao colhido, sem cultura plantada. Pinta de cinza como "Sem leitura"
+    // porque a cor comunica a mesma coisa ao olhar o mapa -- nao ha
+    // julgamento ali. A diferenca entre os dois aparece na mensagem do painel:
+    // "sem leitura" e sensor mudo, "sem ciclo" e terra em descanso.
+    SEM_CICLO: "Sem leitura",
+  };
+
+  /**
+   * Guarda o resultado de GET /predador/analise para o mapa e o painel de
+   * detalhes consultarem. A chave e o codigo do talhao (A1, B2...), que e o
+   * campo que as features do GeoJSON carregam em properties.codigo.
+   * @param {Array} lista - o array `talhoes` devolvido pela rota
+   * @returns {number} quantos diagnosticos ficaram guardados
+   */
+  function definirDiagnosticos(lista) {
+    diagnosticosPorTalhao.clear();
+    (Array.isArray(lista) ? lista : []).forEach((item) => {
+      const codigo = String(item?.talhao ?? "").trim();
+      if (codigo) diagnosticosPorTalhao.set(codigo, item);
+    });
+    return diagnosticosPorTalhao.size;
+  }
+
+  /** Diagnostico de um talhao pelo codigo, ou null se a rota nao trouxe. */
+  function obterDiagnostico(codigo) {
+    return diagnosticosPorTalhao.get(String(codigo ?? "").trim()) || null;
+  }
+
   function calcularStatusMonitoramento(feature) {
     const temperaturaAtual = normalizarNumero(feature?.properties?.diaria?.temperatura);
     const temperaturaMaxima = normalizarNumero(feature?.properties?.parametros?.temperaturaMaxima);
+
+    // Preferencia absoluta pelo veredito do Predador: ele cruza temperatura E
+    // umidade do solo, conhece a margem de aviso previo e usa a ultima leitura
+    // de cada sensor em vez da media do dia. O calculo local abaixo so roda
+    // quando nao ha diagnostico para este talhao.
+    const diagnostico = obterDiagnostico(feature?.properties?.codigo);
+    if (diagnostico) {
+      return {
+        status: STATUS_NUCLEO_PARA_TELA[diagnostico.status] || "Sem leitura",
+        prioridade: diagnostico.mensagem || "Sem diagnostico disponivel.",
+        // "Temperatura Atual" so mostra leitura validada pelo nucleo. Antes
+        // havia aqui um `?? temperaturaAtual`, que caia na MEDIA DO DIA quando
+        // nao existia leitura recente -- e o rotulo continuava dizendo "Atual".
+        // Numero velho com nome de novo faz decidir errado no campo: melhor "--".
+        leituraTemperatura: normalizarNumero(diagnostico.dados?.temperatura),
+        coletadoEm: diagnostico.dados?.coletado_em || null,
+        limiteTemperatura: normalizarNumero(diagnostico.limiares?.temperaturaMaxima) ?? temperaturaMaxima,
+        umidadeSolo: normalizarNumero(diagnostico.dados?.umidade_solo),
+        severidade: diagnostico.severidade || null,
+        origem: "Predador (servidor)",
+      };
+    }
 
     if (temperaturaMaxima === null) {
       return {
@@ -136,9 +209,17 @@ const FrutLogTalhoes = (() => {
 
     clone.properties.status = resultado.status;
     clone.properties.monitoramento = {
-      origem: "Banco de dados",
+      // origem diz de onde veio o julgamento: do Predador (nucleo, no servidor)
+      // ou do calculo local de reserva. O painel de detalhes mostra isso para o
+      // usuario nunca ficar em duvida sobre quem decidiu a cor do talhao.
+      origem: resultado.origem || "Banco de dados",
       temperaturaAtual: resultado.leituraTemperatura,
+      // Quando a leitura foi coletada. O painel mostra essa idade ao lado do
+      // valor, para ninguem confundir "agora" com "o ultimo que chegou".
+      coletadoEm: resultado.coletadoEm ?? null,
       temperaturaMaxima: resultado.limiteTemperatura,
+      umidadeSolo: resultado.umidadeSolo ?? null,
+      severidade: resultado.severidade ?? null,
       status: resultado.status,
       mensagem: resultado.prioridade,
     };
@@ -394,6 +475,8 @@ const FrutLogTalhoes = (() => {
     atualizarTelemetriaTalhao,
     calcularAreaSvg,
     calcularStatusMonitoramento,
+    definirDiagnosticos,
+    obterDiagnostico,
     fecharAnel,
     recalcularAreaAutomatica,
     carregarDoServidor,

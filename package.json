@@ -7,7 +7,9 @@
     "dev": "node --env-file=.env --watch src/server.js",
     "password-hash": "node scripts/password-hash.js",
     "bootstrap-admin": "node --env-file=.env scripts/bootstrap-admin.js",
-    "reset-admin-password": "node --env-file=.env scripts/reset-admin-password.js"
+    "reset-admin-password": "node --env-file=.env scripts/reset-admin-password.js",
+    "ponte": "node --env-file=.env src/iot/ponte-thingspeak.js",
+    "ponte:simular": "node --env-file=.env src/iot/ponte-thingspeak.js --simular"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

@@ -28,6 +28,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
   window.addEventListener("frutlog:talhoes-atualizados", atualizarDadosCampoConectados);
+
+  // Busca leitura nova sozinha, para "Temperatura Atual" merecer o nome.
+  // O catch vazio e intencional: erro de rede numa atualizacao de fundo nao
+  // deve quebrar o relogio nem poluir a tela -- a proxima rodada tenta de novo.
+  setInterval(() => {
+    atualizarLeiturasAoVivo().catch(() => {});
+  }, INTERVALO_LEITURAS_MS);
   const inicializacoes = await Promise.allSettled([
     carregarDadosConectados(),
     carregarMapaAdmin(),
@@ -1096,7 +1103,40 @@ function renderizarDetalhesTalhaoAdmin(codigo) {
   preencher("talhao-solo", plantio.solo || props.solo || "--");
   preencher("talhao-plantio", plantio.plantado_em ? formatarData(plantio.plantado_em) : (props.plantio || "--"));
   preencher("talhao-colheita", plantio.previsao_colheita ? formatarData(plantio.previsao_colheita) : (props.colheita || "--"));
-  preencher("talhao-temperatura-maxima", props.parametros?.temperaturaMaxima != null ? `${props.parametros.temperaturaMaxima} °C` : "--");
+  // Sem ciclo ativo nao se mostra teto de temperatura. O limite pertence a
+  // CULTURA, e a que estava plantada ja foi colhida -- exibir o numero antigo
+  // daria a entender que alguem ainda esta sendo vigiado por ele. `plantio` ja
+  // vem de /painel-tecnico filtrado por status=ativo, entao a ausencia de id
+  // e a prova de que o ciclo foi encerrado.
+  const temCicloAtivo = Boolean(plantio.id);
+  preencher("talhao-temperatura-maxima", temCicloAtivo && props.parametros?.temperaturaMaxima != null
+    ? `${props.parametros.temperaturaMaxima} °C`
+    : "--");
+
+  // Leitura real e diagnostico, logo ao lado do limite cadastrado: o usuario ve
+  // na mesma tela o que foi configurado, o que o sensor mediu e a conclusao.
+  // Tudo sai de props.monitoramento, preenchido por aplicarMonitoramento() a
+  // partir do veredito de GET /predador/analise (ou do calculo de reserva).
+  const ia = monitorado.monitoramento || {};
+  // Mostra a idade junto do valor: "33.1 °C · há 2 min" nao deixa duvida sobre
+  // estar vendo o agora ou um dado parado. Sem leitura validada pelo nucleo o
+  // campo fica "--" -- antes ele caia na media do dia e continuava se chamando
+  // "Temperatura Atual", que e pior que campo vazio.
+  const minutos = ia.coletadoEm ? Math.round((Date.now() - new Date(ia.coletadoEm)) / 60000) : null;
+  preencher("talhao-temperatura-atual", ia.temperaturaAtual != null
+    ? `${ia.temperaturaAtual} °C${minutos != null ? ` · há ${minutos} min` : ""}`
+    : "--");
+  preencher("talhao-umidade-solo", ia.umidadeSolo != null ? `${ia.umidadeSolo} %` : "--");
+  preencher("talhao-diagnostico", ia.mensagem || monitorado.prioridade || "--");
+  preencher("talhao-diagnostico-origem", ia.origem ? `Fonte: ${ia.origem}` : "");
+
+  // A barra lateral da linha repete a cor do mapa, para o diagnostico escrito e
+  // o talhao pintado nunca contarem historias diferentes.
+  const linhaIa = document.getElementById("talhao-diagnostico")?.closest(".destaque-ia");
+  if (linhaIa) {
+    linhaIa.className = `item-detalhe destaque-ia status-${normalizarStatus(monitorado.status || "sem-leitura")}`;
+  }
+
   preencher("talhao-inspecao-data", inspecao.data ? formatarData(inspecao.data) : "--");
   preencher("talhao-inspecao-tecnico", inspecao.data ? "Registrado em campo" : "--");
   preencher("talhao-inspecao-problema", inspecao.problemas || "Nenhuma inspeção registrada.");
@@ -1251,7 +1291,17 @@ async function carregarDadosConectados() {
     FrutLog.apiFetch("/colheitas/anual"),
     FrutLog.apiFetch("/telemetria/diaria"),
     FrutLog.apiFetch("/telemetria/esp32-mensal"),
+    FrutLog.apiFetch("/predador/analise"),
   ]);
+  // O diagnostico do Predador entra ANTES de qualquer renderizacao: e ele que
+  // define a cor do talhao no mapa e o status no painel de detalhes, dentro de
+  // FrutLogTalhoes.calcularStatusMonitoramento. Se chegasse depois, a tela seria
+  // pintada pela regra local de reserva e so mudaria no proximo render.
+  // allSettled e nao all: se a rota do Predador cair, o resto do painel carrega
+  // igual e o mapa usa o calculo de reserva.
+  if (resultados[6].status === "fulfilled") {
+    FrutLogTalhoes.definirDiagnosticos(resultados[6].value.talhoes || []);
+  }
   if (resultados[0].status === "fulfilled") { funcionarios = resultados[0].value.usuarios || []; renderizarFuncionarios(); }
   if (resultados[1].status === "fulfilled") { sensores = resultados[1].value.sensores || []; renderizarSensores(); }
   if (resultados[2].status === "fulfilled") { painelTecnico = resultados[2].value; renderizarPainelTecnico(); }
@@ -1267,13 +1317,68 @@ async function carregarMapaAdmin() {
   renderizarMapaAdmin();
 }
 
+// De quanto em quanto tempo a tela vai buscar leitura nova.
+// 60s casa com o ritmo da ponte (PONTE_INTERVALO_SEGUNDOS), entao a tela nunca
+// pede mais rapido do que o dado aparece. Tambem fica bem longe do limite de
+// 120 requisicoes/min por IP do servidor.
+const INTERVALO_LEITURAS_MS = 60000;
+
+/**
+ * Rebusca as leituras e repinta o mapa, sem recarregar a pagina.
+ *
+ * POR QUE EXISTE: "Temperatura Atual" so e atual se a tela for buscar sozinha.
+ * Antes o painel so se atualizava no F5 ou ao salvar um talhao -- o numero
+ * podia ficar parado por horas com cara de agora, que e exatamente o problema
+ * que esta rotina e o campo de idade ao lado do valor vieram corrigir juntos.
+ *
+ * E DE PROPOSITO mais leve que atualizarDadosCampoConectados(): nao rechama
+ * carregarMapaAdmin(), porque a geometria dos talhoes nao muda sozinha -- so
+ * muda quando alguem edita. O que muda a cada minuto e a leitura.
+ * @returns {Promise<void>}
+ */
+async function atualizarLeiturasAoVivo() {
+  // Nao encosta no mapa enquanto alguem esta desenhando: repintar por baixo
+  // apagaria os pontos em ajuste. A classe e posta por editor-mapa-talhoes.js,
+  // entao os dois arquivos conversam pelo DOM, sem um importar o outro.
+  if (document.querySelector(".mapa-container.modo-edicao")) return;
+
+  // Aba em segundo plano nao precisa de dado fresco: economiza requisicao e
+  // evita que varias abas abertas somem contra o limite do servidor.
+  if (document.hidden) return;
+
+  const [painel, predador] = await Promise.allSettled([
+    FrutLog.apiFetch("/painel-tecnico"),
+    FrutLog.apiFetch("/predador/analise"),
+  ]);
+
+  if (predador.status === "fulfilled") {
+    FrutLogTalhoes.definirDiagnosticos(predador.value.talhoes || []);
+  }
+  if (painel.status === "fulfilled") {
+    painelTecnico = painel.value;
+    renderizarPainelTecnico();
+  }
+
+  // Falha de rede aqui NAO vira mensagem na tela: e atualizacao de fundo, e a
+  // proxima rodada tenta de novo. Avisar a cada minuto so geraria ruido e
+  // ensinaria o usuario a ignorar aviso de erro.
+  renderizarMapaAdmin();
+}
+
 async function atualizarDadosCampoConectados() {
   const atualizacoes = [
     FrutLog.apiFetch("/painel-tecnico"),
     carregarMapaAdmin(),
+    // Rebusca o diagnostico junto com o resto: se o engenheiro acabou de mudar a
+    // temperatura maxima de um talhao, a cor no mapa precisa mudar no mesmo
+    // refresh, e nao so no proximo F5.
+    FrutLog.apiFetch("/predador/analise"),
   ];
   if (historicoOperacaoCarregado) atualizacoes.push(carregarHistoricoOperacao());
-  const [painel] = await Promise.allSettled(atualizacoes);
+  const [painel, , predador] = await Promise.allSettled(atualizacoes);
+  if (predador.status === "fulfilled") {
+    FrutLogTalhoes.definirDiagnosticos(predador.value.talhoes || []);
+  }
   if (painel.status === "fulfilled") {
     painelTecnico = painel.value;
     renderizarPainelTecnico();

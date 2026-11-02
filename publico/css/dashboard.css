@@ -572,6 +572,45 @@
   border-color: #e5d0e5;
 }
 
+/* Linha do diagnostico da IA Preditiva: ocupa as duas colunas porque a mensagem
+   do nucleo e uma frase inteira ("Estresse hidrico! Temp 34.5C acima do limite
+   maximo do talhao..."), nao um numero. A barra lateral muda de cor conforme o
+   status, repetindo no painel a mesma leitura visual que o mapa ja usa. */
+.destaque-ia {
+  grid-column: span 2;
+  background-color: #f2f6fb;
+  border-color: #d6e2f0;
+  border-left: 4px solid var(--cor-texto-suave);
+}
+
+.destaque-ia.status-normal {
+  border-left-color: rgb(46, 125, 50);
+}
+
+.destaque-ia.status-atencao {
+  border-left-color: rgb(251, 192, 45);
+}
+
+.destaque-ia.status-critico {
+  border-left-color: rgb(198, 40, 40);
+}
+
+.destaque-ia .valor {
+  display: block;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+/* Quem decidiu o status: o Predador no servidor ou o calculo local de reserva.
+   Fica discreto porque e informacao de rodape, nao o diagnostico em si. */
+.detalhe-origem {
+  color: var(--cor-texto-suave);
+  display: block;
+  font-size: 0.7rem;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
 /* Filtros e conteudo dos relatorios de campo. */
 .filtros-relatorios {
   display: grid;

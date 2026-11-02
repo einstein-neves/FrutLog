@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const { criarToken, autenticarRequisicao } = require("./session");
 const { db, listarTalhoesComTemperatura, farmsForOrganization } = require("./database");
+const {diagnosticarTalhoes}=require("../src/ia/predador-nucleo.js");
 
 const ROLES = ["engenheiro", "tecnico", "admin", "administrador"];
 const TYPES = ["temperatura", "umidadeSolo", "umidadeAr", "chuva"];
@@ -267,6 +268,67 @@ module.exports = async (req, res) => {
       return reply(res, 201, { sucesso: true }, origin);
     }
 
+    // ---------------------------------------------------------------------
+    // Catálogo de sensores para a ponte IoT (src/iot/ponte-thingspeak.js)
+    // ---------------------------------------------------------------------
+    // POR QUE EXISTE: antes, a ponte guardava o identificador de cada
+    // dispositivo numa lista dentro do próprio código. Isso obrigava a digitar
+    // o mesmo nome em DOIS lugares — na tela Sensores e no arquivo da ponte —
+    // e a divergência entre eles não dava erro nenhum: a leitura simplesmente
+    // nunca chegava. Com esta rota o cadastro da tela passa a ser a única
+    // fonte do nome. Quem cadastra escolhe o nome; o código não conhece nome.
+    //
+    // POR QUE FICA ACIMA DA FRONTEIRA DE SESSÃO: quem chama é um processo de
+    // servidor, não um navegador logado. Autentica com a mesma x-iot-key da
+    // rota de telemetria, igual a um ESP32 faria.
+    //
+    // POR QUE ISSO NÃO AFROUXA A SEGURANÇA: quem tem a x-iot-key já podia
+    // GRAVAR leitura por POST /iot/telemetria. Poder ler a lista de sensores
+    // é estritamente menos do que isso.
+    if (req.method === "GET" && route === "/iot/sensores") {
+      const supplied = Buffer.from(String(req.headers["x-iot-key"] || ""));
+      const expected = Buffer.from(c.iot);
+      if (supplied.length !== expected.length || !crypto.timingSafeEqual(supplied, expected)) {
+        return reply(res, 401, { mensagem: "Credencial IoT inválida." }, origin);
+      }
+
+      // Mesma escada da rota /predador/analise: cada consulta depende dos ids
+      // da anterior, por isso é sequencial e não Promise.all. O ternário com
+      // length evita o `in.()` vazio, que o PostgREST rejeita como erro de
+      // sintaxe em vez de devolver lista vazia.
+      const sensors = await db(c, "sensor", "GET", undefined, "?status=eq.ativo&select=id,codigo_metrica,unidade,dispositivo_id");
+      if (!sensors.length) return reply(res, 200, { sensores: [] }, origin);
+
+      const devices = await db(c, "dispositivo", "GET", undefined,
+        `?id=in.(${sensors.map((sensor) => sensor.dispositivo_id).join(",")})&status=neq.desativado&select=id,id_externo,talhao_id`);
+      if (!devices.length) return reply(res, 200, { sensores: [] }, origin);
+
+      const plots = await db(c, "talhao", "GET", undefined,
+        `?id=in.(${devices.map((device) => device.talhao_id).join(",")})&arquivado_em=is.null&select=id,codigo`);
+
+      const plotById = new Map(plots.map((plot) => [plot.id, plot.codigo]));
+      const deviceById = new Map(devices.map((device) => [device.id, device]));
+
+      // Sensor cujo dispositivo foi desativado, ou cujo talhão foi arquivado,
+      // sai da lista: a ponte não deve continuar alimentando um talhão que
+      // saiu de operação. É o mesmo critério do mapa, que só mostra ativos.
+      const catalogo = sensors.reduce((lista, sensor) => {
+        const device = deviceById.get(sensor.dispositivo_id);
+        const codigoTalhao = device && plotById.get(device.talhao_id);
+        if (codigoTalhao) {
+          lista.push({
+            sensorId: device.id_externo,
+            talhao: codigoTalhao,
+            tipo: sensor.codigo_metrica,
+            unidade: sensor.unidade
+          });
+        }
+        return lista;
+      }, []);
+
+      return reply(res, 200, { sensores: catalogo }, origin);
+    }
+
     // Validação de Sessão para Rotas Protegidas
     const user = autenticarRequisicao(req, c.jwt);
     if (!user) return reply(res, 401, { mensagem: "Não autorizado." }, origin);
@@ -377,6 +439,67 @@ module.exports = async (req, res) => {
         sensores: sensorStatuses,
       }, origin);
     }
+
+// começando a add  rotas para o predados-nucleo.js
+
+if(req.method === "GET" && route === "/predador/analise") {
+  if(!["engenheiro", "admin"].includes(user.perfil)) {
+    return reply(res, 403, { mensagem: "Acesso negado." }, origin);
+  }
+  //passo 2.2 os dados reais 
+
+        const farms = await farmsForOrganization(c);
+      if (!farms.length) {
+        return reply(res, 200, { consultado_em: new Date().toISOString(), talhoes: [] }, origin);
+      }
+
+      const talhoes = await listarTalhoesComTemperatura(
+        c,
+        `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&arquivado_em=is.null&select=id,codigo,nome,temperatura_maxima&order=codigo`
+      );
+
+            const talhaoIds = talhoes.map((talhao) => talhao.id);
+      const dispositivos = talhaoIds.length
+        ? await db(c, "dispositivo", "GET", undefined,
+            `?talhao_id=in.(${talhaoIds.join(",")})&select=id,id_externo,talhao_id,status`)
+        : [];
+
+      const dispositivoIds = dispositivos.map((dispositivo) => dispositivo.id);
+      const sensores = dispositivoIds.length
+        ? await db(c, "sensor", "GET", undefined,
+            `?dispositivo_id=in.(${dispositivoIds.join(",")})&status=eq.ativo&select=id,dispositivo_id,codigo_metrica,unidade,status`)
+        : [];
+
+      const sensorIds = sensores.map((sensor) => sensor.id);
+      const ultimasLeituras = sensorIds.length
+        ? await db(c, "v_ultima_leitura_sensor", "GET", undefined,
+            `?sensor_id=in.(${sensorIds.join(",")})&select=sensor_id,valor,unidade,qualidade,coletado_em`)
+        : [];
+
+      const regras = await db(c, "regra_alerta", "GET", undefined, "?habilitado=is.true&select=*");
+
+      // Quais talhoes tem cultura plantada agora. Sem isso o nucleo julgaria
+      // um talhao colhido contra o teto de temperatura da cultura anterior.
+      const ciclos = talhaoIds.length
+        ? await db(c, "ciclo_cultura", "GET", undefined, `?talhao_id=in.(${talhaoIds.join(",")})&status=eq.ativo&select=id,talhao_id,status`)
+        : [];
+
+        const resultados = diagnosticarTalhoes({ talhoes, dispositivos, sensores, ultimasLeituras, regras, ciclos });
+
+      return reply(res, 200, {
+        consultado_em: new Date().toISOString(),
+        talhoes: resultados,
+      }, origin);
+    }
+
+
+
+
+//rota do predador/analise fim 
+
+
+
+
 
     if (route === "/alterar-senha" && req.method === "POST") {
       const d = await parseBody(req);

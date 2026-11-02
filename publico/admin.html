@@ -432,9 +432,12 @@
           os pontos. A &aacute;rea em hectares &eacute; recalculada sozinha pela forma do talh&atilde;o.</p>
 
         <!-- Barra de ferramentas do mapa padronizada: apenas as 4 acoes essenciais.
-             Recarregar mapa, Dividir, Cancelar, o campo "Area do talhao (ha)" e o
-             botao "Aplicar area" foram removidos; a area passou a ser calculada
-             pela propria geometria (FrutLogTalhoes.recalcularAreaAutomatica). -->
+          Recarregar mapa, Dividir, Cancelar, o campo "Area do talhao (ha)" e o
+          botao "Aplicar area" foram removidos; a area passou a ser calculada
+          pela propria geometria (FrutLogTalhoes.recalcularAreaAutomatica). -->
+
+
+          <!-- ferramentas para criação de espaço no mapa talhoes.-->
         <div class="barra-edicao-talhao" aria-label="Ferramentas de edicao de talhoes">
           <button class="btn-filtro" type="button" id="btn-editar-talhoes">Editar talh&atilde;o</button>
           <button class="btn-filtro" type="button" id="btn-criar-talhao" disabled>Criar</button>
@@ -504,6 +507,27 @@
           <div class="item-detalhe">
             <span class="label">Temperatura Configurada</span>
             <span class="valor" id="talhao-temperatura-maxima">--</span>
+          </div>
+
+          <!-- Leitura real medida pelo ESP32, ao lado do limite cadastrado pelo
+               Engenheiro/Admin: e a comparacao entre as duas que explica a cor. -->
+          <div class="item-detalhe">
+            <span class="label">Temperatura Atual</span>
+            <span class="valor" id="talhao-temperatura-atual">--</span>
+          </div>
+
+          <div class="item-detalhe">
+            <span class="label">Umidade do Solo</span>
+            <span class="valor" id="talhao-umidade-solo">--</span>
+          </div>
+
+          <!-- Veredito do nucleo da IA Preditiva (src/ia/predador-nucleo.js),
+               entregue pela rota GET /predador/analise. E a mesma frase que o
+               terminal imprime e a mesma regra que pinta o mapa. -->
+          <div class="item-detalhe destaque-ia">
+            <span class="label">Diagn&oacute;stico da IA Preditiva</span>
+            <span class="valor" id="talhao-diagnostico">--</span>
+            <span class="detalhe-origem" id="talhao-diagnostico-origem"></span>
           </div>
 
           <div class="item-detalhe"><span class="label">Última Inspeção</span>
