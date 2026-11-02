@@ -9,7 +9,12 @@
     "bootstrap-admin": "node --env-file=.env scripts/bootstrap-admin.js",
     "reset-admin-password": "node --env-file=.env scripts/reset-admin-password.js",
     "ponte": "node --env-file=.env src/iot/ponte-thingspeak.js",
-    "ponte:simular": "node --env-file=.env src/iot/ponte-thingspeak.js --simular"
+    "ponte:simular": "node --env-file=.env src/iot/ponte-thingspeak.js --simular",
+    "conferir-esquema": "node --env-file=.env scripts/conferir-esquema.js",
+    "teste": "node testes/predador-nucleo.teste.js && node testes/predador-alertas.teste.js",
+    "ia": "node --env-file=.env src/ia/predador.js",
+    "ia:registrar": "node --env-file=.env src/ia/predador.js --registrar",
+    "ia:vigiar": "node --env-file=.env src/ia/predador.js --vigiar"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

@@ -14,6 +14,10 @@ diagnosticarTalhoes,
 analisarRiscoDinamico,
 } = require("./predador-nucleo.js"); //rota para o nucleo.js
 
+// Camada que decide o que abrir e o que fechar na tabela `alerta`. Tambem e
+// pura, como o nucleo: ela devolve um plano, quem grava e este arquivo.
+const { planejarAlertas } = require("./predador-alertas.js");
+
 // FrutLog - Modulo de IA Preditiva e Alertas
 
 // Le a telemetria real enviada pelos ESP32 e cruza, talhao por talhao, com os
@@ -159,6 +163,63 @@ console.log(`Talhoes em alerta: ${emAlerta.length} de ${resultados.length}`);
 return resultados;
 }
 
+// -------------------------------------------------------------------------
+// REGISTRO DE ALERTAS
+// -------------------------------------------------------------------------
+// Esta e a unica parte do Predador que ESCREVE no banco, e ela mora aqui de
+// proposito, nao na rota HTTP.
+//
+// POR QUE NAO NA ROTA: GET /predador/analise e chamada pelo navegador a cada
+// 60s, e GET e um verbo que promete nao mudar nada -- o navegador repete GET
+// no F5, na reconexao, no pre-carregamento. Com a rota escrevendo, cada aba
+// aberta viraria uma gravacao por minuto, e fechar o notebook pararia de
+// registrar alerta. A rota continua so lendo.
+//
+// POR QUE NAO NA PONTE: o cabecalho dela promete nao usar a service key do
+// Supabase. Dar a ela o direito de gravar alerta quebraria essa promessa e
+// juntaria duas responsabilidades -- um defeito no importador passaria a
+// derrubar o vigia junto.
+//
+// Aqui o acesso ao banco ja existe e e legitimo: e para isso que esta casca
+// foi feita. O nucleo e o predador-alertas continuam sem saber que banco
+// existe; eles decidem, esta funcao executa.
+async function registrarAlertas(resultados) {
+  const abertos = await consultar("alerta (abertos)", () =>
+    supabase
+      .from("alerta")
+      .select("id, talhao_id, titulo, status")
+      .eq("status", "aberto"),
+  );
+
+  const plano = planejarAlertas({ diagnosticos: resultados, alertasAbertos: abertos });
+
+  for (const novo of plano.abrir) {
+    const { error } = await supabase.from("alerta").insert(novo);
+    if (error) throw new Error(`Falha ao abrir alerta: ${error.message}`);
+    console.log(`   ABERTO    [${novo.severidade}] ${novo.titulo}`);
+  }
+
+  for (const encerrado of plano.fechar) {
+    const { id, ...campos } = encerrado;
+    const { error } = await supabase.from("alerta").update(campos).eq("id", id);
+    if (error) throw new Error(`Falha ao fechar alerta: ${error.message}`);
+    console.log(`   FECHADO   ${id}`);
+  }
+
+  // Alerta que continua valendo so tem a mensagem atualizada: a temperatura
+  // de agora e mais util que a de uma hora atras, e nao e um evento novo.
+  for (const atual of plano.manter) {
+    const { error } = await supabase.from("alerta").update({ mensagem: atual.mensagem }).eq("id", atual.id);
+    if (error) throw new Error(`Falha ao atualizar alerta: ${error.message}`);
+  }
+
+  if (!plano.abrir.length && !plano.fechar.length) {
+    console.log(`   nada mudou (${plano.manter.length} alerta(s) seguem abertos)`);
+  }
+
+  return plano;
+}
+
 /**
  * Modo de teste do algoritmo, sem depender do banco: node predador.js --simular
  * Antes, a simulacao entrava automaticamente quando a tabela vinha vazia, o que
@@ -191,10 +252,46 @@ console.log("-------------------------------------------------\n");
 return diagnostico;
 }
 
-// Executa so quando chamado direto pelo terminal; como modulo, apenas exporta.
+// -------------------------------------------------------------------------
+// ENTRADA
+// -------------------------------------------------------------------------
+// Tres modos, e o padrao e o mais seguro:
+//
+//   npm run ia              diagnostica e imprime. NAO escreve nada.
+//   npm run ia:registrar    diagnostica e grava os alertas, uma vez.
+//   npm run ia:vigiar       o mesmo, em laco, a cada IA_INTERVALO_SEGUNDOS.
+//
+// Escrever e explicito de proposito. Rodar o Predador para "dar uma olhada"
+// nao pode abrir alerta no banco de producao sem alguem ter pedido.
+const INTERVALO_SEGUNDOS = Number(process.env.IA_INTERVALO_SEGUNDOS) || 60;
+
+async function rodadaDoVigia() {
+  const resultados = await executarIaPreditiva();
+  if (resultados.length) await registrarAlertas(resultados);
+}
+
 if (require.main === module) {
 if (process.argv.includes("--simular")) {
 simularAnalise();
+} else if (process.argv.includes("--vigiar")) {
+rodadaDoVigia()
+    .then(() => {
+    console.log(`\nVigiando a cada ${INTERVALO_SEGUNDOS}s. Ctrl+C para parar.`);
+    setInterval(() => {
+        // A falha de uma rodada nao pode derrubar o vigia: a rede oscila, o
+        // Supabase reinicia. Registra e espera a proxima.
+        rodadaDoVigia().catch((erro) => console.error("Falha na rodada:", erro.message));
+    }, INTERVALO_SEGUNDOS * 1000);
+    })
+    .catch((erro) => {
+    console.error("⚠️ Falha ao iniciar o vigia:", erro.message);
+    process.exitCode = 1;
+    });
+} else if (process.argv.includes("--registrar")) {
+rodadaDoVigia().catch((erro) => {
+    console.error("⚠️ Falha na analise preditiva:", erro.message);
+    process.exitCode = 1;
+});
 } else {
 executarIaPreditiva().catch((erro) => {
     console.error("⚠️ Falha na analise preditiva:", erro.message);
@@ -207,5 +304,6 @@ executarIaPreditiva().catch((erro) => {
 module.exports = {
 executarIaPreditiva,
 obterCenarioDeCampo,
+registrarAlertas,
 
 };

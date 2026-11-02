@@ -819,12 +819,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     else renderizarMapa();
     atualizarControlesEdicao();
 
-    const [resultadoPainel, resultadoColheitas, resultadoTelemetria] = await Promise.allSettled([
+    const [resultadoPainel, resultadoColheitas, resultadoTelemetria, resultadoPredador] = await Promise.allSettled([
       FrutLog.apiFetch("/painel-engenheiro"),
       FrutLog.apiFetch("/colheitas/anual"),
       FrutLog.apiFetch("/telemetria/diaria"),
+      // Veredito do Predador (src/ia/predador-nucleo.js). Sem esta linha a tela
+      // do Engenheiro julgava o talhao por conta propria, com uma regra mais
+      // pobre: so temperatura, sem olhar umidade do solo, sem descartar leitura
+      // velha e sem saber se o talhao ainda tem cultura plantada. O mesmo
+      // talhao podia aparecer verde aqui e em ATENCAO no painel do Admin.
+      FrutLog.apiFetch("/predador/analise"),
     ]);
     const erros = [];
+
+    // Entregue ANTES de renderizar: aplicarMonitoramento() consulta estes
+    // diagnosticos ao pintar cada talhao. Se a rota falhar, nao se avisa na
+    // tela nem se interrompe o carregamento -- o calculo local de reserva
+    // assume, e e melhor um mapa com a regra antiga que um mapa sem cor.
+    if (resultadoPredador.status === "fulfilled") {
+      FrutLogTalhoes.definirDiagnosticos(resultadoPredador.value.talhoes || []);
+    }
     const painel = resultadoPainel.status === "fulfilled" ? resultadoPainel.value : {};
     plantiosAtivos = painel.plantios || [];
     atualizarResumoCicloAtual();
@@ -895,7 +909,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           mensal: [],
           apontamentoTecnico: {
             data: leituraCampo?.data || "--",
-            tecnico: "--",
+            // Vinha fixo como "--" porque a rota nao mandava o nome. Agora
+            // /painel-engenheiro resolve o usuario_id da inspecao, e o
+            // engenheiro sabe com quem falar sobre o problema apontado.
+            tecnico: leituraCampo?.tecnico || "--",
             problema: leituraCampo?.problemas || "Nenhuma inspeção registrada.",
             recomendacao: leituraCampo?.observacoes || "--",
           },

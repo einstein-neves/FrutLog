@@ -193,6 +193,24 @@ async function carregarPainelTecnico() {
     FrutLog.apiFetch("/painel-tecnico"),
     FrutLogMapaTalhoes.carregarMapaTalhoes("tecnico"),
   ]);
+
+  // Veredito do Predador (src/ia/predador-nucleo.js). Sem ele a tela do
+  // Tecnico julgava o talhao por conta propria, com uma regra mais pobre: so
+  // temperatura, sem olhar umidade do solo, sem descartar leitura velha e sem
+  // saber se o talhao ainda tem cultura plantada. O mesmo talhao podia
+  // aparecer verde aqui e em ATENCAO no painel do Admin.
+  //
+  // Fica FORA do Promise.all acima de proposito: ali uma falha derrubaria o
+  // carregamento inteiro, e o diagnostico e um reforco, nao um requisito. Se
+  // a rota nao responder, aplicarMonitoramento() cai no calculo local de
+  // reserva -- melhor um mapa com a regra antiga do que um mapa sem cor.
+  try {
+    const predador = await FrutLog.apiFetch("/predador/analise");
+    FrutLogTalhoes.definirDiagnosticos(predador.talhoes || []);
+  } catch (erro) {
+    console.warn("Diagnostico do Predador indisponivel; usando calculo local.", erro.message);
+  }
+
   painelTecnico = painel;
   sensoresDoServidor = painel.sensores || [];
   talhoes = talhoesServidor;

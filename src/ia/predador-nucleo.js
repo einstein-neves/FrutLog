@@ -198,6 +198,7 @@ return {
     "Sem leitura recente de temperatura ou de umidade do solo neste talhão.",
     alerta: false,
     severidade: null,
+    motivo: null,
     dados,
 };
 }
@@ -207,6 +208,12 @@ status: "NORMAL",
 mensagem: "Parâmetros dentro da faixa ideal configurada para o talhão.",
 alerta: false,
 severidade: null,
+// Codigo ESTAVEL da regra que disparou. A mensagem e escrita para o ser
+// humano e muda sempre que melhoramos o texto; este campo e escrito para o
+// programa e nao pode mudar. E por ele que a camada de alertas sabe se o
+// problema de agora e O MESMO de cinco minutos atras -- comparar frases
+// abriria um alerta novo a cada grau de variacao da temperatura.
+motivo: null,
 dados,
 };
 
@@ -220,16 +227,19 @@ diagnostico.status = "ALERTA_CRITICO";
 diagnostico.mensagem = `Estresse hídrico! Temp (${temperatura}°C) acima do limite máx. do talhão (${limiteTempMax}°C) e umidade crítica. Irrigação imediata!`;
 diagnostico.alerta = true;
 diagnostico.severidade = "critica"; // enum severidade_alerta do banco
+diagnostico.motivo = "ESTRESSE_HIDRICO";
 } else if (soloSeco) {
 diagnostico.status = "ATENCAO";
 diagnostico.mensagem = `Umidade do solo (${umidadeSolo}%) abaixo do limite mínimo configurado (${limiteUmidadeMin}%).`;
 diagnostico.alerta = true;
 diagnostico.severidade = "alta";
+diagnostico.motivo = "SOLO_SECO";
 } else if (calorExcessivo) {
 diagnostico.status = "ATENCAO";
 diagnostico.mensagem = `Temperatura atual (${temperatura}°C) ultrapassou o teto de segurança do talhão (${limiteTempMax}°C).`;
 diagnostico.alerta = true;
 diagnostico.severidade = "alta";
+diagnostico.motivo = "TEMPERATURA_ACIMA";
 // Aviso previo: ainda nao ultrapassou, mas esta a menos de MARGEM_APROXIMACAO_C
 // graus do teto. Precisa ser o ULTIMO da cadeia: 34°C com teto de 32 satisfaz
 // esta condicao tambem, e num else-if quem vem primeiro ganha. Invertida a
@@ -242,6 +252,7 @@ diagnostico.status = "ATENCAO";
 diagnostico.mensagem = `Temperatura (${temperatura}°C) se aproximando do teto do talhão (${limiteTempMax}°C).`;
 diagnostico.alerta = false;
 diagnostico.severidade = "media";
+diagnostico.motivo = "TEMPERATURA_PROXIMA";
 }
 
 // Leitura marcada como suspeita no banco: o diagnostico vale, mas o tecnico
@@ -314,6 +325,7 @@ if (!talhoesComCicloAtivo.has(talhao.id)) {
     mensagem: "Talhão sem cultura plantada. Cadastre o produto para retomar o monitoramento.",
     alerta: false,
     severidade: null,
+    motivo: null,
     dados: {
         temperatura: null,
         umidade_solo: null,

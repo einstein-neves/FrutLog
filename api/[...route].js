@@ -443,7 +443,12 @@ module.exports = async (req, res) => {
 // começando a add  rotas para o predados-nucleo.js
 
 if(req.method === "GET" && route === "/predador/analise") {
-  if(!["engenheiro", "admin"].includes(user.perfil)) {
+  // O tecnico entra aqui junto com engenheiro e admin: e ele quem esta no
+  // campo e age sobre o alerta, entao negar o diagnostico a ele seria
+  // esconder a informacao de quem vai usa-la. A rota e somente leitura e ja
+  // limitada a organizacao do usuario (farmsForOrganization logo abaixo),
+  // entao abrir para o tecnico nao expoe talhao de outra fazenda.
+  if(!["engenheiro", "tecnico", "admin"].includes(user.perfil)) {
     return reply(res, 403, { mensagem: "Acesso negado." }, origin);
   }
   //passo 2.2 os dados reais 
@@ -1417,6 +1422,21 @@ if(req.method === "GET" && route === "/predador/analise") {
       const deviceById = new Map(devices.map((d) => [d.id, d]));
       const cultivarById = new Map(cultivars.map((cultivar) => [cultivar.id, cultivar]));
       const cultureById = new Map(cultures.map((culture) => [culture.id, culture.nome_comum]));
+
+      // Quem fez a inspecao. A tela do Engenheiro mostrava "Tecnico
+      // responsavel: --" fixo no codigo porque este nome nunca chegava ate
+      // la: o engenheiro via o problema apontado mas nao com quem falar
+      // sobre ele -- e numa fazenda com mais de um tecnico isso custa uma
+      // ligacao a cada duvida.
+      //
+      // So busca os usuarios realmente citados pelas inspecoes, em vez da
+      // tabela inteira: a lista de funcionarios nao tem por que trafegar num
+      // painel de campo.
+      const autorIds = [...new Set(inspections.map((i) => i.usuario_id).filter(Boolean))];
+      const autores = autorIds.length
+        ? await db(c, "usuario", "GET", undefined, `?id=in.(${autorIds.join(",")})&select=id,nome_completo`)
+        : [];
+      const autorById = new Map(autores.map((u) => [u.id, u.nome_completo]));
       const sensorRows = sensors.map((s) => {
         const d = deviceById.get(s.dispositivo_id);
         const r = readingBySensor.get(s.id);
@@ -1511,7 +1531,8 @@ if(req.method === "GET" && route === "/predador/analise") {
             problemas: i.descricao_problema,
             observacoes: i.observacoes,
             sensor_id: i.sensor_id || null,
-            sensor: sensors.find((s) => s.id === i.sensor_id)?.id_externo || null
+            sensor: sensors.find((s) => s.id === i.sensor_id)?.id_externo || null,
+            tecnico: autorById.get(i.usuario_id) || null
           })),
           plantios: cycles.map((cycle) => {
             const cultivar = cultivarById.get(cycle.cultivar_id);
