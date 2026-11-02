@@ -1,0 +1,158 @@
+/* =========================================================
+   FRUTLOG - FEEDBACK VISUAL
+   Toasts, spinner dos botoes em carregamento e marcacao de
+   campo obrigatorio nao preenchido.
+   ========================================================= */
+
+.frutlog-toasts {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(380px, calc(100vw - 40px));
+  /* O container cobre a tela toda do lado direito; so os toasts recebem clique. */
+  pointer-events: none;
+}
+
+.frutlog-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 14px 14px 16px;
+  border: 1px solid var(--cor-borda);
+  border-left: 4px solid var(--cor-texto-suave);
+  border-radius: 10px;
+  background: var(--cor-card);
+  box-shadow: 0 10px 30px rgba(24, 35, 25, 0.18);
+  pointer-events: auto;
+  animation: frutlog-toast-entra 0.22s ease-out;
+}
+
+.frutlog-toast.saindo {
+  animation: frutlog-toast-sai 0.2s ease-in forwards;
+}
+
+.frutlog-toast i {
+  margin-top: 2px;
+  font-size: 1rem;
+}
+
+.frutlog-toast-texto {
+  flex: 1;
+  margin: 0;
+  color: var(--cor-texto-escuro);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.frutlog-toast-fechar {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cor-texto-suave);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.frutlog-toast-fechar:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--cor-texto-escuro);
+}
+
+.frutlog-toast.sucesso {
+  border-left-color: var(--cor-destaque);
+}
+
+.frutlog-toast.sucesso i {
+  color: var(--cor-destaque);
+}
+
+.frutlog-toast.erro {
+  border-left-color: var(--cor-perigo);
+}
+
+.frutlog-toast.erro i {
+  color: var(--cor-perigo);
+}
+
+.frutlog-toast.aviso {
+  border-left-color: var(--cor-alerta);
+}
+
+.frutlog-toast.aviso i {
+  color: #8a6d00;
+}
+
+.frutlog-toast.info i {
+  color: var(--cor-texto-suave);
+}
+
+@keyframes frutlog-toast-entra {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes frutlog-toast-sai {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(8px); }
+}
+
+/* Spinner dos botoes em carregamento. Herda a cor do texto do proprio botao,
+   entao funciona nas pilulas verdes, vermelhas e nos botoes solidos. */
+.frutlog-spinner {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+  margin-right: 8px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  vertical-align: -2px;
+  animation: frutlog-girar 0.7s linear infinite;
+}
+
+@keyframes frutlog-girar {
+  to { transform: rotate(360deg); }
+}
+
+button[aria-busy="true"] {
+  cursor: progress;
+}
+
+/* Campo obrigatorio vazio no momento do envio. */
+.campo-invalido {
+  border-color: var(--cor-perigo) !important;
+  background-color: rgba(211, 47, 47, 0.04);
+}
+
+.campo-invalido:focus {
+  outline: 2px solid var(--cor-perigo);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frutlog-toast,
+  .frutlog-toast.saindo,
+  .frutlog-spinner {
+    animation: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .frutlog-toasts {
+    right: 12px;
+    left: 12px;
+    bottom: 12px;
+    width: auto;
+  }
+}
