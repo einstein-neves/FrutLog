@@ -46,12 +46,19 @@
 
     <!-- A barra de sub-abas horizontais foi removida: a navegacao entre secoes
          acontece somente pela sidebar da esquerda (FrutLog.configurarAbasSidebar). -->
+    <!-- =========================================================== -->
+    <!-- SEÇÃO MONITORAMENTO E DETALHES DE TALHÕES -->
     <div id="aba-monitoramento" class="painel-aba-tecnico" aria-label="Monitoramento e detalhes de talhoes">
+      <!-- =========================================================== -->
+      <!-- SEÇÃO TAREFAS DO DIA -->
       <section id="tarefas-dia" class="cartao">
         <div class="titulo-cartao"><i class="fa-solid fa-list-check" aria-hidden="true"></i> Tarefas do Dia</div>
         <div class="lista-tarefas" id="lista-tarefas"></div>
       </section>
+      <!-- FIM: SEÇÃO TAREFAS DO DIA -->
 
+      <!-- =========================================================== -->
+      <!-- SEÇÃO TALHÕES E MAPA -->
       <section id="talhoes" class="bloco-talhoes-tecnico">
         <div class="titulo-cartao"><i class="fa-solid fa-map" aria-hidden="true"></i> Monitoramento dos Talhões</div>
         <div class="secao-mapa-detalhes painel-mapa-tecnico">
@@ -129,7 +136,10 @@
           <div class="grafico-metricas-tecnico"><canvas id="grafico-metricas-tecnico"></canvas></div>
         </section>
       </section>
+      <!-- FIM: SEÇÃO TALHÕES E MAPA -->
 
+      <!-- =========================================================== -->
+      <!-- SEÇÃO SENSORES -->
       <section id="sensores" class="cartao">
         <div class="titulo-cartao"><i class="fa-solid fa-microchip" aria-hidden="true"></i> Sensores</div>
         <div class="tabela-responsiva">
@@ -147,16 +157,25 @@
           </table>
         </div>
       </section>
+      <!-- FIM: SEÇÃO SENSORES -->
 
+      <!-- =========================================================== -->
+      <!-- SEÇÃO ALERTAS -->
       <section id="alertas" class="cartao">
         <div class="titulo-cartao"><i class="fa-solid fa-bell" aria-hidden="true"></i> Alertas Importantes</div>
         <div class="lista-alertas" id="lista-alertas"></div>
       </section>
+      <!-- FIM: SEÇÃO ALERTAS -->
     </div>
+    <!-- FIM: SEÇÃO MONITORAMENTO E DETALHES DE TALHÕES -->
 
+    <!-- =========================================================== -->
+    <!-- SEÇÃO REGISTROS DE CAMPO E RELATÓRIO DIÁRIO -->
     <div id="aba-registros" class="painel-aba-tecnico" aria-label="Registros de campo e relatorio diario" hidden>
-            <!-- Inspecoes e ocorrencias registradas durante a visita. -->
-<section id="registro-campo" class="cartao">
+      <!-- =========================================================== -->
+      <!-- SEÇÃO REGISTRO DE CAMPO -->
+      <!-- Inspeções e ocorrências registradas durante a visita. -->
+      <section id="registro-campo" class="cartao">
         <div class="cabecalho-cadastro">
           <span class="badge-status">Campo</span>
           <h2 class="titulo-talhao">Novo registro de campo</h2>
@@ -230,9 +249,12 @@
           </div>
         </form>
       </section>
+      <!-- FIM: SEÇÃO REGISTRO DE CAMPO -->
 
-            <!-- Relatorio diario enviado pelo tecnico. -->
-<section id="relatorio-diario" class="cartao">
+      <!-- =========================================================== -->
+      <!-- SEÇÃO RELATÓRIO DIÁRIO -->
+      <!-- Relatório diário enviado pelo técnico. -->
+      <section id="relatorio-diario" class="cartao">
         <div class="cabecalho-cadastro"><span class="badge-status">Relatório</span>
           <h2 class="titulo-talhao">Relatório diário de campo</h2>
         </div>
@@ -257,7 +279,10 @@
           </div>
         </form>
       </section>
+      <!-- FIM: SEÇÃO RELATÓRIO DIÁRIO -->
 
+      <!-- =========================================================== -->
+      <!-- SEÇÃO HISTÓRICO DE REGISTROS -->
       <section id="historico-registros" class="cartao">
         <div class="titulo-cartao"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Histórico de
           registros</div>
@@ -288,9 +313,21 @@
           </table>
         </div>
       </section>
+        <!-- FIM: SEÇÃO HISTÓRICO DE REGISTROS -->
     </div>
+    <!-- FIM: SEÇÃO REGISTROS DE CAMPO E RELATÓRIO DIÁRIO -->
 
+    <!-- =========================================================== -->
+    <!-- SEÇÃO TELEMETRIA E HISTÓRICO DIÁRIO -->
     <div id="aba-telemetria" class="painel-aba-tecnico" aria-label="Telemetria e historico diario" hidden>
+      <!-- Telemetria por talhao: mesmo painel do Administrador e do Engenheiro,
+        desenhado por js/frutlog-telemetria.js. Le GET /telemetria/talhao/:codigo
+        (leitura crua do nosso banco), por isso separa por talhao e mostra a
+        idade da ultima leitura. -->
+      <section class="cartao">
+        <div id="telemetria-talhao"></div>
+      </section>
+
       <section class="cartao">
         <div class="titulo-cartao">Telemetria diária — médias por talhão</div>
         <div class="tabela-responsiva">
@@ -311,10 +348,29 @@
       <section class="cartao thingspeak-dashboard" data-thingspeak-panel aria-labelledby="tec-thingspeak-heading">
         <div class="titulo-cartao" id="tec-thingspeak-heading">ThingSpeak / ESP32 — clima e telemetria</div>
         <p class="mensagem-feedback" data-thingspeak-status aria-live="polite">Carregando canal ThingSpeak...</p>
+        <!-- CARTOES DO CANAL - DESATIVADOS EM 02/11/2026. Os mesmos tres
+          numeros ja estao nos cartoes do painel por talhao, no topo da aba.
         <div class="thingspeak-summary" data-thingspeak-summary></div>
+        -->
 
         <!-- Graficos do ESP32 servidos pelo Node-RED. O endereco abaixo e o padrao local;
              js/telemetria-thingspeak.js reescreve o host quando outro e configurado. -->
+
+        <!-- DESATIVADOS EM 02/11/2026, NAO APAGADOS. Decisao do Einstein, com o
+          motivo dele: "o professor me deu a ideia, porem ela nao ta sendo
+          viavel; ela seria se fosse pra medir apenas um lugar, como temos
+          talhoes..."
+
+          O fluxo (hardware/node-red/fluxo-thingspeak.json) le o canal do
+          ThingSpeak e divide field1/field2/field3 em tres graficos. Essa
+          resposta nao carrega talhao nenhum -- sao numeros de coluna. Serve
+          para UM ponto de medicao; nao vira por talhao sem o Node-RED passar
+          a ler o nosso banco. A visao por talhao esta no painel do topo desta
+          aba, que le leitura_sensor.
+
+          Para reativar este bloco, configure o Node-RED em localhost:1880 e
+          remova os delimitadores de comentário desta seção. O fluxo segue versionado.
+
         <div class="thingspeak-embeds" aria-label="Graficos do ESP32 via Node-RED">
           <article>
             <h3>Temperatura (&deg;C)</h3>
@@ -343,8 +399,15 @@
             </div>
           </article>
         </div>
+        -->
         <p class="mensagem-feedback erro" data-nodered-aviso hidden></p>
 
+        <!-- GRAFICO E TABELA DO CANAL - DESATIVADOS EM 02/11/2026.
+          Repetiam, no nivel do canal, o que o painel "Telemetria por talhao"
+          (topo desta aba) ja mostra por talhao. A tabela de leitura a leitura
+          foi recriada dentro daquele painel, lendo o nosso banco e filtrada
+          pelo talhao do botao selecionado (js/frutlog-telemetria.js).
+          Deste cartao sobrou so a linha de status: "o ESP32 esta publicando?".
         <div class="thingspeak-chart"><canvas aria-label="Histórico recente das métricas do ThingSpeak"></canvas></div>
         <div class="thingspeak-feed-scroll">
           <table class="tabela-dados">
@@ -363,6 +426,7 @@
             </tbody>
           </table>
         </div>
+        -->
       </section>
 
       <section class="cartao">
@@ -430,6 +494,7 @@
         </div>
       </section>
     </div>
+    <!-- FIM: SEÇÃO TELEMETRIA E HISTÓRICO DIÁRIO -->
 
   </main>
 
@@ -439,6 +504,9 @@
   <script src="js/mapa-talhoes.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="js/telemetria-thingspeak.js"></script>
+  <!-- Painel de telemetria por talhao, compartilhado com admin.html e eng.html.
+    Antes de tec.js, que e quem chama montar() e definirTalhoes(). -->
+  <script src="js/frutlog-telemetria.js"></script>
   <script src="js/tec.js"></script>
   <script src="js/pulse-frutlog.js"></script>
   <script src="js/vendor/flatpickr.min.js"></script>

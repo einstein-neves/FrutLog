@@ -99,6 +99,80 @@ const CAMPO_DA_METRICA = {
   chuva: Number(process.env.THINGSPEAK_FIELD_RAINFALL) || 4,
 };
 
+// -------------------------------------------------------------------------
+// 1b. QUAIS CAMPOS VEM DO MESMO APARELHO FISICO
+// -------------------------------------------------------------------------
+// O DHT11 mede temperatura E umidade do ar no mesmo chip: ele devolve as duas
+// ou nenhuma. Quando a leitura falha, o sketch do ESP32 publica `0` no campo
+// de temperatura e nada no de umidade -- e esse zero nao e uma temperatura, e
+// um defeito disfarcado de medicao.
+//
+// O numero confirma: das 1223 leituras do canal, 1217 trazem as duas grandezas
+// e 6 nao trazem nenhuma. NAO EXISTE um unico caso de uma vir sem a outra.
+// Por isso a regra nao e "zero e suspeito" (0 °C e uma temperatura possivel em
+// outros lugares), e sim "faltou uma das duas, entao o aparelho falhou".
+//
+// POR QUE ISSO IMPORTA MAIS DO QUE PARECE: sem este filtro, um sensor
+// quebrado publicando 0 °C vira um talhao "NORMAL com leitura fresca" aos
+// olhos do Predador -- o pior dos mundos, porque esconde o defeito em vez de
+// mostra-lo. Com o filtro, a leitura e descartada e o talhao cai em
+// SEM_DADOS, que e a verdade: nao sabemos a temperatura dali.
+//
+// Cada grupo lista campos do MESMO aparelho. Campo que nao esta em grupo
+// nenhum continua sendo avaliado sozinho.
+const APARELHOS_FISICOS = [
+  { nome: "DHT11", campos: ["field1", "field2"] },
+];
+
+// -------------------------------------------------------------------------
+// 1c. ATE ONDE O CURSOR PODE AVANCAR
+// -------------------------------------------------------------------------
+// Regra em uma frase: o cursor sobe enquanto tudo deu certo e PARA na
+// primeira falha -- nao na ultima.
+//
+// O BUG QUE ISTO CORRIGE (existia desde a primeira versao da ponte):
+// o codigo fazia `if (todasAceitas) cursor = leitura.entry_id` dentro do laco.
+// Com a leitura 10 recusada e as 11 e 12 aceitas, o cursor terminava em 12 --
+// passando POR CIMA da 10. Na rodada seguinte a ponte pedia `entry_id > 12` e
+// a leitura 10 desaparecia para sempre, em silencio. O comentario antigo dizia
+// "se a rota recusar, o id nao avanca", e isso so era verdade quando a
+// recusada era a ultima do lote.
+//
+// Separado em funcao pura de proposito: e o tipo de logica que erra calado,
+// entao precisa de teste. Depende de `resultados` vir em ordem crescente de
+// entry_id, que e como buscarLeituras() entrega.
+function cursorFinal(resultados, cursorInicial) {
+  let cursor = cursorInicial;
+  for (const resultado of resultados) {
+    if (!resultado.ok) break;
+    cursor = Number(resultado.entry_id);
+  }
+  return cursor;
+}
+
+/** Diz se a leitura inteira deve ser descartada por falha de aparelho. */
+function aparelhoFalhou(leitura) {
+  for (const aparelho of APARELHOS_FISICOS) {
+    const presentes = aparelho.campos.filter((campo) => {
+      const bruto = leitura[campo];
+      if (bruto === null || bruto === undefined || String(bruto).trim() === "") return false;
+      // Zero so conta como ausencia dentro de um grupo: e assim que o sketch
+      // sinaliza falha. Fora de grupo, zero continua sendo valor valido
+      // (0 mm de chuva, por exemplo, e informacao legitima).
+      return Number(String(bruto).replace(",", ".")) !== 0;
+    });
+
+    // Nem tudo veio, mas tambem nao veio nada: aparelho sem resposta.
+    if (presentes.length > 0 && presentes.length < aparelho.campos.length) {
+      return { falhou: true, aparelho: aparelho.nome, motivo: "leitura parcial" };
+    }
+    if (presentes.length === 0 && aparelho.campos.some((campo) => leitura[campo] !== undefined)) {
+      return { falhou: true, aparelho: aparelho.nome, motivo: "nenhuma grandeza respondeu" };
+    }
+  }
+  return { falhou: false };
+}
+
 // Lembrete que continua valendo na hora de cadastrar: a rota POST /sensores
 // recusa (409) um segundo sensor com o mesmo identificador no mesmo
 // dispositivo. Entao, para o mesmo ESP32 medir temperatura E umidade do ar,
@@ -283,6 +357,12 @@ function montarMapa(catalogo) {
 function traduzir(leitura, mapa) {
   const medicoes = [];
 
+  // Aparelho que nao respondeu nao gera medicao nenhuma -- nem o campo que
+  // "veio". Importar meia leitura de um sensor quebrado e pior que nao
+  // importar: o Predador trataria como dado bom.
+  const falha = aparelhoFalhou(leitura);
+  if (falha.falhou) return medicoes;
+
   for (const regra of mapa) {
     const bruto = leitura[regra.campo];
 
@@ -384,14 +464,33 @@ async function rodar() {
 
   let enviadas = 0;
   let recusadas = 0;
-  // Guarda o maior entry_id que REALMENTE entrou. Se a rota recusar, o id nao
-  // avanca e a proxima rodada tenta de novo -- em vez de perder a leitura
-  // porque o sensor ainda nao estava cadastrado na hora.
-  let maiorIdAceito = estado.ultimoId;
+  // Leitura em que o aparelho falhou. Nao e erro da ponte nem da rota: e o
+  // sensor que nao respondeu. Vale contar em separado para a diferenca entre
+  // "o sensor esta ruim" e "a importacao esta com problema" ficar visivel.
+  let descartadas = 0;
+  // Resultado de cada leitura, na ordem em que vieram. O cursor e calculado
+  // so no fim, por cursorFinal(), em vez de ser empurrado dentro do laco.
+  const resultadosPorLeitura = [];
 
   for (const leitura of leituras) {
+    // Aparelho que nao respondeu: a leitura conta como RESOLVIDA (ok), porque
+    // tentar de novo traria o mesmo lixo -- o dado ruim e o que esta gravado
+    // no ThingSpeak. Travar o cursor aqui pararia a importacao para sempre na
+    // primeira falha do DHT.
+    const falha = aparelhoFalhou(leitura);
+    if (falha.falhou) {
+      descartadas += 1;
+      resultadosPorLeitura.push({ entry_id: leitura.entry_id, ok: true });
+      continue;
+    }
+
     const medicoes = traduzir(leitura, mapa);
-    let todasAceitas = medicoes.length > 0;
+
+    // Comeca como `true` para o caso de zero medicoes (valor ilegivel, por
+    // exemplo): nao ha o que enviar, logo nao ha o que repetir. Na versao
+    // anterior isso comecava como `medicoes.length > 0`, e uma leitura com
+    // texto no lugar do numero travava o cursor para sempre.
+    let todasAceitas = true;
 
     for (const medicao of medicoes) {
       if (MODO_SIMULACAO) {
@@ -410,13 +509,17 @@ async function rodar() {
       }
     }
 
-    if (todasAceitas) maiorIdAceito = Number(leitura.entry_id);
+    resultadosPorLeitura.push({ entry_id: leitura.entry_id, ok: todasAceitas });
   }
+
+  // Ate onde a ponte pode dizer que importou: para na primeira falha, nao na
+  // ultima. A regra inteira esta em cursorFinal(), com teste.
+  const maiorIdAceito = cursorFinal(resultadosPorLeitura, estado.ultimoId);
 
   gravarEstado({ ultimoId: maiorIdAceito });
 
   const rotulo = MODO_SIMULACAO ? "seriam enviadas" : "enviadas";
-  console.log(`   ${rotulo}: ${enviadas} | recusadas: ${recusadas} | ultimo id importado: ${maiorIdAceito}`);
+  console.log(`   ${rotulo}: ${enviadas} | recusadas: ${recusadas} | descartadas (aparelho falhou): ${descartadas} | ultimo id importado: ${maiorIdAceito}`);
 
   if (recusadas > 0) {
     console.log(
@@ -478,7 +581,24 @@ async function principal() {
   }, INTERVALO_SEGUNDOS * 1000);
 }
 
-principal().catch((erro) => {
-  console.error("Falha na ponte IoT:", erro.message);
-  process.exitCode = 1;
-});
+// So roda quando chamada direto pelo terminal. Antes, `principal()` era
+// invocada sempre que o arquivo fosse carregado -- o que impedia escrever
+// teste para traduzir() e aparelhoFalhou(), porque so o `require` ja tentaria
+// falar com o ThingSpeak e com o banco.
+if (require.main === module) {
+  principal().catch((erro) => {
+    console.error("Falha na ponte IoT:", erro.message);
+    process.exitCode = 1;
+  });
+}
+
+// Exportadas para teste. Sao as duas funcoes puras da ponte: entra uma leitura
+// do ThingSpeak, sai o que seria enviado -- sem rede, sem banco, sem .env.
+module.exports = {
+  APARELHOS_FISICOS,
+  CAMPO_DA_METRICA,
+  aparelhoFalhou,
+  cursorFinal,
+  traduzir,
+  montarMapa,
+};

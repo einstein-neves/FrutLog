@@ -264,6 +264,17 @@ async function carregarPainelTecnico() {
   exibirMensagem("mensagem-dados-tecnicos", "Dados sincronizados com o servidor.", "sucesso");
   preencherFiltroTelemetria();
   carregarGraficoMetricas();
+
+  // Painel de telemetria por talhao (js/frutlog-telemetria.js), o mesmo do
+  // Administrador e do Engenheiro. Fica aqui porque e o ponto onde `talhoes`
+  // acabou de ser preenchido com o que o servidor trouxe -- os botoes sao
+  // esses talhoes. Chamado a cada sincronizacao, entao talhao recem-criado
+  // ganha botao e talhao arquivado perde o dele sem precisar de F5.
+  // montar() e idempotente: chamar de novo nao refaz o HTML nem vaza grafico.
+  if (typeof FrutLogTelemetria !== "undefined") {
+    FrutLogTelemetria.montar({ containerId: "telemetria-talhao" });
+    FrutLogTelemetria.definirTalhoes(talhoes);
+  }
 }
 
 function preencherFiltroTelemetria() {

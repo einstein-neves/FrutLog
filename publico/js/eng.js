@@ -935,6 +935,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (talhaoSelecionado) selecionarTalhao(talhaoSelecionado);
     else renderizarMapa();
     carregarGraficoColheita();
+
+    // Painel de telemetria por talhao (js/frutlog-telemetria.js), o mesmo do
+    // Administrador e do Tecnico. Entra no fim desta funcao porque e aqui que
+    // `talhoes` ja esta preenchido -- os botoes sao os talhoes que o servidor
+    // trouxe. Chamado a cada carga, entao talhao recem-criado ganha botao e
+    // talhao arquivado perde o dele sem precisar de F5.
+    if (typeof FrutLogTelemetria !== "undefined") {
+      FrutLogTelemetria.montar({ containerId: "telemetria-talhao" });
+      FrutLogTelemetria.definirTalhoes(talhoes);
+    }
+
     if (erros.length) {
       exibirMensagemEdicao(`Talhões carregados. ${erros.join(" | ")}`, "erro");
     }

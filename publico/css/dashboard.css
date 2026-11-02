@@ -1186,3 +1186,112 @@ textarea.campo-formulario {
     flex: 1 1 100%;
   }
 }
+
+/* =========================================================================
+   TELEMETRIA POR TALHAO  (publico/js/frutlog-telemetria.js)
+   =========================================================================
+   Usado pelas tres telas: Administracao, Engenheiro e Tecnico. As classes
+   reaproveitam .thingspeak-summary e .btn-talhao, que ja existiam, para o
+   painel novo nascer com a mesma cara do resto do sistema.
+   ========================================================================= */
+
+/* Titulo e botoes na mesma linha: os botoes ficam a direita do titulo, como
+   os botoes de talhao do mapa. Em tela estreita quebram para baixo. */
+.cabecalho-telemetria-talhao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.botoes-talhao-telemetria {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Os tres estados de uma metrica.
+   A cor aqui nao e enfeite: ela separa "o sensor falhou" (atencao) de "nao ha
+   sensor" (neutro). Sem essa distincao os dois viram o mesmo "--" e o usuario
+   aprende a ignorar a coluna inteira. */
+.cartao-metrica.com-valor strong {
+  color: var(--cor-destaque);
+}
+
+.cartao-metrica.sem-leitura strong {
+  color: var(--cor-critico);
+  font-size: 1rem;
+}
+
+.cartao-metrica.sem-sensor strong {
+  color: var(--cor-texto-suave);
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+/* Os tres graficos lado a lado, um por metrica. */
+.graficos-telemetria {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.grafico-metrica {
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--cor-card);
+}
+
+.titulo-grafico-metrica {
+  color: var(--cor-texto-escuro);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* Altura fixa porque o Chart.js roda com maintainAspectRatio: false -- sem
+   isso o canvas cresce sem parar a cada redesenho.
+   300px e a mesma altura dos iframes do Node-RED, logo abaixo na tela: com
+   220px o grafico ficava visivelmente menor que o do dashboard ao lado, e a
+   comparacao entre os dois ficava injusta. */
+.area-grafico-metrica {
+  position: relative;
+  height: 300px;
+}
+
+/* Tabela de leituras do painel de telemetria por talhao.
+   Em <details> para poder recolher: ela e consulta, nao panorama -- quem abre
+   a aba quer ver cartao e grafico primeiro. Nasce aberta porque foi pedida
+   explicitamente, e fechar por padrao esconderia justamente o que se pediu. */
+.tabela-telemetria-talhao {
+  margin-top: 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background: var(--cor-card);
+}
+
+.tabela-telemetria-talhao > summary {
+  padding: 12px;
+  cursor: pointer;
+  color: var(--cor-texto-escuro);
+  font-weight: 600;
+}
+
+/* Altura limitada com rolagem propria: sem isso 50 linhas empurram o resto da
+   pagina para baixo e a aba vira um corredor de scroll. */
+.tabela-telemetria-talhao .tabela-responsiva {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 0 12px 12px;
+}
+
+/* Cabecalho fixo durante a rolagem: sem ele, rolando 50 linhas a pessoa perde
+   de vista qual coluna e temperatura e qual e umidade. */
+.tabela-telemetria-talhao thead th {
+  position: sticky;
+  top: 0;
+  background: var(--cor-card);
+  z-index: 1;
+}

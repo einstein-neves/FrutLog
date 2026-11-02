@@ -43,6 +43,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     .filter((resultado) => resultado.status === "rejected")
     .map((resultado) => resultado.reason?.message || String(resultado.reason));
   renderizarMapaAdmin();
+
+  // Painel de telemetria por talhao (js/frutlog-telemetria.js), o mesmo que o
+  // Engenheiro e o Tecnico usam. Entra DEPOIS de carregarMapaAdmin(), porque
+  // os botoes sao os talhoes que o mapa trouxe -- antes disso a lista estaria
+  // vazia e o painel nasceria sem botao nenhum.
+  if (typeof FrutLogTelemetria !== "undefined") {
+    FrutLogTelemetria.montar({ containerId: "telemetria-talhao" });
+    FrutLogTelemetria.definirTalhoes(FrutLogTalhoes.obterTalhoes());
+  }
   if (errosInicializacao.length) {
     exibirMensagem("mensagem-carregamento-admin", `Falha ao carregar os dados: ${errosInicializacao.join(" | ")}`, "erro");
   }
@@ -1226,7 +1235,9 @@ function definirColheitasAnuais(colheitas) {
 function renderizarGraficoColheita() {
   const canvas = document.getElementById("grafico-colheita-anual");
   if (!canvas || typeof Chart === "undefined") return;
-  if (graficoColheita) graficoColheita.destroy();
+  const graficoAtivo = Chart.getChart(canvas);
+  if (graficoAtivo) graficoAtivo.destroy();
+  graficoColheita = null;
   const dados = colheitasAnuais.filter((item) => item.unidade === unidadeColheita);
   if (!dados.length) return;
 
@@ -1383,5 +1394,15 @@ async function atualizarDadosCampoConectados() {
     painelTecnico = painel.value;
     renderizarPainelTecnico();
     renderizarMapaAdmin();
+  }
+
+  // Redesenha os botoes do painel de telemetria: esta funcao roda quando a
+  // lista de talhoes muda (evento frutlog:talhoes-atualizados), entao e aqui
+  // que talhao recem-criado ganha botao e talhao arquivado perde o dele --
+  // sem precisar de F5. Nao entra na atualizacao de 60s de proposito: ali a
+  // lista nao mudou, e chamar isto faria o painel buscar duas vezes por
+  // minuto em vez de uma.
+  if (typeof FrutLogTelemetria !== "undefined") {
+    FrutLogTelemetria.definirTalhoes(FrutLogTalhoes.obterTalhoes());
   }
 }

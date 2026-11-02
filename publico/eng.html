@@ -26,7 +26,8 @@
     <nav class="menu" aria-label="Menu do engenheiro">
       <a href="#monitoramento" class="nav-link active"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
         Monitoramento</a>
-      <a href="#telemetria" class="nav-link"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i> Telemetria</a>
+      <a href="#telemetria" class="nav-link"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
+        Telemetria</a>
       <a href="#historico" class="nav-link"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Histórico</a>
       <a href="#colheita" class="nav-link"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Colheita</a>
       <a href="#relatorios-diarios" class="nav-link"><i class="fa-solid fa-file-lines" aria-hidden="true"></i>
@@ -48,13 +49,15 @@
     </section>
 
 
-<!-- MAPAAAAAAAAAAAAAAAAAAAAAA-->
+
 
 
 
 
     <!-- Mapa e detalhes do talhao selecionado. -->
 
+    <!-- =========================================================== -->
+    <!-- SEÇÃO MONITORAMENTO E MAPA -->
     <section id="monitoramento" class="secao-mapa-detalhes" aria-label="Monitoramento dos talhões">
       <div class="cartao cartao-mapa-wrapper">
         <div class="mapa-header">
@@ -87,7 +90,7 @@
         <div class="mapa-container">
           <img src="imagem/mapa-FrutLog.jpg" alt="Mapa aereo dos talhões" class="mapa-imagem">
 
-<!-- quando copia pro admin ele duplica os botoes -->
+          <!-- quando copia pro admin ele duplica os botoes -->
           <svg class="camada-talhoes" id="camada-talhoes" viewBox="0 0 500 400" preserveAspectRatio="none"
             aria-label="Talhões da fazenda">
           </svg>
@@ -158,114 +161,155 @@
           </div>
         </div>
 
-<!-- Botão para encerrar o ciclo do talhão. -->
+        <!-- Botão para encerrar o ciclo do talhão. -->
         <div class="area-botao-cadastro">
-          <button type="button" id="btn-encerrar-ciclo-talhao" class="btn-secundario" disabled>Encerrar ciclo deste talh&atilde;o</button>
+          <button type="button" id="btn-encerrar-ciclo-talhao" class="btn-secundario" disabled>Encerrar ciclo deste
+            talh&atilde;o</button>
         </div>
         <p class="mensagem-feedback" id="mensagem-encerramento-ciclo" aria-live="polite"></p>
 
       </div>
     </section>
+    <!-- FIM: SEÇÃO MONITORAMENTO E MAPA -->
 
 
-
-
-
-
-
-    
-
-
-    <!-- EDIÇÃO -->
-
+    <!-- =========================================================== -->
+    <!-- SEÇÃO TELEMETRIA -->
     <div id="telemetria">
-      <section class="cartao-full-diario">
-        <div class="titulo-do-cartao"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Telemetria Diária</div>
-        <div class="tabela-responsiva">
-          <table class="tabela-dados">
-            <thead>
-              <tr>
-                <th>Temperatura (C)</th>
-                <th>Umidade Ar (%)</th>
-                <th>Umidade Solo (%)</th>
-                <!-- <th>Chuva (mm)</th> -->
-              </tr>
-            </thead>
-            <tbody id="tabela-telemetria-diaria"></tbody>
-          </table>
-        </div>
-      </section>
 
-      <section class="cartao thingspeak-dashboard" data-thingspeak-panel aria-labelledby="eng-thingspeak-heading">
-        <div class="titulo-cartao" id="eng-thingspeak-heading">ThingSpeak / ESP32 — clima e telemetria</div>
-        <p class="mensagem-feedback" data-thingspeak-status aria-live="polite">Carregando canal ThingSpeak...</p>
-        <div class="thingspeak-summary" data-thingspeak-summary></div>
+    <!-- Telemetria por talhao: mesmo painel do Administrador e do Tecnico,
+        desenhado por js/frutlog-telemetria.js. Le GET /telemetria/talhao/:codigo
+        (leitura crua do nosso banco), por isso separa por talhao e mostra a
+        idade da ultima leitura. -->
+    <!--=============================== -->
+    <section class="cartao">
+      <div id="telemetria-talhao"></div>
+    </section>
 
+    <section class="cartao-full-diario">
+      <div class="titulo-do-cartao"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Telemetria Diária</div>
+      <div class="tabela-responsiva">
+        <table class="tabela-dados">
+          <thead>
+            <tr>
+              <th>Temperatura (C)</th>
+              <th>Umidade Ar (%)</th>
+              <th>Umidade Solo (%)</th>
+              <!-- <th>Chuva (mm)</th> -->
+            </tr>
+          </thead>
+          <tbody id="tabela-telemetria-diaria"></tbody>
+        </table>
+      </div>
+    </section>
 
-      <!-- HILCCER ROCHA DE ARAUJO MELO - Alteracao grafico Inicio: 3 graficos do ESP32 via Node-RED (temperatura, umidade do ar e umidade do solo), um link por grafico -->
-        <!-- Graficos do ESP32 servidos pelo Node-RED. O endereco abaixo e o padrao local;
-             js/telemetria-thingspeak.js reescreve o host quando outro e configurado. -->
-
-        <div class="thingspeak-embeds" aria-label="Graficos do ESP32 via Node-RED">
-          <article>
-            <h3>Temperatura (&deg;C)</h3>
-            <div class="container-iframe" style="height:300px;">
-              <iframe loading="lazy" data-nodered-page="temperatura"
-                src="http://localhost:1880/dashboard/temperatura"
-                title="Grafico de temperatura via Node-RED" scrolling="no"></iframe>
-            </div>
-          </article>
-
-          <article>
-            <h3>Umidade do ar (%)</h3>
-            <div class="container-iframe" style="height:300px;">
-              <iframe loading="lazy" data-nodered-page="umidade"
-                src="http://localhost:1880/dashboard/umidade"
-                title="Grafico de umidade do ar via Node-RED" scrolling="no"></iframe>
-            </div>
-          </article>
-
-          <article>
-            <h3>Umidade do solo (%)</h3>
-            <div class="container-iframe" style="height:300px;">
-              <iframe loading="lazy" data-nodered-page="solo"
-                src="http://localhost:1880/dashboard/solo"
-                title="Grafico de umidade do solo via Node-RED" scrolling="no"></iframe>
-            </div>
-          </article>
-        </div>
-        <p class="mensagem-feedback erro" data-nodered-aviso hidden></p>
-        
-      <!--Alteracao grafico Fim - HILCCER ROCHA DE ARAUJO MELO.-->
-
-        <section class="thingspeak-chart-container"
-          aria-label="Gráfico de histórico recente das métricas do ThingSpeak">
-          <h3 class="thingspeak-chart-title">Histórico recente das métricas do ThingSpeak</h3>
-          <p class="thingspeak-chart-description">Visualize as últimas leituras de temperatura, umidade do ar e umidade
-            do solo.</p>
-          <div class="thingspeak-chart"><canvas aria-label="Histórico recente das métricas do ThingSpeak"></canvas>
-          </div>
-          <div class="thingspeak-feed-scroll">
-            <table class="tabela-dados">
-              <thead>
-                <tr>
-                  <th>Data/hora</th>
-                  <th>Temperatura</th>
-                  <th>Umidade do ar</th>
-                  <th>Umidade do solo</th>
-                </tr>
-              </thead>
-              <tbody data-thingspeak-rows>
-                <tr>
-                  <td colspan="4">Carregando...</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </section>
+    <section class="cartao thingspeak-dashboard" data-thingspeak-panel aria-labelledby="eng-thingspeak-heading">
+      <div class="titulo-cartao" id="eng-thingspeak-heading">ThingSpeak / ESP32 — clima e telemetria</div>
+      <p class="mensagem-feedback" data-thingspeak-status aria-live="polite">Carregando canal ThingSpeak...</p>
+      <p class="mensagem-feedback erro" data-nodered-aviso hidden></p>
+    </section>
     </div>
+    <!-- FIM: SEÇÃO TELEMETRIA -->
 
+<!-- =========================================================== -->
+
+<!-- CARTOES DO CANAL - DESATIVADOS EM 02/11/2026. Os mesmos tres
+numeros ja estao nos cartoes do painel por talhao, no topo da aba, e
+la separados por talhao.
+<div class="thingspeak-summary" data-thingspeak-summary></div>
+-->
+
+
+<!-- HILCCER ROCHA DE ARAUJO MELO - Alteracao grafico Inicio: 3 graficos do ESP32 via Node-RED (temperatura, umidade do ar e umidade do solo), um link por grafico -->
+<!-- Graficos do ESP32 servidos pelo Node-RED. O endereco abaixo e o padrao local;
+js/telemetria-thingspeak.js reescreve o host quando outro e configurado. -->
+
+<!-- DESATIVADOS EM 02/11/2026, NAO APAGADOS. Decisao do Einstein, com o
+motivo dele: "o professor me deu a ideia, porem ela nao ta sendo
+viavel; ela seria se fosse pra medir apenas um lugar, como temos
+talhoes..."
+
+O fluxo (hardware/node-red/fluxo-thingspeak.json) le o canal do
+ThingSpeak e divide field1/field2/field3 em tres graficos. Essa
+resposta nao carrega talhao nenhum -- sao numeros de coluna. Serve
+para UM ponto de medicao; nao vira por talhao sem o Node-RED passar
+a ler o nosso banco. A visao por talhao esta no painel do topo desta
+aba, que le leitura_sensor.
+
+Para reativar este bloco, configure o Node-RED em localhost:1880 e
+remova os delimitadores de comentário desta seção. O fluxo segue versionado.
+
+<div class="thingspeak-embeds" aria-label="Graficos do ESP32 via Node-RED">
+<article>
+<h3>Temperatura (&deg;C)</h3>
+<div class="container-iframe" style="height:300px;">
+<iframe loading="lazy" data-nodered-page="temperatura"
+src="http://localhost:1880/dashboard/temperatura"
+title="Grafico de temperatura via Node-RED" scrolling="no"></iframe>
+</div>
+</article>
+
+<article>
+<h3>Umidade do ar (%)</h3>
+<div class="container-iframe" style="height:300px;">
+<iframe loading="lazy" data-nodered-page="umidade"
+src="http://localhost:1880/dashboard/umidade"
+title="Grafico de umidade do ar via Node-RED" scrolling="no"></iframe>
+</div>
+</article>
+
+<article>
+<h3>Umidade do solo (%)</h3>
+<div class="container-iframe" style="height:300px;">
+<iframe loading="lazy" data-nodered-page="solo"
+src="http://localhost:1880/dashboard/solo"
+title="Grafico de umidade do solo via Node-RED" scrolling="no"></iframe>
+</div>
+</article>
+</div>
+-->
+<!-- =========================================================== -->
+
+
+<!--Alteracao grafico Fim - HILCCER ROCHA DE ARAUJO MELO.-->
+
+<!-- GRAFICO E TABELA DO CANAL - DESATIVADOS EM 02/11/2026.
+Repetiam, no nivel do canal, o que o painel "Telemetria por talhao"
+(topo desta aba) ja mostra por talhao: a mesma curva e os mesmos
+numeros. A tabela de leitura a leitura, que era a unica parte com
+conteudo proprio, foi recriada dentro daquele painel lendo o nosso
+banco (js/frutlog-telemetria.js).
+Deste cartao sobrou so a linha de status: "o ESP32 esta publicando?".
+<section class="thingspeak-chart-container"
+aria-label="Gráfico de histórico recente das métricas do ThingSpeak">
+<h3 class="thingspeak-chart-title">Histórico recente das métricas do ThingSpeak</h3>
+<p class="thingspeak-chart-description">Visualize as últimas leituras de temperatura, umidade do ar e umidade
+do solo.</p>
+<div class="thingspeak-chart"><canvas aria-label="Histórico recente das métricas do ThingSpeak"></canvas>
+</div>
+<div class="thingspeak-feed-scroll">
+<table class="tabela-dados">
+<thead>
+<tr>
+<th>Data/hora</th>
+<th>Temperatura</th>
+<th>Umidade do ar</th>
+<th>Umidade do solo</th>
+</tr>
+</thead>
+<tbody data-thingspeak-rows>
+<tr>
+<td colspan="4">Carregando...</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+-->
+
+
+    <!-- =========================================================== -->
+    <!-- SEÇÃO HISTÓRICO MENSAL -->
     <div id="historico" hidden>
       <section class="cartao">
         <div class="titulo-cartao"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i> Consolidado Mensal
@@ -303,7 +347,10 @@
       </section>
 
     </div>
+    <!-- FIM: SEÇÃO HISTÓRICO MENSAL -->
 
+    <!-- =========================================================== -->
+    <!-- SEÇÃO COLHEITA -->
     <section id="colheita" class="cartao">
       <div class="header-grafico">
         <div>
@@ -353,8 +400,11 @@
         </div>
       </div>
     </section>
+    <!-- FIM: SEÇÃO COLHEITA -->
 
-    <!-- Cadastro de um novo ciclo de cultivo para um talhao. -->
+    <!-- =========================================================== -->
+    <!-- SEÇÃO CADASTRO DE PLANTIO -->
+    <!-- Cadastro de um novo ciclo de cultivo para um talhão. -->
     <section id="cadastro-plantio" class="cartao card-cadastro-produto">
       <div class="cabecalho-cadastro">
         <span class="badge-status">Planejamento Agrícola</span>
@@ -426,7 +476,10 @@
         </div>
       </form>
     </section>
+    <!-- FIM: SEÇÃO CADASTRO DE PLANTIO -->
 
+    <!-- =========================================================== -->
+    <!-- SEÇÃO RELATÓRIOS DIÁRIOS -->
     <section id="relatorios-diarios" class="cartao">
       <div class="titulo-cartao"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Relatórios diários recebidos
       </div>
@@ -454,7 +507,8 @@
         </select>
         <button class="btn-filtro" type="button" data-arquivar-selecionados disabled>Arquivar selecionados</button>
         <button class="btn-filtro" type="button" data-restaurar-selecionados disabled>Restaurar selecionados</button>
-        <button class="btn-excluir-relatorio" type="button" data-excluir-selecionados disabled>Excluir selecionados</button>
+        <button class="btn-excluir-relatorio" type="button" data-excluir-selecionados disabled>Excluir
+          selecionados</button>
       </div>
       <p id="mensagem-relatorios" class="mensagem-feedback" aria-live="polite"></p>
       <div class="tabela-responsiva">
@@ -474,6 +528,7 @@
         </table>
       </div>
     </section>
+    <!-- FIM: SEÇÃO RELATÓRIOS DIÁRIOS -->
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -484,6 +539,9 @@
   <script src="js/relatorios.js"></script>
   <script src="js/telemetria-thingspeak.js"></script>
   <script src="js/colheitas.js"></script>
+  <!-- Painel de telemetria por talhao, compartilhado com admin.html e tec.html.
+    Antes de eng.js, que e quem chama montar() e definirTalhoes(). -->
+  <script src="js/frutlog-telemetria.js"></script>
   <script src="js/eng.js"></script>
   <script src="js/pulse-frutlog.js"></script>
   <script src="js/vendor/flatpickr.min.js"></script>

@@ -739,6 +739,66 @@ if(req.method === "GET" && route === "/predador/analise") {
       }
     }
 
+    // Telemetria diária por talhão, usada pelos gráficos do painel.
+    const telemetriaTalhaoMatch = route.match(/^\/telemetria\/talhao\/([^/]+)$/);
+    if (telemetriaTalhaoMatch && req.method === "GET") {
+      const codigoTalhao = decodeURIComponent(telemetriaTalhaoMatch[1]);
+
+      const farms = await farmsForOrganization(c);
+      if (!farms.length) return reply(res, 200, { talhao: codigoTalhao, metricas: {} }, origin);
+
+      const plot = (await db(c, "talhao", "GET", undefined,
+        `?codigo=eq.${encodeURIComponent(codigoTalhao)}&fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&arquivado_em=is.null&select=id,codigo&limit=1`))[0];
+      if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado nesta organização." }, origin);
+
+      const devices = await db(c, "dispositivo", "GET", undefined,
+        `?talhao_id=eq.${encodeURIComponent(plot.id)}&status=neq.desativado&select=id`);
+      const deviceIds = devices.map((device) => device.id);
+
+      const sensors = deviceIds.length
+        ? await db(c, "sensor", "GET", undefined,
+          `?dispositivo_id=in.(${deviceIds.join(",")})&status=eq.ativo&select=id,codigo_metrica,unidade`)
+        : [];
+      const sensorIds = sensors.map((sensor) => sensor.id);
+
+      const readings = sensorIds.length
+        ? await db(c, "leitura_sensor", "GET", undefined,
+          `?sensor_id=in.(${sensorIds.join(",")})&select=sensor_id,valor,unidade,qualidade,coletado_em&order=coletado_em.desc&limit=600`)
+        : [];
+
+      const metricaPorSensor = new Map(sensors.map((sensor) => [sensor.id, sensor]));
+      const metricas = {};
+      for (const sensor of sensors) {
+        metricas[sensor.codigo_metrica] = { unidade: sensor.unidade, pontos: [] };
+      }
+      for (const reading of readings) {
+        const sensor = metricaPorSensor.get(reading.sensor_id);
+        if (!sensor) continue;
+        metricas[sensor.codigo_metrica].pontos.push({
+          em: reading.coletado_em,
+          valor: Number(reading.valor),
+          qualidade: reading.qualidade
+        });
+      }
+
+      for (const metrica of Object.values(metricas)) metrica.pontos.reverse();
+
+      return reply(res, 200, {
+        talhao: plot.codigo,
+        consultado_em: new Date().toISOString(),
+        metricas
+      }, origin);
+    }
+
+// Rota de leitura CRUA por talhao, para os graficos de tempo real.
+// Nao confundir com /telemetria/diaria, logo abaixo: aquela agrega por dia
+// (valor_medio/minimo/maximo) e serve para historico. Um grafico de tempo real
+// com um ponto por dia nao mostraria nada acontecendo.
+
+
+
+
+
     if (req.method === "GET" && route === "/telemetria/diaria") {
       const agora = new Date();
       const desde = `${agora.getUTCFullYear()}-${String(agora.getUTCMonth() + 1).padStart(2, "0")}-01`;

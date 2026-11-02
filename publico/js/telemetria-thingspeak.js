@@ -2,6 +2,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const painel = document.querySelector("[data-thingspeak-panel]");
   if (!painel) return;
 
+  // Cada elemento abaixo pode nao existir.
+  //
+  // Em 02/11/2026 os cartoes, o grafico e a tabela deste painel foram
+  // comentados nas tres telas: eles repetiam, no nivel do CANAL, os mesmos
+  // numeros que o painel "Telemetria por talhao" ja mostra por talhao. O que
+  // sobrou aqui foi a linha de status -- "o ESP32 esta publicando?".
+  //
+  // Antes desta mudanca o script fazia `resumo.innerHTML = ...` direto, sem
+  // conferir. Comentar um bloco no HTML derrubava a aba inteira com
+  // "Cannot set properties of null". Script de tela nao deve presumir que o
+  // HTML continua igual ao do dia em que ele foi escrito.
   const status = painel.querySelector("[data-thingspeak-status]");
   const resumo = painel.querySelector("[data-thingspeak-summary]");
   const corpoTabela = painel.querySelector("[data-thingspeak-rows]");
@@ -70,6 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   function renderizarResumo(feeds) {
+    if (!resumo) return;
     resumo.innerHTML = Object.entries(nomes).map(([chave, nome]) => {
       const leitura = [...feeds].reverse().find((feed) => Number.isFinite(feed.values?.[chave]));
       return `
@@ -82,9 +94,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function mostrarErro(mensagem) {
-    status.textContent = mensagem;
-    status.className = "mensagem-feedback erro";
-    corpoTabela.innerHTML = `<tr><td colspan="${colunas.length + 1}">Não foi possível atualizar as leituras.</td></tr>`;
+    if (status) {
+      status.textContent = mensagem;
+      status.className = "mensagem-feedback erro";
+    }
+    if (corpoTabela) {
+      corpoTabela.innerHTML = `<tr><td colspan="${colunas.length + 1}">Não foi possível atualizar as leituras.</td></tr>`;
+    }
   }
 
   async function atualizar() {
@@ -98,8 +114,10 @@ document.addEventListener("DOMContentLoaded", () => {
       );
       const maisRecente = feeds[feeds.length - 1];
       renderizarResumo(feeds);
-      status.textContent = `${resposta.channel?.name || "ThingSpeak"} · atualizado ${formatarDataHora(maisRecente?.created_at)}`;
-      status.className = "mensagem-feedback sucesso";
+      if (status) {
+        status.textContent = `${resposta.channel?.name || "ThingSpeak"} · atualizado ${formatarDataHora(maisRecente?.created_at)}`;
+        status.className = "mensagem-feedback sucesso";
+      }
       embeds.forEach((iframe) => {
         const channelId = Number(resposta.channel?.id);
         const campo = Number(resposta.fields?.[iframe.dataset.thingspeakEmbed]);
@@ -112,19 +130,24 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       // Tabela de registros corrigida e estruturada
-      corpoTabela.innerHTML = feeds.length
-        ? feeds.slice(-12).reverse().map((feed) => `
-          <tr>
-            <td>${escapar(formatarDataHora(feed.created_at))}</td>
-            ${colunas.map((chave) => `<td>${escapar(feed.values[chave] ?? "--")}</td>`).join("")}
-          </tr>
-        `).join("")
-        : `<tr><td colspan="${colunas.length + 1}">O canal ainda não possui leituras.</td></tr>`;
+      if (corpoTabela) {
+        corpoTabela.innerHTML = feeds.length
+          ? feeds.slice(-12).reverse().map((feed) => `
+            <tr>
+              <td>${escapar(formatarDataHora(feed.created_at))}</td>
+              ${colunas.map((chave) => `<td>${escapar(feed.values[chave] ?? "--")}</td>`).join("")}
+            </tr>
+          `).join("")
+          : `<tr><td colspan="${colunas.length + 1}">O canal ainda não possui leituras.</td></tr>`;
+      }
 
       if (grafico) grafico.destroy();
       grafico = null;
+      // Sem canvas no HTML nao ha grafico a desenhar, e isso nao e erro: e o
+      // painel configurado so como indicador de "o aparelho esta publicando".
+      if (!canvas) return;
       if (typeof Chart === "undefined") {
-        status.textContent += " · Graficos indisponiveis neste navegador.";
+        if (status) status.textContent += " · Graficos indisponiveis neste navegador.";
         return;
       }
 //exemplo para os outros graficos // 
