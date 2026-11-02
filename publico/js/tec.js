@@ -244,6 +244,8 @@ async function carregarPainelTecnico() {
       sensor: estado?.sensor || sensores[0]?.sensor || "Não associado",
       status: estado?.situacao || "Sem leitura",
       prioridade: estado?.prioridade || "Aguardando leitura de sensor.",
+      dados_recentes: estado?.dados_recentes === true,
+      ultima_leitura_em: estado?.ultima_leitura_em || null,
       diaria: {
         ...feature.properties.diaria,
         temperatura: temperatura?.valor ?? "--",
@@ -440,6 +442,16 @@ function formatarData(dataISO) {
   return data ? `${data[3]}/${data[2]}/${data[1]}` : dataISO;
 }
 
+function formatarDataHora(valor) {
+  if (!valor) return "Nunca";
+  const data = new Date(valor);
+  if (Number.isNaN(data.getTime())) return "--";
+  const minutos = Math.floor(Math.max(0, Date.now() - data.getTime()) / 60000);
+  const relativo = minutos < 1 ? "agora" : minutos < 60 ? `há ${minutos} min`
+    : minutos < 1440 ? `há ${Math.floor(minutos / 60)} h` : `há ${Math.floor(minutos / 1440)} d`;
+  return `${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(data)} (${relativo})`;
+}
+
 function obterPontos(feature) {
   return FrutLogTalhoes.obterPontos(feature);
 }
@@ -580,10 +592,18 @@ function carregarTarefasDia() {
 
 function carregarTalhoes() {
   const lista = document.getElementById("lista-talhoes");
+  const resumo = document.getElementById("resumo-operacao-tecnico");
 
   atualizarTalhoesMonitorados();
   renderizarBotoesTalhao();
   renderizarMapa();
+
+  if (resumo) {
+    const semDados = talhoes.filter((feature) => !feature.properties.dados_recentes);
+    resumo.textContent = talhoes.length
+      ? `${semDados.length} de ${talhoes.length} talhões sem leitura recente (últimos 5 minutos).${semDados.length ? ` Verifique: ${semDados.map((feature) => feature.properties.codigo).join(", ")}.` : ""}`
+      : "Nenhum talhão ativo cadastrado.";
+  }
 
   if (lista) {
     lista.innerHTML = talhoes.length ? talhoes.map((feature) => {
@@ -735,14 +755,15 @@ function carregarSensores() {
 
   if (tabela) {
     if (!sensores.length) {
-      tabela.innerHTML = '<tr><td colspan="5">Nenhum sensor cadastrado.</td></tr>';
+      tabela.innerHTML = '<tr><td colspan="6">Nenhum sensor cadastrado.</td></tr>';
     } else tabela.innerHTML = sensores.map((item) => `
       <tr>
         <td>${escaparHtml(item.sensor)}</td>
         <td>${escaparHtml(item.talhao)}</td>
         <td><span class="status-sensor ${normalizarClasse(item.status)}">${escaparHtml(FrutLog.textoInterface(item.status))}</span></td>
-        <td>${escaparHtml(formatarData(item.comunicacao))}</td>
+        <td>${escaparHtml(formatarDataHora(item.comunicacao))}</td>
         <td>${escaparHtml(item.leitura)}</td>
+        <td><span class="status-sensor ${item.dados_recentes ? "online" : "atencao"}">${item.ultima_leitura_em ? (item.dados_recentes ? "Atual" : "Desatualizada") : "Sem leitura"}</span></td>
       </tr>
     `).join("");
   }

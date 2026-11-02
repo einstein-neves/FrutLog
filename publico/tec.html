@@ -53,6 +53,7 @@
       <!-- SEÇÃO TAREFAS DO DIA -->
       <section id="tarefas-dia" class="cartao">
         <div class="titulo-cartao"><i class="fa-solid fa-list-check" aria-hidden="true"></i> Tarefas do Dia</div>
+        <p id="resumo-operacao-tecnico" class="texto-ajuda" aria-live="polite"></p>
         <div class="lista-tarefas" id="lista-tarefas"></div>
       </section>
       <!-- FIM: SEÇÃO TAREFAS DO DIA -->
@@ -112,6 +113,8 @@
                   id="tecnico-talhao-temperatura">--</span></div>
               <div class="item-detalhe"><span class="label">Umidade atual</span><span class="valor"
                   id="tecnico-talhao-umidade">--</span></div>
+              <div class="item-detalhe"><span class="label">Última leitura do talhão</span><span class="valor"
+                  id="tecnico-talhao-ultima-leitura">--</span></div>
               <div class="item-detalhe destaque-fruta"><span class="label">Prioridade de campo</span><span class="valor"
                   id="tecnico-talhao-prioridade">--</span></div>
             </div>
@@ -151,6 +154,7 @@
                 <th>Status</th>
                 <th>Última comunicação</th>
                 <th>Última leitura</th>
+                <th>Atualidade</th>
               </tr>
             </thead>
             <tbody id="tabela-sensores"></tbody>

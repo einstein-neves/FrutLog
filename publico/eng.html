@@ -69,6 +69,7 @@
           <div class="botoes-do-talhao" id="botoes-talhao" aria-label="Seleção de talhão"></div>
           <span class="status-mapa">Monitoramento Ativo</span>
         </div>
+        <p id="resumo-dados-recentes" class="texto-ajuda" aria-live="polite"></p>
 
         <p class="texto-ajuda">Edi&ccedil;&atilde;o dos limites: clique em Editar talh&atilde;o para desenhar e mover
           os pontos. A &aacute;rea em hectares &eacute; recalculada sozinha pela forma do talh&atilde;o.</p>
@@ -142,6 +143,11 @@
           <div class="item-detalhe">
             <span class="label">Temperatura Configurada</span>
             <span class="valor" id="talhao-temperatura-maxima">--</span>
+          </div>
+
+          <div class="item-detalhe">
+            <span class="label">Última leitura do talhão</span>
+            <span class="valor" id="talhao-ultima-leitura">--</span>
           </div>
 
           <div class="item-detalhe"><span class="label">Última Inspeção</span>
@@ -491,6 +497,7 @@ do solo.</p>
         <label for="filtro-relatorio-status">Status</label>
         <select id="filtro-relatorio-status" class="campo-formulario">
           <option value="todos">Todos</option>
+          <option value="pendentes">Pendentes de conclusão</option>
           <option value="enviado">Enviado</option>
           <option value="em_analise">Em analise</option>
           <option value="concluido">Concluido</option>
@@ -516,7 +523,7 @@ do solo.</p>
           <thead>
             <tr>
               <th>Selecionar</th>
-              <th>Data</th>
+              <th>Data / recebimento</th>
               <th>Técnico</th>
               <th>Relatório de campo</th>
               <th>Status</th>

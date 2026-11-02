@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const { criarToken, autenticarRequisicao } = require("./session");
 const { db, listarTalhoesComTemperatura, farmsForOrganization } = require("./database");
 const {diagnosticarTalhoes}=require("../src/ia/predador-nucleo.js");
+const { dadosRecentes, estadoSensor } = require("../src/operacao/estado-sensor");
 
 const ROLES = ["engenheiro", "tecnico", "admin", "administrador"];
 const TYPES = ["temperatura", "umidadeSolo", "umidadeAr", "chuva"];
@@ -109,6 +110,12 @@ function date(v) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(v))) return null;
   const parsed = new Date(`${v}T00:00:00.000Z`);
   return Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== v ? null : v;
+}
+
+function dataMaisRecente(...datas) {
+  return datas
+    .filter((valor) => valor && Number.isFinite(Date.parse(valor)))
+    .sort((a, b) => Date.parse(b) - Date.parse(a))[0] || null;
 }
 
 function telemetryValid(d) {
@@ -1181,12 +1188,41 @@ if(req.method === "GET" && route === "/predador/analise") {
 
     // 5. Rotas Granulares: Sensores e Última Leitura
     if (req.method === "GET" && route === "/sensores") {
-      const [plots, devices, sensors, readings] = await Promise.all([
-        db(c, "talhao", "GET", undefined, "?arquivado_em=is.null&select=id,codigo"),
-        db(c, "dispositivo", "GET", undefined, "?select=id,id_externo,talhao_id,status,ultimo_sinal_em"),
-        db(c, "sensor", "GET", undefined, "?select=id,id_externo,dispositivo_id,codigo_metrica,unidade,status"),
-        db(c, "v_ultima_leitura_sensor", "GET", undefined, "?select=*&limit=500")
-      ]);
+      const farms = await farmsForOrganization(c);
+      if (!farms.length) return reply(res, 200, { sensores: [] }, origin);
+      const plots = await db(
+        c,
+        "talhao",
+        "GET",
+        undefined,
+        `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&arquivado_em=is.null&select=id,codigo`
+      );
+      if (!plots.length) return reply(res, 200, { sensores: [] }, origin);
+      const plotIds = plots.map((plot) => plot.id);
+      const devices = await db(
+        c,
+        "dispositivo",
+        "GET",
+        undefined,
+        `?talhao_id=in.(${plotIds.join(",")})&select=id,id_externo,talhao_id,status,ultimo_sinal_em`
+      );
+      if (!devices.length) return reply(res, 200, { sensores: [] }, origin);
+      const sensors = await db(
+        c,
+        "sensor",
+        "GET",
+        undefined,
+        `?dispositivo_id=in.(${devices.map((device) => device.id).join(",")})&select=id,id_externo,dispositivo_id,codigo_metrica,unidade,status`
+      );
+      const readings = sensors.length
+        ? await db(
+          c,
+          "v_ultima_leitura_sensor",
+          "GET",
+          undefined,
+          `?sensor_id=in.(${sensors.map((sensor) => sensor.id).join(",")})&select=sensor_id,valor,unidade,coletado_em`
+        )
+        : [];
       const plotMap = new Map(plots.map((p) => [p.id, p.codigo]));
       const deviceById = new Map(devices.map((d) => [d.id, d]));
       const readingBySensor = new Map(readings.map((r) => [r.sensor_id, r]));
@@ -1194,25 +1230,24 @@ if(req.method === "GET" && route === "/predador/analise") {
       const sensorRows = sensors.map((s) => {
         const d = deviceById.get(s.dispositivo_id);
         const r = readingBySensor.get(s.id);
+        const comunicacao = dataMaisRecente(r?.coletado_em, d?.ultimo_sinal_em);
         return {
           id: s.id,
           sensor: s.id_externo,
           talhao: d ? plotMap.get(d.talhao_id) : null,
           tipo: s.codigo_metrica,
           unidade: s.unidade,
-          status: s.status !== "ativo"
-            ? "Inativo"
-            : d?.status === "offline"
-              ? "Offline"
-              : d?.status === "manutencao"
-                ? "Manutencao"
-                : d?.status === "desativado" || !d
-                  ? "Desativado"
-                  : "Online",
+          status: estadoSensor({
+            statusSensor: s.status,
+            statusDispositivo: d?.status,
+            ultimaComunicacao: comunicacao
+          }),
           ativo: s.status === "ativo",
           leitura: r ? `${r.valor} ${r.unidade}` : "Sem leitura",
           valor: r?.valor,
-          comunicacao: r?.coletado_em || d?.ultimo_sinal_em
+          comunicacao,
+          ultima_leitura_em: r?.coletado_em || null,
+          dados_recentes: dadosRecentes(r?.coletado_em)
         };
       });
       return reply(res, 200, { sensores: sensorRows }, origin);
@@ -1464,16 +1499,46 @@ if(req.method === "GET" && route === "/predador/analise") {
 
       const farms = await farmsForOrganization(c);
       if (!farms.length) return reply(res, 503, { mensagem: "Fazenda não configurada." }, origin);
-      const [plots, devices, sensors, readings, inspections, cycles, occurrences, sensorProblems, alerts, cultivars, cultures] = await Promise.all([
-        listarTalhoesComTemperatura(c, `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&arquivado_em=is.null&select=id,codigo,nome,area_hectares,coordenadas,temperatura_maxima&order=codigo`),
-        db(c, "dispositivo", "GET", undefined, "?select=id,id_externo,talhao_id,status,ultimo_sinal_em"),
-        db(c, "sensor", "GET", undefined, "?select=id,id_externo,dispositivo_id,codigo_metrica,unidade,status"),
-        db(c, "v_ultima_leitura_sensor", "GET", undefined, "?select=*&limit=500"),
-        db(c, "inspecao", "GET", undefined, "?select=*&order=inspecionado_em.desc&limit=30"),
-        db(c, "ciclo_cultura", "GET", undefined, "?status=eq.ativo&select=id,talhao_id,cultivar_id,area_plantada_hectares,plantado_em,previsao_colheita,solo"),
-        db(c, "ocorrencia", "GET", undefined, "?select=*&order=registrado_em.desc&limit=100"),
-        db(c, "problema_sensor", "GET", undefined, "?select=*&order=data.desc&limit=100"),
-        db(c, "alerta", "GET", undefined, "?select=*&status=eq.aberto&order=aberto_em.desc&limit=100"),
+      const plots = await listarTalhoesComTemperatura(
+        c,
+        `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&arquivado_em=is.null&select=id,codigo,nome,area_hectares,coordenadas,temperatura_maxima&order=codigo`
+      );
+      const plotIds = plots.map((plot) => plot.id);
+      const devices = plotIds.length
+        ? await db(c, "dispositivo", "GET", undefined,
+          `?talhao_id=in.(${plotIds.join(",")})&select=id,id_externo,talhao_id,status,ultimo_sinal_em`)
+        : [];
+      const deviceIds = devices.map((device) => device.id);
+      const sensors = deviceIds.length
+        ? await db(c, "sensor", "GET", undefined,
+          `?dispositivo_id=in.(${deviceIds.join(",")})&select=id,id_externo,dispositivo_id,codigo_metrica,unidade,status`)
+        : [];
+      const sensorIds = sensors.map((sensor) => sensor.id);
+      const [readings, inspections, cycles, occurrences, sensorProblems, alerts, cultivars, cultures] = await Promise.all([
+        sensorIds.length
+          ? db(c, "v_ultima_leitura_sensor", "GET", undefined,
+            `?sensor_id=in.(${sensorIds.join(",")})&select=sensor_id,valor,unidade,coletado_em`)
+          : Promise.resolve([]),
+        plotIds.length
+          ? db(c, "inspecao", "GET", undefined,
+            `?talhao_id=in.(${plotIds.join(",")})&select=*&order=inspecionado_em.desc&limit=30`)
+          : Promise.resolve([]),
+        plotIds.length
+          ? db(c, "ciclo_cultura", "GET", undefined,
+            `?talhao_id=in.(${plotIds.join(",")})&status=eq.ativo&select=id,talhao_id,cultivar_id,area_plantada_hectares,plantado_em,previsao_colheita,solo`)
+          : Promise.resolve([]),
+        plotIds.length
+          ? db(c, "ocorrencia", "GET", undefined,
+            `?talhao_id=in.(${plotIds.join(",")})&select=*&order=registrado_em.desc&limit=100`)
+          : Promise.resolve([]),
+        plotIds.length
+          ? db(c, "problema_sensor", "GET", undefined,
+            `?talhao_id=in.(${plotIds.join(",")})&select=*&order=data.desc&limit=100`)
+          : Promise.resolve([]),
+        plotIds.length
+          ? db(c, "alerta", "GET", undefined,
+            `?talhao_id=in.(${plotIds.join(",")})&status=eq.aberto&select=*&order=aberto_em.desc&limit=100`)
+          : Promise.resolve([]),
         db(c, "cultivar", "GET", undefined, "?select=id,nome,cultura_id"),
         db(c, "cultura", "GET", undefined, "?select=id,nome_comum")
       ]);
@@ -1500,20 +1565,19 @@ if(req.method === "GET" && route === "/predador/analise") {
       const sensorRows = sensors.map((s) => {
         const d = deviceById.get(s.dispositivo_id);
         const r = readingBySensor.get(s.id);
+        const comunicacao = dataMaisRecente(r?.coletado_em, d?.ultimo_sinal_em);
         return {
           sensor: s.id_externo,
           talhao: d && plots.find((p) => p.id === d.talhao_id)?.codigo,
-          status: s.status !== "ativo"
-            ? "Inativo"
-            : d?.status === "offline"
-              ? "Offline"
-              : d?.status === "manutencao"
-                ? "Manutencao"
-                : d?.status === "desativado" || !d
-                  ? "Desativado"
-                  : "Online",
+          status: estadoSensor({
+            statusSensor: s.status,
+            statusDispositivo: d?.status,
+            ultimaComunicacao: comunicacao
+          }),
           leitura: r ? `${r.valor} ${r.unidade}` : "Sem leitura",
-          comunicacao: r?.coletado_em || d?.ultimo_sinal_em,
+          comunicacao,
+          ultima_leitura_em: r?.coletado_em || null,
+          dados_recentes: dadosRecentes(r?.coletado_em),
           id: s.id,
           tipo: s.codigo_metrica,
           ativo: s.status === "ativo",
@@ -1540,14 +1604,20 @@ if(req.method === "GET" && route === "/predador/analise") {
         const valorSolo = Number(sensorDoSolo?.valor);
         const leituraSoloValida = sensorDoSolo?.valor !== null
           && sensorDoSolo?.valor !== undefined
+          && sensorDoSolo?.dados_recentes
           && Number.isFinite(valorSolo);
         const semSensor = sensoresDoTalhao.length === 0;
         const semSensorAtivo = !semSensor && sensoresAtivos.length === 0;
         const semComunicacao = sensoresAtivos.some((item) =>
-          ["Offline", "Manutencao", "Desativado"].includes(item.status)
+          ["Offline", "Manutencao", "Desativado", "Sem comunicação"].includes(item.status)
         );
         const semLeitura = sensoresAtivos.length === 0
           || sensoresAtivos.every((item) => item.valor === null || item.valor === undefined);
+        const temDadosRecentes = sensoresAtivos.some((item) => item.dados_recentes);
+        const ultimaLeituraEm = sensoresDoTalhao
+          .map((item) => item.ultima_leitura_em)
+          .filter(Boolean)
+          .sort((a, b) => Date.parse(b) - Date.parse(a))[0] || null;
         const critical = leituraSoloValida && valorSolo < 30;
         const attention = leituraSoloValida && valorSolo >= 30 && valorSolo < 40;
         const cycle = cicloAtivoPorTalhao.get(p.id);
@@ -1560,11 +1630,14 @@ if(req.method === "GET" && route === "/predador/analise") {
           area: `${p.area_hectares} hectares`,
           sensor: s?.sensor,
           leitura: s?.leitura || "Sem leitura",
+          dados_recentes: temDadosRecentes,
+          ultima_leitura_em: ultimaLeituraEm,
           situacao: semSensor ? "Sem sensor"
             : semSensorAtivo ? "Sensor inativo"
               : semComunicacao ? "Sem comunicação"
                 : critical ? "Critico"
                   : semLeitura ? "Sem leitura"
+                    : !temDadosRecentes ? "Dados desatualizados"
                     : attention ? "Atencao"
                       : "Normal",
           prioridade: semSensor ? "Cadastre um sensor para habilitar o monitoramento"
@@ -1572,6 +1645,7 @@ if(req.method === "GET" && route === "/predador/analise") {
               : semComunicacao ? "Verifique a comunicação do sensor"
                 : critical ? "Umidade do solo abaixo de 30%"
                   : semLeitura ? "Aguardando leitura de sensor"
+                    : !temDadosRecentes ? "Última leitura há mais de 5 minutos"
                     : attention ? "Verifique a umidade do solo"
                       : "Rotina de acompanhamento"
         };

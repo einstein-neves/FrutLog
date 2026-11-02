@@ -104,6 +104,17 @@
   color: #8a6d00;
 }
 
+.status-sensor.dados-desatualizados,
+.status-sensor.sem-leitura {
+  background: rgba(251, 192, 45, 0.18);
+  color: #8a6d00;
+}
+
+.status-sensor.sem-comunicacao {
+  background: rgba(198, 40, 40, 0.12);
+  color: var(--cor-critico);
+}
+
 .status-sensor.normal {
   background: rgba(46, 125, 50, 0.14);
   color: var(--cor-destaque);

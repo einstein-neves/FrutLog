@@ -58,6 +58,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     return dia && mes && ano ? `${dia}/${mes}/${ano}` : dataISO;
   }
 
+  function formatarDataHora(valor) {
+    if (!valor) return "Sem leitura registrada";
+    const data = new Date(valor);
+    if (Number.isNaN(data.getTime())) return "--";
+    const minutos = Math.floor(Math.max(0, Date.now() - data.getTime()) / 60000);
+    const relativo = minutos < 1 ? "agora" : minutos < 60 ? `há ${minutos} min`
+      : minutos < 1440 ? `há ${Math.floor(minutos / 60)} h` : `há ${Math.floor(minutos / 1440)} d`;
+    return `${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(data)} (${relativo})`;
+  }
+
   function preencherTexto(id, valor) {
     const elemento = document.getElementById(id);
     if (elemento) elemento.textContent = valor;
@@ -270,6 +280,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     preencherTexto("talhao-produto", props.produto);
     preencherTexto("talhao-variedade", props.variedade);
     preencherTexto("talhao-temperatura-maxima", `${props.parametros?.temperaturaMaxima ?? "--"} C`);
+    preencherTexto("talhao-ultima-leitura", formatarDataHora(props.ultima_leitura_em));
     preencherTexto("talhao-inspecao-data", props.apontamentoTecnico?.data || "--");
     preencherTexto("talhao-inspecao-tecnico", props.apontamentoTecnico?.tecnico || "--");
     preencherTexto("talhao-inspecao-problema", props.apontamentoTecnico?.problema || "--");
@@ -895,6 +906,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           status: resumo?.situacao || "Sem leitura",
           prioridade: resumo?.prioridade || "Sem leitura registrada.",
           sensor: resumo?.sensor || sensores[0]?.sensor || "Não associado",
+          dados_recentes: resumo?.dados_recentes === true,
+          ultima_leitura_em: resumo?.ultima_leitura_em || null,
           produto: ciclo?.produto || "--",
           variedade: ciclo?.variedade || "--",
           solo: ciclo?.solo || "--",
@@ -923,6 +936,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         },
       };
     });
+    const resumoDadosRecentes = document.getElementById("resumo-dados-recentes");
+    if (resumoDadosRecentes) {
+      const semDados = talhoes.filter((feature) => !feature.properties.dados_recentes);
+      resumoDadosRecentes.textContent = talhoes.length
+        ? `${semDados.length} de ${talhoes.length} talhões sem leitura recente (últimos 5 minutos).${semDados.length ? ` Verifique: ${semDados.map((feature) => feature.properties.codigo).join(", ")}.` : ""}`
+        : "Nenhum talhão ativo cadastrado.";
+    }
     if (colheitas.length && !colheitas.some((item) => item.unidade === unidadeAtual)) {
       unidadeAtual = colheitas[0].unidade;
       filtrosGrafico.forEach((botao) => {

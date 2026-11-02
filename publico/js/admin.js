@@ -101,6 +101,17 @@ function formatarData(valor) {
   return new Intl.DateTimeFormat("pt-BR").format(data);
 }
 
+function formatarDataHora(valor) {
+  if (!valor) return "Nunca";
+  const data = new Date(valor);
+  if (Number.isNaN(data.getTime())) return "--";
+  const idade = Math.max(0, Date.now() - data.getTime());
+  const minutos = Math.floor(idade / 60000);
+  const relativo = minutos < 1 ? "agora" : minutos < 60 ? `há ${minutos} min`
+    : minutos < 1440 ? `há ${Math.floor(minutos / 60)} h` : `há ${Math.floor(minutos / 1440)} d`;
+  return `${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(data)} (${relativo})`;
+}
+
 function exibirMensagem(id, texto, tipo = "") {
   const elemento = document.getElementById(id);
   if (elemento) {
@@ -627,19 +638,24 @@ function renderizarSensores() {
   const tabela = document.getElementById("tabela-sensores-admin");
   if (!tabela) return;
   if (!sensores.length) {
-    mostrarLinhasVazias("tabela-sensores-admin", 6);
+    mostrarLinhasVazias("tabela-sensores-admin", 8);
     return;
   }
   tabela.innerHTML = sensores.map((sensor) => {
     const status = sensor.status || (sensor.ativo === false ? "Inativo" : "Online");
     const statusClasse = normalizarStatus(status);
+    const atualidade = !sensor.ultima_leitura_em
+      ? "Sem leitura"
+      : sensor.dados_recentes ? "Atual" : "Desatualizada";
     return `
       <tr>
         <td>${escaparHtml(sensor.sensor || sensor.id_externo)}</td>
         <td>${escaparHtml(sensor.talhao || "--")}</td>
         <td>${escaparHtml(sensor.tipo || sensor.codigo_metrica)}</td>
-        <td>${escaparHtml(sensor.leitura || "Sem leitura")}</td>
+        <td>${escaparHtml(sensor.leitura || "Sem leitura")}<br><small>${sensor.ultima_leitura_em ? escaparHtml(formatarDataHora(sensor.ultima_leitura_em)) : "Sem leitura registrada"}</small></td>
         <td><span class="badge-status ${statusClasse}">${escaparHtml(status)}</span></td>
+        <td>${escaparHtml(formatarDataHora(sensor.comunicacao))}</td>
+        <td><span class="badge-status ${atualidade === "Atual" ? "normal" : "atencao"}">${atualidade}</span></td>
         <td>
           <button class="btn-acao-admin" type="button" data-alternar-sensor="${escaparHtml(sensor.id)}">${sensor.ativo ? "Desativar" : "Ativar"}</button>
           <button class="btn-acao-admin btn-excluir-admin" type="button" data-excluir-sensor="${escaparHtml(sensor.id)}">Excluir</button>
@@ -1005,6 +1021,13 @@ function renderizarPainelTecnico() {
   document.getElementById("resumo-total-inspecoes").textContent = (painelTecnico.inspecoes || []).length;
   document.getElementById("resumo-total-tarefas").textContent = (painelTecnico.tarefas || []).length;
   document.getElementById("resumo-total-alertas").textContent = (painelTecnico.alertas || []).length;
+  const resumoDados = document.getElementById("resumo-dados-recentes");
+  if (resumoDados) {
+    const semDados = talhoes.filter((talhao) => !talhao.dados_recentes);
+    resumoDados.textContent = talhoes.length
+      ? `${semDados.length} de ${talhoes.length} talhões sem leitura recente (últimos 5 minutos).${semDados.length ? ` Verifique: ${semDados.map((talhao) => talhao.id).join(", ")}.` : ""}`
+      : "Nenhum talhão ativo cadastrado.";
+  }
 
   if (historicoOperacaoCarregado) renderizarHistoricoAdmin();
   preencherSelectTalhoes();
@@ -1087,6 +1110,9 @@ function renderizarDetalhesTalhaoAdmin(codigo) {
     const elemento = document.getElementById(id);
     if (elemento) elemento.textContent = valor ?? "--";
   };
+  const ultimaLeitura = dadosTalhao.ultima_leitura_em
+    ? formatarDataHora(dadosTalhao.ultima_leitura_em)
+    : "Sem leitura registrada";
 
   preencher("tecnico-titulo-talhao", `Detalhes: Talhão ${codigo}`);
   preencher("tecnico-talhao-produto", plantio.produto || props.produto || "--");
@@ -1101,6 +1127,7 @@ function renderizarDetalhesTalhaoAdmin(codigo) {
   preencher("tecnico-talhao-umidade", umidadeAr?.valor != null || umidadeSolo?.valor != null
     ? `${umidadeAr?.valor ?? "--"}% ar / ${umidadeSolo?.valor ?? "--"}% solo`
     : "--");
+  preencher("tecnico-talhao-ultima-leitura", ultimaLeitura);
   preencher("tecnico-talhao-prioridade", monitorado.prioridade || "Rotina de acompanhamento");
   preencher("tecnico-talhao-status", FrutLog.textoInterface(monitorado.status || "Sem leitura"));
 
@@ -1136,6 +1163,7 @@ function renderizarDetalhesTalhaoAdmin(codigo) {
     ? `${ia.temperaturaAtual} °C${minutos != null ? ` · há ${minutos} min` : ""}`
     : "--");
   preencher("talhao-umidade-solo", ia.umidadeSolo != null ? `${ia.umidadeSolo} %` : "--");
+  preencher("talhao-ultima-leitura", ultimaLeitura);
   preencher("talhao-diagnostico", ia.mensagem || monitorado.prioridade || "--");
   preencher("talhao-diagnostico-origem", ia.origem ? `Fonte: ${ia.origem}` : "");
 
@@ -1295,15 +1323,16 @@ function renderizarGraficoClimaMensalAdmin() {
 }
 
 async function carregarDadosConectados() {
-  const resultados = await Promise.allSettled([
-    FrutLog.apiFetch("/funcionarios"),
-    FrutLog.apiFetch("/sensores"),
-    FrutLog.apiFetch("/painel-tecnico"),
-    FrutLog.apiFetch("/colheitas/anual"),
-    FrutLog.apiFetch("/telemetria/diaria"),
-    FrutLog.apiFetch("/telemetria/esp32-mensal"),
-    FrutLog.apiFetch("/predador/analise"),
-  ]);
+  const consultas = [
+    { rota: "funcionários", executar: () => FrutLog.apiFetch("/funcionarios") },
+    { rota: "sensores", executar: () => FrutLog.apiFetch("/sensores") },
+    { rota: "dados dos talhões", executar: () => FrutLog.apiFetch("/painel-tecnico") },
+    { rota: "colheitas", executar: () => FrutLog.apiFetch("/colheitas/anual") },
+    { rota: "telemetria diária", executar: () => FrutLog.apiFetch("/telemetria/diaria") },
+    { rota: "telemetria ThingSpeak", executar: () => FrutLog.apiFetch("/telemetria/esp32-mensal") },
+    { rota: "diagnóstico do Predador", executar: () => FrutLog.apiFetch("/predador/analise") },
+  ];
+  const resultados = await Promise.allSettled(consultas.map((consulta) => consulta.executar()));
   // O diagnostico do Predador entra ANTES de qualquer renderizacao: e ele que
   // define a cor do talhao no mapa e o status no painel de detalhes, dentro de
   // FrutLogTalhoes.calcularStatusMonitoramento. Se chegasse depois, a tela seria
@@ -1320,6 +1349,18 @@ async function carregarDadosConectados() {
   if (resultados[4].status === "fulfilled") telemetriaMensalAdmin = resultados[4].value.mensal || [];
   if (resultados[5].status === "fulfilled") telemetriaMensalEsp32Admin = resultados[5].value.mensal || [];
   renderizarGraficoClimaMensalAdmin();
+
+  const falhas = resultados.flatMap((resultado, indice) => resultado.status === "rejected"
+    ? [`${consultas[indice].rota}: ${resultado.reason?.message || resultado.reason}`]
+    : []);
+  const mensagem = document.getElementById("mensagem-carregamento-admin");
+  if (mensagem && falhas.length) {
+    mensagem.textContent = `Alguns dados não puderam ser carregados: ${falhas.join(" | ")}`;
+    mensagem.className = "mensagem-feedback erro";
+  } else if (mensagem) {
+    mensagem.textContent = "Dados operacionais sincronizados.";
+    mensagem.className = "mensagem-feedback";
+  }
 }
 
 async function carregarMapaAdmin() {
@@ -1361,6 +1402,10 @@ async function atualizarLeiturasAoVivo() {
     FrutLog.apiFetch("/painel-tecnico"),
     FrutLog.apiFetch("/predador/analise"),
   ]);
+  const falhas = [
+    painel.status === "rejected" && `dados dos talhões: ${painel.reason?.message || painel.reason}`,
+    predador.status === "rejected" && `diagnóstico: ${predador.reason?.message || predador.reason}`,
+  ].filter(Boolean);
 
   if (predador.status === "fulfilled") {
     FrutLogTalhoes.definirDiagnosticos(predador.value.talhoes || []);
@@ -1370,9 +1415,14 @@ async function atualizarLeiturasAoVivo() {
     renderizarPainelTecnico();
   }
 
-  // Falha de rede aqui NAO vira mensagem na tela: e atualizacao de fundo, e a
-  // proxima rodada tenta de novo. Avisar a cada minuto so geraria ruido e
-  // ensinaria o usuario a ignorar aviso de erro.
+  const mensagem = document.getElementById("mensagem-carregamento-admin");
+  if (mensagem && falhas.length) {
+    mensagem.textContent = `Não foi possível atualizar os dados em segundo plano: ${falhas.join(" | ")}`;
+    mensagem.className = "mensagem-feedback erro";
+  } else if (mensagem?.classList.contains("erro")) {
+    mensagem.textContent = "Dados operacionais sincronizados novamente.";
+    mensagem.className = "mensagem-feedback";
+  }
   renderizarMapaAdmin();
 }
 
@@ -1386,7 +1436,12 @@ async function atualizarDadosCampoConectados() {
     FrutLog.apiFetch("/predador/analise"),
   ];
   if (historicoOperacaoCarregado) atualizacoes.push(carregarHistoricoOperacao());
-  const [painel, , predador] = await Promise.allSettled(atualizacoes);
+  const [painel, mapa, predador] = await Promise.allSettled(atualizacoes);
+  const falhas = [
+    painel.status === "rejected" && `dados dos talhões: ${painel.reason?.message || painel.reason}`,
+    mapa.status === "rejected" && `mapa: ${mapa.reason?.message || mapa.reason}`,
+    predador.status === "rejected" && `diagnóstico: ${predador.reason?.message || predador.reason}`,
+  ].filter(Boolean);
   if (predador.status === "fulfilled") {
     FrutLogTalhoes.definirDiagnosticos(predador.value.talhoes || []);
   }
@@ -1404,5 +1459,13 @@ async function atualizarDadosCampoConectados() {
   // minuto em vez de uma.
   if (typeof FrutLogTelemetria !== "undefined") {
     FrutLogTelemetria.definirTalhoes(FrutLogTalhoes.obterTalhoes());
+  }
+  const mensagem = document.getElementById("mensagem-carregamento-admin");
+  if (mensagem && falhas.length) {
+    mensagem.textContent = `Não foi possível sincronizar os dados: ${falhas.join(" | ")}`;
+    mensagem.className = "mensagem-feedback erro";
+  } else if (mensagem?.classList.contains("erro")) {
+    mensagem.textContent = "Dados operacionais sincronizados novamente.";
+    mensagem.className = "mensagem-feedback";
   }
 }

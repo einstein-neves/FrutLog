@@ -507,12 +507,16 @@
   text-transform: uppercase;
 }
 
-.badge-status.atencao {
+.badge-status.atencao,
+.badge-status.dados-desatualizados,
+.badge-status.sem-leitura {
   background-color: rgba(251, 192, 45, 0.18);
   color: #8a6d00;
 }
 
-.badge-status.critico {
+.badge-status.critico,
+.badge-status.offline,
+.badge-status.sem-comunicacao {
   background-color: rgba(198, 40, 40, 0.12);
   color: var(--cor-critico);
 }

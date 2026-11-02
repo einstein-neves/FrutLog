@@ -17,6 +17,13 @@ document.addEventListener("DOMContentLoaded", () => {
     return correspondencia ? `${correspondencia[3]}/${correspondencia[2]}/${correspondencia[1]}` : "--";
   }
 
+  function formatarDataHora(valor) {
+    if (!valor) return "Não informado";
+    const data = new Date(valor);
+    if (Number.isNaN(data.getTime())) return "Não informado";
+    return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(data);
+  }
+
   function formatarMesAno(valor) {
     const correspondencia = String(valor || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (!correspondencia) return "Data não informada";
@@ -45,6 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div><dt>Técnico</dt><dd data-relatorio-tecnico></dd></div>
         <div><dt>Matrícula</dt><dd data-relatorio-matricula></dd></div>
         <div><dt>Data do relatório</dt><dd data-relatorio-data></dd></div>
+        <div><dt>Recebido em</dt><dd data-relatorio-recebido></dd></div>
       </dl>
       <section class="modal-leitura-corpo" aria-label="Conteúdo do relatório">
         <h3>Relato</h3>
@@ -68,6 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
     modal.querySelector("[data-relatorio-tecnico]").textContent = relatorio.tecnico_nome || "Técnico não identificado";
     modal.querySelector("[data-relatorio-matricula]").textContent = relatorio.tecnico_matricula || "Não informada";
     modal.querySelector("[data-relatorio-data]").textContent = formatarMesAno(relatorio.data_relatorio);
+    modal.querySelector("[data-relatorio-recebido]").textContent = formatarDataHora(relatorio.criado_em);
     // textContent mantém o relatório como texto, mesmo se contiver caracteres HTML.
     modal.querySelector("[data-relatorio-conteudo]").textContent = relatorio.conteudo || "Sem detalhes.";
     if (!modal.open) modal.showModal();
@@ -82,7 +91,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const contemTexto = `${relatorio.tecnico_nome} ${relatorio.tecnico_matricula} ${relatorio.conteudo}`.toLocaleLowerCase("pt-BR").includes(texto);
       const visibilidadeCorresponde = visibilidade === "todos"
         || (visibilidade === "arquivados" ? Boolean(relatorio.arquivado_em) : !relatorio.arquivado_em);
-      return contemTexto && visibilidadeCorresponde && (!data || relatorio.data_relatorio === data) && (status === "todos" || relatorio.status === status);
+      const statusCorresponde = status === "todos"
+        || (status === "pendentes" ? relatorio.status !== "concluido" : relatorio.status === status);
+      return contemTexto && visibilidadeCorresponde && (!data || relatorio.data_relatorio === data) && statusCorresponde;
     });
 
     const idsVisiveis = new Set(encontrados.map((item) => String(item.id)));
@@ -105,13 +116,14 @@ document.addEventListener("DOMContentLoaded", () => {
       return `
         <tr>
           <td><input type="checkbox" data-selecionar-relatorio="${escapar(relatorio.id)}" aria-label="Selecionar relatório de ${escapar(relatorio.tecnico_nome)}" ${relatoriosSelecionados.has(String(relatorio.id)) ? "checked" : ""}></td>
-          <td>${escapar(formatarData(relatorio.data_relatorio))}</td>
+          <td>${escapar(formatarData(relatorio.data_relatorio))}<br><small>Recebido ${escapar(formatarDataHora(relatorio.criado_em))}</small></td>
           <td><strong>${escapar(relatorio.tecnico_nome || "Técnico não identificado")}</strong><br><small>Matrícula ${escapar(relatorio.tecnico_matricula || "não informada")}</small></td>
           <td class="conteudo-relatorio"><span>${escapar(trecho)}</span><br><button class="btn-abrir-relatorio" type="button" data-abrir-relatorio="${escapar(relatorio.id)}">Abrir relatório</button></td>
           <td><span class="badge-status ${relatorio.status === "concluido" ? "normal" : "atencao"}">${escapar(statusVisivel)}</span></td>
           <td>
             <div class="acoes-relatorio">
               <select class="campo-formulario" data-status-relatorio="${escapar(relatorio.id)}" aria-label="Novo status do relatório de ${escapar(relatorio.tecnico_nome)}">
+                <option value="" disabled ${relatorio.status === "enviado" ? "selected" : ""}>Escolha o acompanhamento</option>
                 <option value="em_analise" ${relatorio.status === "em_analise" ? "selected" : ""}>Em análise</option>
                 <option value="concluido" ${relatorio.status === "concluido" ? "selected" : ""}>Concluído</option>
               </select>
@@ -212,7 +224,10 @@ document.addEventListener("DOMContentLoaded", () => {
       atualizarLista();
       const mensagem = document.getElementById("mensagem-relatorios");
       if (mensagem) {
-        mensagem.textContent = `${relatorios.length} relatório(s) recebido(s).`;
+        const ativos = relatorios.filter((relatorio) => !relatorio.arquivado_em);
+        const aguardando = ativos.filter((relatorio) => relatorio.status === "enviado").length;
+        const emAnalise = ativos.filter((relatorio) => relatorio.status === "em_analise").length;
+        mensagem.textContent = `${ativos.length} relatório(s) recebido(s) · ${aguardando} aguardando análise · ${emAnalise} em análise.`;
         mensagem.className = "mensagem-feedback";
       }
     } catch (erro) {
@@ -290,6 +305,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const id = botao.dataset.salvarRelatorio;
     const seletor = tabela.querySelector(`[data-status-relatorio="${CSS.escape(id)}"]`);
     if (!seletor) return;
+    if (!["em_analise", "concluido"].includes(seletor.value)) {
+      const mensagem = document.getElementById("mensagem-relatorios");
+      if (mensagem) {
+        mensagem.textContent = "Escolha Em análise ou Concluído antes de atualizar o acompanhamento.";
+        mensagem.className = "mensagem-feedback erro";
+      }
+      return;
+    }
     botao.disabled = true;
     try {
       await FrutLog.apiFetch(`/relatorios-diarios/${encodeURIComponent(id)}`, {

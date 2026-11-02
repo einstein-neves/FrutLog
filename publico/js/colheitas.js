@@ -38,11 +38,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let opcoes;
   let ciclosAtivos = [];
+  let falhaAoCarregarCiclos = null;
   try {
     const painel = await FrutLog.apiFetch("/painel-tecnico");
     ciclosAtivos = painel.plantios || [];
   } catch (erro) {
-    // O formulario de colheita continua disponivel mesmo se o resumo nao carregar.
+    falhaAoCarregarCiclos = erro;
+    console.error("Não foi possível carregar os ciclos ativos para o formulário de colheita:", erro);
   }
   try {
     opcoes = await optionsTalhoes();
@@ -61,6 +63,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const resumoCiclo = formulario.querySelector("[data-resumo-ciclo] p");
     let cicloSelecionado = null;
     const atualizarResumoCiclo = () => {
+      if (falhaAoCarregarCiclos && resumoCiclo) {
+        resumoCiclo.textContent = `Não foi possível consultar o ciclo ativo (${falhaAoCarregarCiclos.message}). O servidor validará o talhão ao registrar a colheita.`;
+        resumoCiclo.setAttribute("role", "status");
+        return null;
+      }
       cicloSelecionado = ciclosAtivos.find((item) => item.talhao === selectTalhao.value) || null;
       if (resumoCiclo) {
         resumoCiclo.textContent = cicloSelecionado
