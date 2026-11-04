@@ -1288,7 +1288,6 @@ function renderizarGraficoClimaMensalAdmin() {
   const meses = [...new Set(leituras.map((item) => item.mes).filter(Boolean))].sort();
   const metricas = [
     { codigo: "temperatura", label: "Temperatura (°C)" },
-    { codigo: "chuva", label: "Chuva (mm)" },
     { codigo: "umidadeAr", label: "Umidade do ar (%)" },
     { codigo: "umidadeSolo", label: "Umidade do solo (%)" },
   ];

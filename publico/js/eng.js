@@ -310,7 +310,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         <td>${dados.temperatura || "--"}</td>
         <td>${dados.umidadeAr || "--"}</td>
         <td>${dados.umidadeSolo || "--"}</td>
-        <td>${dados.chuva || "--"}</td>
+        
       </tr>
     `;
   }
@@ -329,7 +329,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         <td>${item.temp}</td>
         <td>${item.umidAr}</td>
         <td>${item.umidSolo}</td>
-        <td>${item.chuva}</td>
         <td>${item.prev}</td>
         <td>${item.qtd}</td>
       </tr>
@@ -349,9 +348,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const metricas = {
       temperatura: {
         nome: "Temperatura",
-      },
-      chuva: {
-        nome: "Chuva",
       },
       umidadeAr: {
         nome: "Umidade do ar",
@@ -398,12 +394,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           {
             label: "Temperatura (°C)",
             data: dados.map((item) => item.temperatura),
-            tension: 0.3,
-            borderWidth: 2,
-          },
-          {
-            label: "Chuva (mm)",
-            data: dados.map((item) => item.chuva),
             tension: 0.3,
             borderWidth: 2,
           },
@@ -895,7 +885,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       const temperatura = sensorPorTipo("temperatura");
       const umidadeAr = sensorPorTipo("umidadeAr");
       const umidadeSolo = sensorPorTipo("umidadeSolo");
-      const chuva = sensorPorTipo("chuva");
       const ciclo = ciclosPorTalhao.get(codigo);
       const leituraCampo = inspecaoPorTalhao.get(codigo);
       const resumo = talhoesMonitorados.get(codigo);
@@ -917,7 +906,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             temperatura: temperatura?.valor ?? null,
             umidadeAr: umidadeAr?.valor ?? null,
             umidadeSolo: umidadeSolo?.valor ?? null,
-            chuva: chuva?.valor ?? null,
           },
           mensal: [],
           apontamentoTecnico: {

@@ -1,7 +1,7 @@
 const crypto = require("crypto");
 const { criarToken, autenticarRequisicao } = require("./session");
 const { db, listarTalhoesComTemperatura, farmsForOrganization } = require("./database");
-const {diagnosticarTalhoes}=require("../src/ia/predador-nucleo.js");
+const { diagnosticarTalhoes } = require("../src/ia/predador-nucleo.js");
 const { dadosRecentes, estadoSensor } = require("../src/operacao/estado-sensor");
 
 const ROLES = ["engenheiro", "tecnico", "admin", "administrador"];
@@ -447,20 +447,20 @@ module.exports = async (req, res) => {
       }, origin);
     }
 
-// começando a add  rotas para o predados-nucleo.js
+    // começando a add  rotas para o predados-nucleo.js
 
-if(req.method === "GET" && route === "/predador/analise") {
-  // O tecnico entra aqui junto com engenheiro e admin: e ele quem esta no
-  // campo e age sobre o alerta, entao negar o diagnostico a ele seria
-  // esconder a informacao de quem vai usa-la. A rota e somente leitura e ja
-  // limitada a organizacao do usuario (farmsForOrganization logo abaixo),
-  // entao abrir para o tecnico nao expoe talhao de outra fazenda.
-  if(!["engenheiro", "tecnico", "admin"].includes(user.perfil)) {
-    return reply(res, 403, { mensagem: "Acesso negado." }, origin);
-  }
-  //passo 2.2 os dados reais 
+    if (req.method === "GET" && route === "/predador/analise") {
+      // O tecnico entra aqui junto com engenheiro e admin: e ele quem esta no
+      // campo e age sobre o alerta, entao negar o diagnostico a ele seria
+      // esconder a informacao de quem vai usa-la. A rota e somente leitura e ja
+      // limitada a organizacao do usuario (farmsForOrganization logo abaixo),
+      // entao abrir para o tecnico nao expoe talhao de outra fazenda.
+      if (!["engenheiro", "tecnico", "admin"].includes(user.perfil)) {
+        return reply(res, 403, { mensagem: "Acesso negado." }, origin);
+      }
+      //passo 2.2 os dados reais 
 
-        const farms = await farmsForOrganization(c);
+      const farms = await farmsForOrganization(c);
       if (!farms.length) {
         return reply(res, 200, { consultado_em: new Date().toISOString(), talhoes: [] }, origin);
       }
@@ -470,22 +470,22 @@ if(req.method === "GET" && route === "/predador/analise") {
         `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&arquivado_em=is.null&select=id,codigo,nome,temperatura_maxima&order=codigo`
       );
 
-            const talhaoIds = talhoes.map((talhao) => talhao.id);
+      const talhaoIds = talhoes.map((talhao) => talhao.id);
       const dispositivos = talhaoIds.length
         ? await db(c, "dispositivo", "GET", undefined,
-            `?talhao_id=in.(${talhaoIds.join(",")})&select=id,id_externo,talhao_id,status`)
+          `?talhao_id=in.(${talhaoIds.join(",")})&select=id,id_externo,talhao_id,status`)
         : [];
 
       const dispositivoIds = dispositivos.map((dispositivo) => dispositivo.id);
       const sensores = dispositivoIds.length
         ? await db(c, "sensor", "GET", undefined,
-            `?dispositivo_id=in.(${dispositivoIds.join(",")})&status=eq.ativo&select=id,dispositivo_id,codigo_metrica,unidade,status`)
+          `?dispositivo_id=in.(${dispositivoIds.join(",")})&status=eq.ativo&select=id,dispositivo_id,codigo_metrica,unidade,status`)
         : [];
 
       const sensorIds = sensores.map((sensor) => sensor.id);
       const ultimasLeituras = sensorIds.length
         ? await db(c, "v_ultima_leitura_sensor", "GET", undefined,
-            `?sensor_id=in.(${sensorIds.join(",")})&select=sensor_id,valor,unidade,qualidade,coletado_em`)
+          `?sensor_id=in.(${sensorIds.join(",")})&select=sensor_id,valor,unidade,qualidade,coletado_em`)
         : [];
 
       const regras = await db(c, "regra_alerta", "GET", undefined, "?habilitado=is.true&select=*");
@@ -496,7 +496,7 @@ if(req.method === "GET" && route === "/predador/analise") {
         ? await db(c, "ciclo_cultura", "GET", undefined, `?talhao_id=in.(${talhaoIds.join(",")})&status=eq.ativo&select=id,talhao_id,status`)
         : [];
 
-        const resultados = diagnosticarTalhoes({ talhoes, dispositivos, sensores, ultimasLeituras, regras, ciclos });
+      const resultados = diagnosticarTalhoes({ talhoes, dispositivos, sensores, ultimasLeituras, regras, ciclos });
 
       return reply(res, 200, {
         consultado_em: new Date().toISOString(),
@@ -507,7 +507,7 @@ if(req.method === "GET" && route === "/predador/analise") {
 
 
 
-//rota do predador/analise fim 
+    //rota do predador/analise fim 
 
 
 
@@ -797,10 +797,10 @@ if(req.method === "GET" && route === "/predador/analise") {
       }, origin);
     }
 
-// Rota de leitura CRUA por talhao, para os graficos de tempo real.
-// Nao confundir com /telemetria/diaria, logo abaixo: aquela agrega por dia
-// (valor_medio/minimo/maximo) e serve para historico. Um grafico de tempo real
-// com um ponto por dia nao mostraria nada acontecendo.
+    // Rota de leitura CRUA por talhao, para os graficos de tempo real.
+    // Nao confundir com /telemetria/diaria, logo abaixo: aquela agrega por dia
+    // (valor_medio/minimo/maximo) e serve para historico. Um grafico de tempo real
+    // com um ponto por dia nao mostraria nada acontecendo.
 
 
 
@@ -931,15 +931,14 @@ if(req.method === "GET" && route === "/predador/analise") {
       const reportId = reportMatch[1] ? decodeURIComponent(reportMatch[1]) : null;
 
       if (req.method === "GET" && !reportId) {
-        if (!["engenheiro", "admin"].includes(user.perfil)) {
-          return reply(res, 403, { mensagem: "Apenas Engenharia e Administração podem consultar relatórios recebidos." }, origin);
+        const ehTecnico = user.perfil === "tecnico";
+        if (!ehTecnico && !["engenheiro", "admin"].includes(user.perfil)) {
+          return reply(res, 403, { mensagem: "Sem permissão para consultar relatórios." }, origin);
         }
+        const filtroAutor = ehTecnico ? `&usuario_id=eq.${encodeURIComponent(user.sub)}` : "";
         const reports = await db(
-          c,
-          "relatorio_campo_diario",
-          "GET",
-          undefined,
-          "?select=id,usuario_id,tecnico_nome,data_relatorio,conteudo,status,criado_em,atualizado_em,arquivado_em&order=data_relatorio.desc,criado_em.desc&limit=500"
+          c, "relatorio_campo_diario", "GET", undefined,
+          `?select=id,usuario_id,tecnico_nome,data_relatorio,conteudo,status,criado_em,atualizado_em,arquivado_em&order=data_relatorio.desc,criado_em.desc&limit=500${filtroAutor}`
         );
         // A matrícula vem do cadastro atual do técnico; o relatório guarda o usuário autor pelo ID.
         const authorIds = [...new Set(reports.map((report) => report.usuario_id).filter(Boolean))];
@@ -1638,16 +1637,16 @@ if(req.method === "GET" && route === "/predador/analise") {
                 : critical ? "Critico"
                   : semLeitura ? "Sem leitura"
                     : !temDadosRecentes ? "Dados desatualizados"
-                    : attention ? "Atencao"
-                      : "Normal",
+                      : attention ? "Atencao"
+                        : "Normal",
           prioridade: semSensor ? "Cadastre um sensor para habilitar o monitoramento"
             : semSensorAtivo ? "Ative um sensor para habilitar o monitoramento"
               : semComunicacao ? "Verifique a comunicação do sensor"
                 : critical ? "Umidade do solo abaixo de 30%"
                   : semLeitura ? "Aguardando leitura de sensor"
                     : !temDadosRecentes ? "Última leitura há mais de 5 minutos"
-                    : attention ? "Verifique a umidade do solo"
-                      : "Rotina de acompanhamento"
+                      : attention ? "Verifique a umidade do solo"
+                        : "Rotina de acompanhamento"
         };
       });
 

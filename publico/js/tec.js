@@ -75,6 +75,7 @@ let talhoes = FrutLogTalhoes.obterTalhoes();
 let historicoInspecoes = [];
 let historicoOcorrencias = [];
 let historicoProblemasSensores = [];
+let historicoRelatorios = [];
 let sensoresDoServidor = [];
 let painelTecnico = {};
 let graficoMetricas = null;
@@ -151,6 +152,7 @@ function configurarRelatorioDiario() {
         "sucesso"
       );
       relatorioEnviadoEm = dados.data;
+      await atualizarDadosAposRegistro();
       preencherTexto("relatorio-auto-status", `Relatório de ${formatarData(dados.data)} enviado.`);
     } catch (erro) {
       exibirMensagem("mensagem-relatorio-diario", erro.message, "erro");
@@ -263,6 +265,9 @@ async function carregarPainelTecnico() {
   historicoInspecoes = painel.inspecoes || [];
   historicoOcorrencias = painel.ocorrencias || [];
   historicoProblemasSensores = painel.problemasSensores || [];
+  try {
+    historicoRelatorios = (await FrutLog.apiFetch("/relatorios-diarios")).relatorios || [];
+  } catch (e) { console.warn("Relatórios:", e.message); }
   exibirMensagem("mensagem-dados-tecnicos", "Dados sincronizados com o servidor.", "sucesso");
   preencherFiltroTelemetria();
   carregarGraficoMetricas();
@@ -660,7 +665,7 @@ function renderizarMapa() {
   });
 }
 
-const ROTULOS_TIPO_REGISTRO = { inspecao: "Inspeção", ocorrencia: "Ocorrência" };
+const ROTULOS_TIPO_REGISTRO = { inspecao: "Inspeção", ocorrencia: "Ocorrência", relatorio: "Relatório" };
 
 function carregarHistoricoRegistros() {
   const tabela = document.getElementById("tabela-registros-campo");
@@ -676,6 +681,10 @@ function carregarHistoricoRegistros() {
     ...historicoOcorrencias.map((item) => ({
       tipo: "ocorrencia", data: item.data, talhao: item.talhao, sensor: null,
       detalhe: item.tipo || item.problema, observacao: item.observacao,
+    })),
+    ...historicoRelatorios.map((item) => ({
+      tipo: "relatorio", data: item.data_relatorio, talhao: null, sensor: null,
+      detalhe: "Relatório diário", observacao: String(item.conteudo || "").slice(0, 120),
     })),
 
   ]
