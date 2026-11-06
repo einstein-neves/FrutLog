@@ -204,3 +204,13 @@
     padding: 32px 24px;
   }
 }
+
+/* Espaço entre os botões "Alterar senha" e "Sair" */
+.btn-login + .btn-login {
+  margin-top: 12px;
+}
+
+#form-alterar-senha .mensagem-feedback {
+  margin-bottom: 16px;
+}
+
