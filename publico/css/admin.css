@@ -80,12 +80,6 @@
   font-size: 0.78rem;
 }
 
-/* Cadastro de produto espelhado do painel do Engenheiro: as regras abaixo
-   repetem as de eng.css porque admin.html nao carrega aquela folha. */
-.card-cadastro-produto {
-  border-top: 6px solid var(--cor-destaque);
-}
-
 #cadastro-plantio .info-grid-cadastro {
   grid-template-columns: repeat(2, minmax(220px, 1fr));
 }
@@ -740,14 +734,6 @@
   border: 1px solid #d1ded8;
 }
 
-
-
-
-
-
-
-
-
 @media (max-width: 900px) {
   .admin-graficos {
     grid-template-columns: minmax(0, 1fr);
@@ -768,4 +754,34 @@
   .lista-funcionarios-scroll {
     max-height: none;
   }
+}
+
+.admin-graficos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.admin-graficos-coluna {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.admin-graficos .grid-resumo-colheita {
+  margin-top: 16px;
+}
+
+/* Clima Mensal e Histórico Anual com a mesma altura */
+.cartao-altura-padrao {
+  display: flex;
+  flex-direction: column;
+  height: 640px;
+  box-sizing: border-box;
+}
+
+.cartao-altura-padrao .admin-grafico-container {
+  flex: 1;
+  min-height: 0;
 }

@@ -4,9 +4,7 @@
    ========================================================= */
 
 /* Realce do cadastro e ferramentas de edição dos talhões. */
-.card-cadastro-produto {
-  border-top: 6px solid var(--cor-destaque);
-}
+
 
 #cadastro-plantio .info-grid-cadastro {
   grid-template-columns: repeat(2, minmax(220px, 1fr));
@@ -67,10 +65,12 @@
 .mapa-container.modo-edicao {
   cursor: crosshair;
 }
+
 .mapa-container.modo-edicao .camada-talhoes {
   pointer-events: auto;
   touch-action: none;
 }
+
 .mapa-container.modo-edicao .ponto-arrastavel {
   fill: #fff;
   stroke: var(--cor-destaque);
@@ -78,7 +78,10 @@
   pointer-events: all;
   cursor: grab;
 }
-.mapa-container.modo-edicao .ponto-arrastavel:active { cursor: grabbing; }
+
+.mapa-container.modo-edicao .ponto-arrastavel:active {
+  cursor: grabbing;
+}
 
 /* As classes .mapa-container.modo-divisao e .linha-divisao-talhao sairam junto
    com o botao "Dividir", que nao existe mais na barra do mapa. */
@@ -91,42 +94,43 @@
 }
 
 .thingspeak-embeds {
-    display: grid;
-    /* Uma coluna por grafico, com minimo de 260px: em tela larga os tres ficam
+  display: grid;
+  /* Uma coluna por grafico, com minimo de 260px: em tela larga os tres ficam
        lado a lado e em tela estreita eles quebram sozinhos. */
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
-    gap: 20px; /* Espaçamento agradável entre os cartões */
-    margin-top: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 20px;
+  /* Espaçamento agradável entre os cartões */
+  margin-top: 20px;
 }
 
 /* Estilo individual de cada cartão de gráfico */
 .thingspeak-embeds article {
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Efeito leve ao passar o mouse por cima do gráfico */
 .thingspeak-embeds article:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
 }
 
 /* Garante que o iframe preencha o espaço interno perfeitamente */
 .thingspeak-embeds .container-iframe {
-    width: 100%;
-    height: 300px;
-    border-radius: 8px;
-    overflow: hidden;
+  width: 100%;
+  height: 300px;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .thingspeak-embeds iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
+  width: 100%;
+  height: 100%;
+  border: none;
 }
 
 .card-grafico-thingspeak {
@@ -134,7 +138,7 @@
   margin: 0 0 20px;
 }
 
-.card-grafico-thingspeak > h1 {
+.card-grafico-thingspeak>h1 {
   margin: 0 0 20px;
   font-size: 1.5rem;
   color: black;
@@ -215,12 +219,76 @@
 
 
   .thingspeak-embeds .container-iframe iframe {
-    height: 450px; /* Reduz ligeiramente a altura em telemóveis para melhor visualização */
+    height: 450px;
+    /* Reduz ligeiramente a altura em telemóveis para melhor visualização */
   }
 }
 
 @media (max-width: 1024px) {
-    .thingspeak-embeds {
-        grid-template-columns: 1fr;
-    }
+  .thingspeak-embeds {
+    grid-template-columns: 1fr;
+  }
 }
+
+#graficos:not([hidden]) {
+  display: block;
+}
+
+.graficos-lado-a-lado {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;   /* não estica mais o card da direita */
+  margin-bottom: 20px;
+}
+
+.graficos-lado-a-lado>.cartao,
+.graficos-lado-a-lado>#historico>.cartao {
+  margin-bottom: 20px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.graficos-lado-a-lado>#historico {
+  display: flex;
+  flex-direction: column;
+}
+
+.resumo-colheita-admin {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  margin: 12px 0;
+}
+
+.resumo-colheita-admin p {
+  margin: 0;
+}
+
+@media (max-width: 1100px) {
+  .graficos-lado-a-lado {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.texto-ajuda {
+  margin: 6px 0 10px;
+  color: var(--cor-texto-suave);
+  font-size: 0.8rem;
+}
+
+/* Clima Mensal e Histórico Anual com a mesma altura (igual ao admin) */
+.cartao-altura-padrao {
+  display: flex;
+  flex-direction: column;
+  height: 640px;
+  box-sizing: border-box;
+}
+
+.cartao-altura-padrao .grafico-clima-mensal,
+.cartao-altura-padrao .container-grafico {
+  flex: 1;
+  min-height: 0;
+  height: auto;          /* anula as alturas fixas de 450px / 380px */
+}
+

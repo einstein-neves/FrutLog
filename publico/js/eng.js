@@ -3,10 +3,52 @@
    Monitoramento, edicao de talhoes, telemetria e plantio.
    ========================================================= */
 
+const CABECALHOS_ABAS = {
+  "monitoramento": {
+    titulo: "Monitoramento da Produção",
+    descricao: "Acompanhamento dos produtos em desenvolvimento nos talhões.",
+  },
+  "telemetria": {
+    titulo: "Telemetria",
+    descricao: "Leituras dos sensores por talhão, histórico diário e médias mensais.",
+  },
+  "graficos": {
+    titulo: "Gráficos",
+    descricao: "Histórico de colheitas e clima mensal dos talhões.",
+  },
+  "relatorios-diarios": {
+    titulo: "Relatórios Recebidos",
+    descricao: "Relatórios de campo enviados pelos técnicos.",
+  },
+  "cadastro-plantio": {
+    titulo: "Cadastrar Produto",
+    descricao: "Cadastre produtos e acompanhe o ciclo ativo de cada talhão.",
+  },
+};
+
+function configurarCabecalhoPorAba() {
+  const titulo = document.getElementById("topo-titulo");
+  const descricao = document.getElementById("topo-descricao");
+  if (!titulo || !descricao) return;
+
+  const atualizar = () => {
+    // A aba ativa é a que não está com o atributo "hidden".
+    const idAtivo = Object.keys(CABECALHOS_ABAS).find((id) => !document.getElementById(id)?.hidden);
+    const texto = CABECALHOS_ABAS[idAtivo];
+    if (!texto) return;
+    titulo.textContent = texto.titulo;
+    descricao.textContent = texto.descricao;
+  };
+
+  document.querySelectorAll(".menu .nav-link").forEach((link) => link.addEventListener("click", atualizar));
+  atualizar(); // também acerta o texto se a página abrir direto em outra aba
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   FrutLog.verificarSessao(["engenheiro"]);
   FrutLog.configurarLogout();
   FrutLog.configurarAbasSidebar();
+  configurarCabecalhoPorAba();
 
   const svgMapa = document.getElementById("camada-talhoes");
   const mapaContainer = document.querySelector(".mapa-container");
@@ -41,6 +83,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   let telemetriaMensalEngenheiro = [];
   let telemetriaMensalEsp32 = [];
   let plantiosAtivos = [];
+
+  let graficoMetricas = null;
+  let telemetriaDiaria = [];
+
+  const METRICAS_TELEMETRIA = {
+    temperatura: { nome: "Temperatura", unidade: "°C", cor: "#ef6c00" },
+    umidadeAr: { nome: "Umidade do ar", unidade: "%", cor: "#1565c0" },
+    umidadeSolo: { nome: "Umidade do solo", unidade: "%", cor: "#2e7d32" },
+  };
+  const PALETA_TALHOES = ["#2e7d32", "#1565c0", "#ef6c00", "#6a1b9a", "#c62828", "#00838f"];
+  // Talhão onde o ESP32 está instalado. Os dados do ThingSpeak são mostrados só para ele.
+  const TALHAO_DO_ESP32 = "T19";
 
   let colheitas = [];
 
@@ -269,22 +323,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!feature) return;
 
     talhaoSelecionado = codigo;
-    const props = feature.properties;
     const status = atualizarStatusTalhao(feature);
+    const props = feature.properties;
 
     preencherTexto("titulo-talhao", `Detalhes: Talhão ${codigo}`);
     preencherTexto("talhao-area", props.area);
     preencherTexto("talhao-solo", props.solo);
-    preencherTexto("talhao-plantio", props.plantio);
-    preencherTexto("talhao-colheita", props.colheita);
+    preencherTexto("talhao-plantio", formatarData(props.plantio));
+    preencherTexto("talhao-colheita", formatarData(props.colheita));
     preencherTexto("talhao-produto", props.produto);
     preencherTexto("talhao-variedade", props.variedade);
-    preencherTexto("talhao-temperatura-maxima", `${props.parametros?.temperaturaMaxima ?? "--"} C`);
+    preencherTexto("talhao-temperatura-maxima", `${props.parametros?.temperaturaMaxima ?? "--"} °C`);
     preencherTexto("talhao-ultima-leitura", formatarDataHora(props.ultima_leitura_em));
-    preencherTexto("talhao-inspecao-data", props.apontamentoTecnico?.data || "--");
+    const ia = props.monitoramento || {};
+    const minutos = ia.coletadoEm ? Math.round((Date.now() - new Date(ia.coletadoEm)) / 60000) : null;
+    preencherTexto("talhao-temperatura-atual", ia.temperaturaAtual != null
+      ? `${ia.temperaturaAtual} °C${minutos != null ? ` · há ${minutos} min` : ""}`
+      : "--");
+    const soloValor = ia.umidadeSolo ?? props.diaria?.umidadeSolo;
+    preencherTexto("talhao-umidade-solo", soloValor != null
+      ? `${soloValor} %${ia.umidadeSolo == null ? " (desatualizada)" : ""}`
+      : "--");
+    preencherTexto("talhao-inspecao-data", formatarData(props.apontamentoTecnico?.data));
     preencherTexto("talhao-inspecao-tecnico", props.apontamentoTecnico?.tecnico || "--");
     preencherTexto("talhao-inspecao-problema", props.apontamentoTecnico?.problema || "--");
     preencherTexto("talhao-inspecao-recomendacao", props.apontamentoTecnico?.recomendacao || "--");
+    preencherTexto("talhao-diagnostico", ia.mensagem || props.prioridade || "--");
+    preencherTexto("talhao-diagnostico-origem", ia.origem ? `Fonte: ${ia.origem}` : "");
     const cicloAtivo = plantiosAtivos.find((item) => item.talhao === codigo);
     if (btnEncerrarCiclo) btnEncerrarCiclo.disabled = !cicloAtivo;
 
@@ -295,7 +360,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     atualizarTabelaDiaria(props.diaria || {});
-    atualizarTabelaMensal(props.mensal || []);
     renderizarGraficoClimaMensalEngenheiro();
     renderizarBotoesTalhao();
     renderizarMapa();
@@ -315,24 +379,175 @@ document.addEventListener("DOMContentLoaded", async () => {
     `;
   }
 
-  function atualizarTabelaMensal(dadosMensais) {
-    const tabela = document.getElementById("tabela-talhao-mensal");
-    if (!tabela) return;
+  function nomeMetrica(codigo) {
+    return METRICAS_TELEMETRIA[codigo]?.nome || codigo || "Métrica";
+  }
 
-    if (!dadosMensais.length) {
-      tabela.innerHTML = '<tr><td colspan="6">Sem consolidado mensal para este talhão.</td></tr>';
+  function valorSensorValido(sensor) {
+    return sensor.valor !== null && sensor.valor !== undefined && sensor.valor !== "" && Number.isFinite(Number(sensor.valor));
+  }
+
+  function escaparHtml(valor) {
+    return String(valor ?? "").replace(/[&<>"']/g, (caractere) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    })[caractere]);
+  }
+
+  function obterSensores() {
+    return sensoresDoPainel;
+  }
+
+  function carregarGraficoMetricas() {
+    const selectMetrica = document.getElementById("filtro-metrica-tecnico");
+    const selectTalhao = document.getElementById("filtro-talhao-metrica-tecnico");
+    const canvas = document.getElementById("grafico-metricas-tecnico");
+    const mensagem = document.getElementById("mensagem-grafico-metricas");
+    if (!selectMetrica || !canvas || typeof Chart === "undefined") return;
+
+    const sensores = obterSensores();
+
+    // Todas as métricas do sistema ficam disponíveis, com ou sem sensor cadastrado.
+    const extras = [...new Set([
+      ...sensores.map((sensor) => sensor.tipo),
+      ...telemetriaDiaria.map((item) => item.codigo_metrica),
+    ].filter(Boolean))].filter((codigo) => !METRICAS_TELEMETRIA[codigo]);
+    const codigos = [...Object.keys(METRICAS_TELEMETRIA), ...extras];
+    const temDados = (codigo) =>
+      telemetriaDiaria.some((item) => item.codigo_metrica === codigo) ||
+      sensores.some((sensor) => sensor.tipo === codigo && valorSensorValido(sensor));
+
+    const metricaAnterior = selectMetrica.value;
+    selectMetrica.innerHTML = codigos
+      .map((codigo) => `<option value="${escaparHtml(codigo)}">${escaparHtml(nomeMetrica(codigo))}</option>`)
+      .join("");
+    selectMetrica.value = codigos.includes(metricaAnterior)
+      ? metricaAnterior
+      : (codigos.find(temDados) || codigos[0]);
+
+    if (selectTalhao) {
+      const talhaoAnterior = selectTalhao.value;
+      const codigosTalhao = talhoes.map((feature) => feature.properties.codigo);
+      selectTalhao.innerHTML = '<option value="">Todos os talhões</option>' +
+        codigosTalhao.map((codigo) => `<option value="${escaparHtml(codigo)}">${escaparHtml(codigo)}</option>`).join("");
+      if (codigosTalhao.includes(talhaoAnterior)) selectTalhao.value = talhaoAnterior;
+    }
+
+    const metrica = selectMetrica.value;
+    const talhao = selectTalhao?.value || "";
+    const info = METRICAS_TELEMETRIA[metrica] || { nome: metrica, unidade: "", cor: "#2e7d32" };
+    const escopo = talhao ? ` no talhão ${talhao}` : "";
+
+    if (graficoMetricas) graficoMetricas.destroy();
+    graficoMetricas = null;
+
+    const serie = telemetriaDiaria.filter((item) =>
+      item.codigo_metrica === metrica &&
+      (!talhao || item.talhao === talhao) &&
+      Number.isFinite(Number(item.valor_medio)));
+
+    if (serie.length) {
+      // Histórico: média diária da métrica, uma linha por talhão.
+      const dias = [...new Set(serie.map((item) => String(item.dia).slice(0, 10)))].sort();
+      const talhoesDaSerie = [...new Set(serie.map((item) => item.talhao).filter(Boolean))].sort();
+      graficoMetricas = new Chart(canvas, {
+        type: "line",
+        data: {
+          labels: dias.map((dia) => formatarData(dia).slice(0, 5)),
+          datasets: talhoesDaSerie.map((codigo, indice) => {
+            const cor = PALETA_TALHOES[indice % PALETA_TALHOES.length];
+            return {
+              label: `Talhão ${codigo}`,
+              data: dias.map((dia) => {
+                const linha = serie.find((item) => item.talhao === codigo && String(item.dia).slice(0, 10) === dia);
+                return linha ? Number(linha.valor_medio) : null;
+              }),
+              borderColor: cor,
+              backgroundColor: cor,
+              tension: 0.3,
+              borderWidth: 2,
+              pointRadius: 3,
+              spanGaps: true,
+            };
+          }),
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: { legend: { display: talhoesDaSerie.length > 1 } },
+          scales: { y: { title: { display: true, text: `${info.nome}${info.unidade ? ` (${info.unidade})` : ""}` } } },
+        },
+      });
+      if (mensagem) mensagem.textContent = `Média diária de ${info.nome.toLowerCase()}${escopo} neste mês (${serie.length} ponto(s)).`;
       return;
     }
 
-    tabela.innerHTML = dadosMensais.map((item) => `
-      <tr>
-        <td>${item.temp}</td>
-        <td>${item.umidAr}</td>
-        <td>${item.umidSolo}</td>
-        <td>${item.prev}</td>
-        <td>${item.qtd}</td>
-      </tr>
-    `).join("");
+    // Sem histórico diário: mostra a última leitura dos sensores cadastrados dessa métrica.
+    const leituras = sensores.filter((sensor) =>
+      sensor.tipo === metrica && sensor.status !== "Inativo" &&
+      (!talhao || sensor.talhao === talhao) && valorSensorValido(sensor));
+    // Último recurso: média mensal do ESP32 (ThingSpeak), que não pertence a nenhum talhão.
+    const esp32 = !leituras.length && (!talhao || talhao === TALHAO_DO_ESP32)
+      ? telemetriaMensalEsp32
+        .filter((item) => item.codigo_metrica === metrica && Number.isFinite(Number(item.valor_medio)))
+        .sort((a, b) => String(a.mes).localeCompare(String(b.mes)))
+      : [];
+    if (esp32.length) {
+      graficoMetricas = new Chart(canvas, {
+        type: "line",
+        data: {
+          labels: esp32.map((item) => item.mes),
+          datasets: [{
+            label: `${info.nome} · ESP32 (média mensal)`,
+            data: esp32.map((item) => Number(item.valor_medio)),
+            borderColor: info.cor,
+            backgroundColor: info.cor,
+            tension: 0.3,
+            borderWidth: 2,
+            pointRadius: 4,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          scales: { y: { title: { display: true, text: `${info.nome}${info.unidade ? ` (${info.unidade})` : ""}` } } },
+        },
+      });
+      if (mensagem) mensagem.textContent = `Nenhum sensor cadastrado enviou leituras; exibindo a média mensal do ESP32 (ThingSpeak) de ${info.nome.toLowerCase()}. O ESP32 não está vinculado a um talhão.`;
+      return;
+    }
+    if (leituras.length) {
+      graficoMetricas = new Chart(canvas, {
+        type: "bar",
+        data: {
+          labels: leituras.map((sensor) => `${sensor.sensor} (${sensor.talhao || "--"})`),
+          datasets: [{
+            label: info.nome,
+            data: leituras.map((sensor) => Number(sensor.valor)),
+            backgroundColor: info.cor,
+            borderRadius: 6,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, title: { display: true, text: info.unidade || info.nome } } },
+        },
+      });
+    }
+    if (mensagem) {
+      mensagem.textContent = leituras.length
+        ? `Ainda sem histórico diário; exibindo a última leitura de ${leituras.length} sensor(es) de ${info.nome.toLowerCase()}${escopo}.`
+        : `Ainda não há leituras de ${info.nome.toLowerCase()}${escopo}.`;
+    }
   }
 
   function renderizarGraficoClimaMensalEngenheiro() {
@@ -814,10 +1029,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     mapaApiPronto = true;
     talhaoSelecionado = obterFeature(talhaoSelecionado)?.properties.codigo || talhoes[0]?.properties.codigo || "";
     codigosIniciais = new Set(talhoes.map((feature) => feature.properties.codigo));
-    atualizarSelectCadastro();
-    renderizarBotoesTalhao();
-    if (talhaoSelecionado) selecionarTalhao(talhaoSelecionado);
-    else renderizarMapa();
     atualizarControlesEdicao();
 
     const [resultadoPainel, resultadoColheitas, resultadoTelemetria, resultadoPredador] = await Promise.allSettled([
@@ -859,9 +1070,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     if (resultadoTelemetria.status === "fulfilled") {
       telemetriaMensalEngenheiro = resultadoTelemetria.value.mensal || [];
+      telemetriaDiaria = resultadoTelemetria.value.leituras || [];
       renderizarGraficoClimaMensalEngenheiro();
     } else {
       telemetriaMensalEngenheiro = [];
+      telemetriaDiaria = [];
       erros.push(`Telemetria: ${resultadoTelemetria.reason?.message || resultadoTelemetria.reason}`);
     }
 
@@ -907,7 +1120,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             umidadeAr: umidadeAr?.valor ?? null,
             umidadeSolo: umidadeSolo?.valor ?? null,
           },
-          mensal: [],
           apontamentoTecnico: {
             data: leituraCampo?.data || "--",
             // Vinha fixo como "--" porque a rota nao mandava o nome. Agora
@@ -916,10 +1128,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             tecnico: leituraCampo?.tecnico || "--",
             problema: leituraCampo?.problemas || "Nenhuma inspeção registrada.",
             recomendacao: leituraCampo?.observacoes || "--",
-          },
-          monitoramento: {
-            temperaturaAtual: temperatura?.valor ?? null,
-            temperaturaMaxima: feature.properties.parametros?.temperaturaMaxima ?? null,
           },
         },
       };
@@ -954,29 +1162,38 @@ document.addEventListener("DOMContentLoaded", async () => {
       FrutLogTelemetria.definirTalhoes(talhoes);
     }
 
+    carregarGraficoMetricas();
+
     if (erros.length) {
       exibirMensagemEdicao(`Talhões carregados. ${erros.join(" | ")}`, "erro");
     }
   }
 
   function atualizarResumoColheita() {
-    const unidades = colheitas.filter((item) => item.unidade === unidadeAtual);
-    if (!unidades.length) {
-      ["resumo-ultima-data", "resumo-ultima-valor", "resumo-menor-data", "resumo-menor-valor", "resumo-maior-data", "resumo-maior-valor"].forEach((id) => preencherTexto(id, "--"));
-      ["resumo-ultima-media", "resumo-menor-media", "resumo-maior-media"].forEach((id) => preencherTexto(id, ""));
+    const dados = colheitas.filter((item) => item.unidade === unidadeAtual);
+    const chaves = ["ultima", "menor", "maior"];
+    if (!dados.length) {
+      chaves.forEach((chave) => {
+        preencherTexto(`resumo-${chave}-data`, "--");
+        preencherTexto(`resumo-${chave}-valor`, "--");
+        preencherTexto(`resumo-${chave}-media`, "Média: --");
+      });
       return;
     }
-    const menor = unidades.reduce((a, b) => a.quantidade < b.quantidade ? a : b);
-    const maior = unidades.reduce((a, b) => a.quantidade > b.quantidade ? a : b);
-    const ultima = unidades.reduce((a, b) => a.ano > b.ano ? a : b);
-    const unidade = unidadeAtual === "sc" ? "sacas" : unidadeAtual === "t" ? "toneladas" : unidadeAtual;
-
-    preencherTexto("resumo-ultima-data", ultima.ano);
-    preencherTexto("resumo-ultima-valor", `${ultima.quantidade} ${unidade}`);
-    preencherTexto("resumo-menor-data", menor.ano);
-    preencherTexto("resumo-menor-valor", `${menor.quantidade} ${unidade}`);
-    preencherTexto("resumo-maior-data", maior.ano);
-    preencherTexto("resumo-maior-valor", `${maior.quantidade} ${unidade}`);
+    const nomes = { t: "toneladas", sc: "sacas", kg: "kg", cx: "caixas" };
+    const unidade = nomes[unidadeAtual] || unidadeAtual;
+    const formatar = (n) => Number(n).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+    const media = dados.reduce((soma, item) => soma + Number(item.quantidade), 0) / dados.length;
+    const escolhidos = {
+      ultima: dados.reduce((a, b) => (a.ano > b.ano ? a : b)),
+      menor: dados.reduce((a, b) => (Number(a.quantidade) < Number(b.quantidade) ? a : b)),
+      maior: dados.reduce((a, b) => (Number(a.quantidade) > Number(b.quantidade) ? a : b)),
+    };
+    chaves.forEach((chave) => {
+      preencherTexto(`resumo-${chave}-data`, String(escolhidos[chave].ano));
+      preencherTexto(`resumo-${chave}-valor`, `${formatar(escolhidos[chave].quantidade)} ${unidade}`);
+      preencherTexto(`resumo-${chave}-media`, `Média: ${formatar(media)} ${unidade}`);
+    });
   }
 
   function carregarGraficoColheita() {
@@ -1070,6 +1287,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     atualizarResumoCicloAtual();
   });
   formularioPlantio?.addEventListener("submit", registrarPlantio);
+  document.getElementById("filtro-metrica-tecnico")?.addEventListener("change", carregarGraficoMetricas);
+  document.getElementById("filtro-talhao-metrica-tecnico")?.addEventListener("change", carregarGraficoMetricas);
   window.addEventListener("frutlog:colheitas-atualizadas", async () => {
     try {
       await carregarDadosPainel();
