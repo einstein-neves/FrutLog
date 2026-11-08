@@ -5,7 +5,7 @@ const { diagnosticarTalhoes } = require("../src/ia/predador-nucleo.js");
 const { dadosRecentes, estadoSensor } = require("../src/operacao/estado-sensor");
 
 const ROLES = ["engenheiro", "tecnico", "admin", "administrador"];
-const TYPES = ["temperatura", "umidadeSolo", "umidadeAr", "chuva"];
+const TYPES = ["temperatura", "umidadeSolo", "umidadeAr"];
 const required = ["SUPABASE_URL", "JWT_SECRET", "IOT_API_KEY", "FRONTEND_ORIGIN"];
 
 function config() {
@@ -27,8 +27,7 @@ function config() {
       fields: {
         temperatura: Number(process.env.THINGSPEAK_FIELD_TEMPERATURE) || 1,
         umidadeAr: Number(process.env.THINGSPEAK_FIELD_HUMIDITY) || 2,
-        umidadeSolo: Number(process.env.THINGSPEAK_FIELD_SOIL_HUMIDITY) || 3,
-        chuva: Number(process.env.THINGSPEAK_FIELD_RAINFALL) || 4
+        umidadeSolo: Number(process.env.THINGSPEAK_FIELD_SOIL_HUMIDITY) || 3,     
       }
     },
     origins: [...new Set(origins)]

@@ -24,7 +24,8 @@
     </div>
 
     <nav class="menu" aria-label="Menu do técnico">
-      <a href="#aba-monitoramento" class="nav-link active"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+      <a href="#aba-monitoramento" class="nav-link active"><i class="fa-solid fa-map-location-dot"
+          aria-hidden="true"></i>
         Monitoramento</a>
       <a href="#aba-registros" class="nav-link"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
         Registros de campo</a>
@@ -39,8 +40,8 @@
 
   <main class="conteudo-dashboard">
     <section class="topo">
-      <h1>Painel do Técnico Agrícola</h1>
-      <p>Registros de campo, ocorrências e acompanhamento dos sensores dos talhões.</p>
+      <h1 id="topo-titulo">Painel do Técnico Agrícola</h1>
+      <p id="topo-descricao">Registros de campo, ocorrências e acompanhamento dos sensores dos talhões.</p>
       <p class="mensagem-feedback" id="mensagem-dados-tecnicos" aria-live="polite"></p>
     </section>
 
@@ -66,7 +67,7 @@
           <div class="cartao cartao-mapa-wrapper">
             <div class="mapa-header">
               <div>
-                <h2>Mapa dos Talhões</h2>
+                <h2>Visão dos Talhões</h2>
                 <p>Selecione um talhão para consultar a situação em campo.</p>
               </div>
               <div class="botoes-do-talhao" id="botoes-talhao" aria-label="Seleção de talhão"></div>
@@ -93,10 +94,7 @@
               <h2 class="titulo-talhao" id="tecnico-titulo-talhao">Detalhes: Talhão A1</h2>
             </div>
             <div class="info-grid-detalhes">
-              <div class="item-detalhe"><span class="label">Produto</span><span class="valor"
-                  id="tecnico-talhao-produto">--</span></div>
-              <div class="item-detalhe"><span class="label">Variedade</span><span class="valor"
-                  id="tecnico-talhao-variedade">--</span></div>
+
               <div class="item-detalhe"><span class="label">Área</span><span class="valor"
                   id="tecnico-talhao-area">--</span></div>
               <div class="item-detalhe"><span class="label">Tipo de solo</span><span class="valor"
@@ -105,8 +103,10 @@
                   id="tecnico-talhao-plantio">--</span></div>
               <div class="item-detalhe"><span class="label">Previsão de colheita</span><span class="valor"
                   id="tecnico-talhao-colheita">--</span></div>
-              <div class="item-detalhe"><span class="label">Sensor principal</span><span class="valor"
-                  id="tecnico-talhao-sensor">--</span></div>
+              <div class="item-detalhe"><span class="label">Produto</span><span class="valor"
+                  id="tecnico-talhao-produto">--</span></div>
+              <div class="item-detalhe"><span class="label">Variedade</span><span class="valor"
+                  id="tecnico-talhao-variedade">--</span></div>
               <div class="item-detalhe"><span class="label">Temperatura configurada</span><span class="valor"
                   id="tecnico-talhao-limite">--</span></div>
               <div class="item-detalhe"><span class="label">Temperatura atual</span><span class="valor"
@@ -115,13 +115,15 @@
                   id="tecnico-talhao-umidade">--</span></div>
               <div class="item-detalhe"><span class="label">Última leitura do talhão</span><span class="valor"
                   id="tecnico-talhao-ultima-leitura">--</span></div>
+              <div class="item-detalhe"><span class="label">Sensor principal</span><span class="valor"
+                  id="tecnico-talhao-sensor">--</span></div>
               <div class="item-detalhe destaque-fruta"><span class="label">Prioridade de campo</span><span class="valor"
                   id="tecnico-talhao-prioridade">--</span></div>
             </div>
           </div>
         </div>
 
-       
+
         <section class="cartao">
           <div class="titulo-cartao"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Métricas dos Sensores
           </div>
@@ -149,11 +151,12 @@
           <table class="tabela-dados">
             <thead>
               <tr>
-                <th>Sensor</th>
+                <th>Identificador</th>
                 <th>Talhão</th>
+                <th>Métrica</th>
+                <th>Leitura</th>
                 <th>Status</th>
                 <th>Última comunicação</th>
-                <th>Última leitura</th>
                 <th>Atualidade</th>
               </tr>
             </thead>
@@ -192,7 +195,7 @@
               class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Inspeção</button>
           <button type="button" class="btn-filtro" data-tipo-registro="ocorrencia" aria-pressed="false"><i
               class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Ocorrência</button>
-          
+
         </div>
 
         <form id="form-registro-campo">
@@ -240,7 +243,7 @@
                 <option>Outro</option>
               </select>
             </div>
-            
+
             <div class="item-detalhe-cadastro campo-largo" data-tipos="inspecao ocorrencia sensor">
               <label class="label" for="registro-observacoes">Observações</label>
               <textarea id="registro-observacoes" name="observacoes" class="campo-formulario"></textarea>
@@ -297,7 +300,7 @@
               <option value="">Todos</option>
               <option value="inspecao">Inspeções</option>
               <option value="ocorrencia">Ocorrências</option>
-              
+
             </select>
           </div>
         </div>
@@ -317,7 +320,7 @@
           </table>
         </div>
       </section>
-        <!-- FIM: SEÇÃO HISTÓRICO DE REGISTROS -->
+      <!-- FIM: SEÇÃO HISTÓRICO DE REGISTROS -->
     </div>
     <!-- FIM: SEÇÃO REGISTROS DE CAMPO E RELATÓRIO DIÁRIO -->
 
@@ -332,23 +335,6 @@
         <div id="telemetria-talhao"></div>
       </section>
 
-      <section class="cartao">
-        <div class="titulo-cartao">Telemetria diária — médias por talhão</div>
-        <div class="tabela-responsiva">
-          <table class="tabela-dados">
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Talhão</th>
-                <th>Temperatura (°C)</th>
-                <th>Umidade do ar (%)</th>
-                <th>Umidade do solo (%)</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-telemetria-diaria"></tbody>
-          </table>
-        </div>
-      </section>
       <section class="cartao thingspeak-dashboard" data-thingspeak-panel aria-labelledby="tec-thingspeak-heading">
         <div class="titulo-cartao" id="tec-thingspeak-heading">ThingSpeak / ESP32 — clima e telemetria</div>
         <p class="mensagem-feedback" data-thingspeak-status aria-live="polite">Carregando canal ThingSpeak...</p>
@@ -433,7 +419,7 @@
         -->
       </section>
 
-      <section class="cartao">
+      <!-- <section class="cartao">
         <div class="titulo-cartao"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Histórico diário de
           telemetria por talhão</div>
         <div class="filtros-metricas">
@@ -463,6 +449,7 @@
           </table>
         </div>
       </section>
+      -->
 
       <section class="cartao">
         <div class="titulo-cartao">
@@ -476,25 +463,6 @@
 
         <div class="grafico-clima-mensal">
           <canvas id="grafico-clima-mensal-tecnico"></canvas>
-        </div>
-      </section>
-      <section class="cartao">
-        <div class="titulo-cartao"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i> Consolidado mensal dos
-          últimos 12 meses</div>
-        <div class="tabela-responsiva thingspeak-feed-scroll">
-          <table class="tabela-dados">
-            <thead>
-              <tr>
-                <th>Mês</th>
-                <th>Talhão · métrica</th>
-                <th>Média</th>
-                <th>Mínimo</th>
-                <th>Máximo</th>
-                <th>Leituras</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-telemetria-mensal-tecnico"></tbody>
-          </table>
         </div>
       </section>
     </div>
