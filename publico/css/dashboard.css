@@ -1299,3 +1299,21 @@ textarea.campo-formulario {
   background: var(--cor-card);
   z-index: 1;
 }
+
+.grafico-metricas-tecnico {
+  position: relative;
+  min-height: 300px;
+  margin-top: 12px;
+}
+
+.filtros-metricas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 760px) {
+  .filtros-metricas {
+    grid-template-columns: 1fr;
+  }
+}

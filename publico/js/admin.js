@@ -3,10 +3,67 @@
    Gestao de usuarios, sensores, talhoes e operacao de campo.
    ========================================================= */
 
+const CABECALHOS_ABAS = {
+  "funcionarios": {
+    titulo: "Administração do Sistema",
+    descricao: "Gestão integrada da equipe, sensores, talhões e operação de campo.",
+  },
+  "sensores-admin": {
+    titulo: "Sensores",
+    descricao: "Cadastro, status e atualidade dos sensores instalados nos talhões.",
+  },
+  "resumo-tecnico": {
+    titulo: "Dados de Campo",
+    descricao: "Inspeções e ocorrências registradas pelos técnicos.",
+  },
+  "colheitas-admin": {
+    titulo: "Colheitas",
+    descricao: "Registro e histórico de colheitas por talhão.",
+  },
+  "telemetria-admin": {
+    titulo: "Telemetria",
+    descricao: "Leituras dos sensores por talhão, histórico diário e médias mensais.",
+  },
+  "relatorios-diarios": {
+    titulo: "Relatórios Recebidos",
+    descricao: "Relatórios diários enviados pela equipe técnica.",
+  },
+  "monitoramento": {
+    titulo: "Monitoramento",
+    descricao: "Situação dos talhões e acompanhamento da produção.",
+  },
+  "cadastro-plantio": {
+    titulo: "Cadastrar Produto",
+    descricao: "Cadastre o produto plantado em cada talhão.",
+  },
+  "graficos": {
+    titulo: "Gráficos",
+    descricao: "Histórico de colheitas e clima mensal.",
+  },
+};
+
+function configurarCabecalhoPorAba() {
+  const titulo = document.getElementById("topo-titulo");
+  const descricao = document.getElementById("topo-descricao");
+  if (!titulo || !descricao) return;
+
+  const atualizar = () => {
+    const idAtivo = Object.keys(CABECALHOS_ABAS).find((id) => !document.getElementById(id)?.hidden);
+    const texto = CABECALHOS_ABAS[idAtivo];
+    if (!texto) return;
+    titulo.textContent = texto.titulo;
+    descricao.textContent = texto.descricao;
+  };
+
+  document.querySelectorAll(".menu .nav-link").forEach((link) => link.addEventListener("click", atualizar));
+  atualizar();
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   FrutLog.verificarSessao(["admin"]);
   FrutLog.configurarLogout();
   FrutLog.configurarAbasSidebar();
+  configurarCabecalhoPorAba();
   configurarFormularioFuncionario();
   configurarFormularioSensor();
   configurarFiltrosFuncionarios();
@@ -15,6 +72,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   configurarEncerramentoCicloAdmin();
   configurarCadastroProduto();
   configurarAcoesHistorico();
+  document.getElementById("filtro-metrica-tecnico")?.addEventListener("change", carregarGraficoMetricas);
+  document.getElementById("filtro-talhao-metrica-tecnico")?.addEventListener("change", carregarGraficoMetricas);
   carregarHistoricoQuandoVisivel();
   preencherSelectTalhoes();
 
@@ -33,7 +92,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // O catch vazio e intencional: erro de rede numa atualizacao de fundo nao
   // deve quebrar o relogio nem poluir a tela -- a proxima rodada tenta de novo.
   setInterval(() => {
-    atualizarLeiturasAoVivo().catch(() => {});
+    atualizarLeiturasAoVivo().catch(() => { });
   }, INTERVALO_LEITURAS_MS);
   const inicializacoes = await Promise.allSettled([
     carregarDadosConectados(),
@@ -76,11 +135,21 @@ let graficoColheita = null;
 let graficoLeituras = null;
 let graficoClimaMensalAdmin = null;
 let unidadeColheita = "t";
-let telemetriaDiariaAdmin = [];
+let telemetriaDiaria = [];
+let graficoMetricas = null;
 let telemetriaMensalAdmin = [];
 let telemetriaMensalEsp32Admin = [];
 let talhaoSelecionadoAdmin = "";
 let encerrandoCicloAdmin = false;
+
+const METRICAS_TELEMETRIA = {
+  temperatura: { nome: "Temperatura", unidade: "°C", cor: "#ef6c00" },
+  umidadeAr: { nome: "Umidade do ar", unidade: "%", cor: "#1565c0" },
+  umidadeSolo: { nome: "Umidade do solo", unidade: "%", cor: "#2e7d32" },
+};
+const PALETA_TALHOES = ["#2e7d32", "#1565c0", "#ef6c00", "#6a1b9a", "#c62828", "#00838f"];
+// Talhão onde o ESP32 está instalado. Os dados do ThingSpeak são mostrados só para ele.
+const TALHAO_DO_ESP32 = "T19";
 
 function escaparHtml(valor) {
   return String(valor ?? "").replace(/[&<>"']/g, (caractere) => ({
@@ -289,7 +358,7 @@ function carregarFuncionarios() {
   });
 
   if (!filtrados.length) {
-    mostrarLinhasVazias("tabela-funcionarios", 7);
+    mostrarLinhasVazias("tabela-funcionarios", 6);
     return;
   }
 
@@ -302,7 +371,6 @@ function carregarFuncionarios() {
         <td>${escaparHtml(funcionario.matricula)}</td>
         <td>${escaparHtml(funcionario.nome)}</td>
         <td>${escaparHtml(funcionario.cargo)}</td>
-        <td>${escaparHtml(funcionario.profissao || "--")}</td>
         <td>${escaparHtml(funcionario.perfil)}</td>
         <td><span class="badge-status ${status}">${textoStatus}</span></td>
         <td>
@@ -352,7 +420,6 @@ function configurarAcoesTabelas() {
       document.getElementById("funcionario-matricula").value = funcionario.matricula;
       document.getElementById("funcionario-nome").value = funcionario.nome;
       document.getElementById("funcionario-cargo").value = funcionario.cargo;
-      document.getElementById("funcionario-profissao").value = funcionario.profissao || "";
       document.getElementById("funcionario-perfil").value = funcionario.perfil;
       document.getElementById("funcionario-senha").value = "";
       document.getElementById("funcionario-senha").required = false;
@@ -1162,7 +1229,10 @@ function renderizarDetalhesTalhaoAdmin(codigo) {
   preencher("talhao-temperatura-atual", ia.temperaturaAtual != null
     ? `${ia.temperaturaAtual} °C${minutos != null ? ` · há ${minutos} min` : ""}`
     : "--");
-  preencher("talhao-umidade-solo", ia.umidadeSolo != null ? `${ia.umidadeSolo} %` : "--");
+  const soloValor = ia.umidadeSolo ?? umidadeSolo?.valor;
+  preencher("talhao-umidade-solo", soloValor != null
+    ? `${soloValor} %${ia.umidadeSolo == null ? " (desatualizada)" : ""}`
+    : "--");
   preencher("talhao-ultima-leitura", ultimaLeitura);
   preencher("talhao-diagnostico", ia.mensagem || monitorado.prioridade || "--");
   preencher("talhao-diagnostico-origem", ia.origem ? `Fonte: ${ia.origem}` : "");
@@ -1260,6 +1330,37 @@ function definirColheitasAnuais(colheitas) {
   colheitasAnuais = Array.isArray(colheitas) ? colheitas : [];
 }
 
+function atualizarResumoColheitaAdmin(dados) {
+  const definir = (id, texto) => {
+    const elemento = document.getElementById(id);
+    if (elemento) elemento.textContent = texto;
+  };
+  const chaves = ["ultima", "menor", "maior"];
+  if (!dados.length) {
+    chaves.forEach((chave) => {
+      definir(`resumo-${chave}-data`, "--");
+      definir(`resumo-${chave}-valor`, "--");
+      definir(`resumo-${chave}-media`, "Média: --");
+    });
+    return;
+  }
+
+  const nomesUnidade = { t: "toneladas", sc: "sacas", kg: "kg", cx: "caixas" };
+  const unidade = nomesUnidade[unidadeColheita] || unidadeColheita;
+  const formatar = (numero) => Number(numero).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+  const media = dados.reduce((soma, item) => soma + Number(item.quantidade), 0) / dados.length;
+  const escolhidos = {
+    ultima: dados.reduce((a, b) => (a.ano > b.ano ? a : b)),
+    menor: dados.reduce((a, b) => (Number(a.quantidade) < Number(b.quantidade) ? a : b)),
+    maior: dados.reduce((a, b) => (Number(a.quantidade) > Number(b.quantidade) ? a : b)),
+  };
+  chaves.forEach((chave) => {
+    definir(`resumo-${chave}-data`, String(escolhidos[chave].ano));
+    definir(`resumo-${chave}-valor`, `${formatar(escolhidos[chave].quantidade)} ${unidade}`);
+    definir(`resumo-${chave}-media`, `Média: ${formatar(media)} ${unidade}`);
+  });
+}
+
 function renderizarGraficoColheita() {
   const canvas = document.getElementById("grafico-colheita-anual");
   if (!canvas || typeof Chart === "undefined") return;
@@ -1267,6 +1368,7 @@ function renderizarGraficoColheita() {
   if (graficoAtivo) graficoAtivo.destroy();
   graficoColheita = null;
   const dados = colheitasAnuais.filter((item) => item.unidade === unidadeColheita);
+  atualizarResumoColheitaAdmin(dados);
   if (!dados.length) return;
 
   graficoColheita = new Chart(canvas, {
@@ -1321,6 +1423,167 @@ function renderizarGraficoClimaMensalAdmin() {
   });
 }
 
+function nomeMetrica(codigo) {
+  return METRICAS_TELEMETRIA[codigo]?.nome || codigo || "Métrica";
+}
+
+function valorSensorValido(sensor) {
+  return sensor.valor !== null && sensor.valor !== undefined && sensor.valor !== "" && Number.isFinite(Number(sensor.valor));
+}
+
+function obterSensores() {
+  return sensores;
+}
+
+function carregarGraficoMetricas() {
+  const selectMetrica = document.getElementById("filtro-metrica-tecnico");
+  const selectTalhao = document.getElementById("filtro-talhao-metrica-tecnico");
+  const canvas = document.getElementById("grafico-metricas-tecnico");
+  const mensagem = document.getElementById("mensagem-grafico-metricas");
+  if (!selectMetrica || !canvas || typeof Chart === "undefined") return;
+
+  const sensores = obterSensores();
+
+  // Todas as métricas do sistema ficam disponíveis, com ou sem sensor cadastrado.
+  const extras = [...new Set([
+    ...sensores.map((sensor) => sensor.tipo),
+    ...telemetriaDiaria.map((item) => item.codigo_metrica),
+  ].filter(Boolean))].filter((codigo) => !METRICAS_TELEMETRIA[codigo]);
+  const codigos = [...Object.keys(METRICAS_TELEMETRIA), ...extras];
+  const temDados = (codigo) =>
+    telemetriaDiaria.some((item) => item.codigo_metrica === codigo) ||
+    sensores.some((sensor) => sensor.tipo === codigo && valorSensorValido(sensor));
+
+  const metricaAnterior = selectMetrica.value;
+  selectMetrica.innerHTML = codigos
+    .map((codigo) => `<option value="${escaparHtml(codigo)}">${escaparHtml(nomeMetrica(codigo))}</option>`)
+    .join("");
+  selectMetrica.value = codigos.includes(metricaAnterior)
+    ? metricaAnterior
+    : (codigos.find(temDados) || codigos[0]);
+
+  if (selectTalhao) {
+    const talhaoAnterior = selectTalhao.value;
+    const codigosTalhao = (painelTecnico.talhoes || []).map((talhao) => talhao.id); // ADMIN
+    selectTalhao.innerHTML = '<option value="">Todos os talhões</option>' +
+      codigosTalhao.map((codigo) => `<option value="${escaparHtml(codigo)}">${escaparHtml(codigo)}</option>`).join("");
+    if (codigosTalhao.includes(talhaoAnterior)) selectTalhao.value = talhaoAnterior;
+  }
+
+  const metrica = selectMetrica.value;
+  const talhao = selectTalhao?.value || "";
+  const info = METRICAS_TELEMETRIA[metrica] || { nome: metrica, unidade: "", cor: "#2e7d32" };
+  const escopo = talhao ? ` no talhão ${talhao}` : "";
+
+  if (graficoMetricas) graficoMetricas.destroy();
+  graficoMetricas = null;
+
+  const serie = telemetriaDiaria.filter((item) =>
+    item.codigo_metrica === metrica &&
+    (!talhao || item.talhao === talhao) &&
+    Number.isFinite(Number(item.valor_medio)));
+
+  if (serie.length) {
+    // Histórico: média diária da métrica, uma linha por talhão.
+    const dias = [...new Set(serie.map((item) => String(item.dia).slice(0, 10)))].sort();
+    const talhoesDaSerie = [...new Set(serie.map((item) => item.talhao).filter(Boolean))].sort();
+    graficoMetricas = new Chart(canvas, {
+      type: "line",
+      data: {
+        labels: dias.map((dia) => formatarData(dia).slice(0, 5)),
+        datasets: talhoesDaSerie.map((codigo, indice) => {
+          const cor = PALETA_TALHOES[indice % PALETA_TALHOES.length];
+          return {
+            label: `Talhão ${codigo}`,
+            data: dias.map((dia) => {
+              const linha = serie.find((item) => item.talhao === codigo && String(item.dia).slice(0, 10) === dia);
+              return linha ? Number(linha.valor_medio) : null;
+            }),
+            borderColor: cor,
+            backgroundColor: cor,
+            tension: 0.3,
+            borderWidth: 2,
+            pointRadius: 3,
+            spanGaps: true,
+          };
+        }),
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: { legend: { display: talhoesDaSerie.length > 1 } },
+        scales: { y: { title: { display: true, text: `${info.nome}${info.unidade ? ` (${info.unidade})` : ""}` } } },
+      },
+    });
+    if (mensagem) mensagem.textContent = `Média diária de ${info.nome.toLowerCase()}${escopo} neste mês (${serie.length} ponto(s)).`;
+    return;
+  }
+
+  // Sem histórico diário: mostra a última leitura dos sensores cadastrados dessa métrica.
+  const leituras = sensores.filter((sensor) =>
+    sensor.tipo === metrica && sensor.status !== "Inativo" &&
+    (!talhao || sensor.talhao === talhao) && valorSensorValido(sensor));
+  // Último recurso: média mensal do ESP32 (ThingSpeak), que não pertence a nenhum talhão.
+  const esp32 = !leituras.length && (!talhao || talhao === TALHAO_DO_ESP32)
+    ? telemetriaMensalEsp32Admin // ADMIN
+      .filter((item) => item.codigo_metrica === metrica && Number.isFinite(Number(item.valor_medio)))
+      .sort((a, b) => String(a.mes).localeCompare(String(b.mes)))
+    : [];
+  if (esp32.length) {
+    graficoMetricas = new Chart(canvas, {
+      type: "line",
+      data: {
+        labels: esp32.map((item) => item.mes),
+        datasets: [{
+          label: `${info.nome} · ESP32 (média mensal)`,
+          data: esp32.map((item) => Number(item.valor_medio)),
+          borderColor: info.cor,
+          backgroundColor: info.cor,
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 4,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        scales: { y: { title: { display: true, text: `${info.nome}${info.unidade ? ` (${info.unidade})` : ""}` } } },
+      },
+    });
+    if (mensagem) mensagem.textContent = `Nenhum sensor cadastrado enviou leituras; exibindo a média mensal do ESP32 (ThingSpeak) de ${info.nome.toLowerCase()}. O ESP32 não está vinculado a um talhão.`;
+    return;
+  }
+  if (leituras.length) {
+    graficoMetricas = new Chart(canvas, {
+      type: "bar",
+      data: {
+        labels: leituras.map((sensor) => `${sensor.sensor} (${sensor.talhao || "--"})`),
+        datasets: [{
+          label: info.nome,
+          data: leituras.map((sensor) => Number(sensor.valor)),
+          backgroundColor: info.cor,
+          borderRadius: 6,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, title: { display: true, text: info.unidade || info.nome } } },
+      },
+    });
+  }
+  if (mensagem) {
+    mensagem.textContent = leituras.length
+      ? `Ainda sem histórico diário; exibindo a última leitura de ${leituras.length} sensor(es) de ${info.nome.toLowerCase()}${escopo}.`
+      : `Ainda não há leituras de ${info.nome.toLowerCase()}${escopo}.`;
+  }
+}
+
 async function carregarDadosConectados() {
   const consultas = [
     { rota: "funcionários", executar: () => FrutLog.apiFetch("/funcionarios") },
@@ -1345,9 +1608,13 @@ async function carregarDadosConectados() {
   if (resultados[1].status === "fulfilled") { sensores = resultados[1].value.sensores || []; renderizarSensores(); }
   if (resultados[2].status === "fulfilled") { painelTecnico = resultados[2].value; renderizarPainelTecnico(); }
   if (resultados[3].status === "fulfilled") { definirColheitasAnuais(resultados[3].value.colheitas); renderizarGraficoColheita(); }
-  if (resultados[4].status === "fulfilled") telemetriaMensalAdmin = resultados[4].value.mensal || [];
+  if (resultados[4].status === "fulfilled") {
+    telemetriaMensalAdmin = resultados[4].value.mensal || [];
+    telemetriaDiaria = resultados[4].value.leituras || [];
+  }
   if (resultados[5].status === "fulfilled") telemetriaMensalEsp32Admin = resultados[5].value.mensal || [];
   renderizarGraficoClimaMensalAdmin();
+  carregarGraficoMetricas();
 
   const falhas = resultados.flatMap((resultado, indice) => resultado.status === "rejected"
     ? [`${consultas[indice].rota}: ${resultado.reason?.message || resultado.reason}`]

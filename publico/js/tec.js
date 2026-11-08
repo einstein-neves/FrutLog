@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Navegacao exclusiva pela sidebar, igual ao admin e ao engenheiro.
   // A barra de sub-abas horizontais do topo foi removida do HTML.
   FrutLog.configurarAbasSidebar();
+  configurarCabecalhoPorAba();
   configurarRelatorioDiario();
   document.getElementById("relatorio-data").value = dataLocalISO();
   const dataRegistro = document.getElementById("registro-data");
@@ -102,6 +103,39 @@ const TALHAO_DO_ESP32 = "A1";
 function dataLocalISO() {
   const hoje = new Date();
   return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
+}
+
+const CABECALHOS_ABAS = {
+  "aba-monitoramento": {
+    titulo: "Painel do Técnico Agrícola",
+    descricao: "Registros de campo, ocorrências e acompanhamento dos sensores dos talhões.",
+  },
+  "aba-registros": {
+    titulo: "Registros de Campo",
+    descricao: "Lance inspeções, ocorrências e problemas de sensores e envie o relatório diário.",
+  },
+  "aba-telemetria": {
+    titulo: "Telemetria",
+    descricao: "Leituras dos sensores por talhão, histórico diário e médias mensais.",
+  },
+};
+
+function configurarCabecalhoPorAba() {
+  const titulo = document.getElementById("topo-titulo");
+  const descricao = document.getElementById("topo-descricao");
+  if (!titulo || !descricao) return;
+
+  const atualizar = () => {
+    // A aba ativa é a que não está com o atributo "hidden".
+    const idAtivo = Object.keys(CABECALHOS_ABAS).find((id) => !document.getElementById(id)?.hidden);
+    const texto = CABECALHOS_ABAS[idAtivo];
+    if (!texto) return;
+    titulo.textContent = texto.titulo;
+    descricao.textContent = texto.descricao;
+  };
+
+  document.querySelectorAll(".menu .nav-link").forEach((link) => link.addEventListener("click", atualizar));
+  atualizar(); // também acerta o texto se a página abrir direto em #aba-registros
 }
 
 // A funcao configurarAbas() foi removida junto com a barra de sub-abas do topo:
@@ -295,9 +329,7 @@ function preencherFiltroTelemetria() {
 }
 
 async function carregarTelemetriaDiaria() {
-  const tabela = document.getElementById("tabela-telemetria-tecnico");
-  if (!tabela || !FrutLog.AUTENTICACAO_API_ATIVA) return;
-  const mensagem = document.getElementById("mensagem-telemetria-diaria");
+  if (!FrutLog.AUTENTICACAO_API_ATIVA) return;
   try {
     const resposta = await FrutLog.apiFetch("/telemetria/diaria");
     telemetriaDiaria = resposta.leituras || [];
@@ -307,20 +339,10 @@ async function carregarTelemetriaDiaria() {
     } catch (erro) {
       telemetriaMensalEsp32 = [];
     }
-    renderizarTelemetriaDiaria();
-    renderizarTelemetriaMensal();
     renderizarGraficoClimaMensalTecnico();
     carregarGraficoMetricas();
-    if (mensagem) {
-      mensagem.textContent = `Consolidado desde ${formatarData(resposta.desde)}.`;
-      mensagem.className = "mensagem-feedback";
-    }
   } catch (erro) {
-    if (mensagem) {
-      mensagem.textContent = erro.message;
-      mensagem.className = "mensagem-feedback erro";
-    }
-    tabela.innerHTML = `<tr><td colspan="6">${escaparHtml(erro.message)}</td></tr>`;
+    console.error("Falha ao carregar a telemetria:", erro);
   }
 }
 
@@ -423,8 +445,6 @@ function renderizarGraficoClimaMensalTecnico() {
       datasets: Object.entries(METRICAS_TELEMETRIA).map(([codigo, info]) => ({
         label: `${info.nome} (${info.unidade})`,
         data: meses.map((mes) => mediaDoMes(mes, codigo)),
-        borderColor: info.cor,
-        backgroundColor: info.cor,
         tension: 0.3,
         borderWidth: 2,
         spanGaps: true,
@@ -725,11 +745,12 @@ function selecionarTalhao(idTalhao) {
   preencherTexto("tecnico-talhao-variedade", props.variedade || "--");
   preencherTexto("tecnico-talhao-area", props.area);
   preencherTexto("tecnico-talhao-solo", props.solo || "--");
-  preencherTexto("tecnico-talhao-plantio", props.plantio || "--");
-  preencherTexto("tecnico-talhao-colheita", props.colheita || "--");
+  preencherTexto("tecnico-talhao-plantio", formatarData(props.plantio));
+  preencherTexto("tecnico-talhao-colheita", formatarData(props.colheita));
+  preencherTexto("tecnico-talhao-ultima-leitura", formatarDataHora(props.ultima_leitura_em));
   preencherTexto("tecnico-talhao-sensor", props.sensor || "Não associado");
-  preencherTexto("tecnico-talhao-limite", monitoramento.temperaturaMaxima !== null && monitoramento.temperaturaMaxima !== undefined ? `${monitoramento.temperaturaMaxima} C` : "--");
-  preencherTexto("tecnico-talhao-temperatura", monitoramento.temperaturaAtual !== null && monitoramento.temperaturaAtual !== undefined ? `${monitoramento.temperaturaAtual} C` : "--");
+  preencherTexto("tecnico-talhao-limite", monitoramento.temperaturaMaxima !== null && monitoramento.temperaturaMaxima !== undefined ? `${monitoramento.temperaturaMaxima} °C` : "--");
+  preencherTexto("tecnico-talhao-temperatura", monitoramento.temperaturaAtual !== null && monitoramento.temperaturaAtual !== undefined ? `${monitoramento.temperaturaAtual} °C` : "--");
   preencherTexto("tecnico-talhao-umidade", props.diaria?.umidadeAr ? `${props.diaria.umidadeAr}% ar / ${props.diaria.umidadeSolo || "--"}% solo` : "--");
   preencherTexto("tecnico-talhao-prioridade", props.prioridade || "Rotina de acompanhamento");
 
@@ -760,23 +781,31 @@ function configurarMapaTalhoes() {
 
 function carregarSensores() {
   const tabela = document.getElementById("tabela-sensores");
-  const sensores = obterSensores();
+  if (!tabela) return;
 
-  if (tabela) {
-    if (!sensores.length) {
-      tabela.innerHTML = '<tr><td colspan="6">Nenhum sensor cadastrado.</td></tr>';
-    } else tabela.innerHTML = sensores.map((item) => `
-      <tr>
-        <td>${escaparHtml(item.sensor)}</td>
-        <td>${escaparHtml(item.talhao)}</td>
-        <td><span class="status-sensor ${normalizarClasse(item.status)}">${escaparHtml(FrutLog.textoInterface(item.status))}</span></td>
-        <td>${escaparHtml(formatarDataHora(item.comunicacao))}</td>
-        <td>${escaparHtml(item.leitura)}</td>
-        <td><span class="status-sensor ${item.dados_recentes ? "online" : "atencao"}">${item.ultima_leitura_em ? (item.dados_recentes ? "Atual" : "Desatualizada") : "Sem leitura"}</span></td>
-      </tr>
-    `).join("");
+  const sensores = obterSensores();
+  if (!sensores.length) {
+    tabela.innerHTML = '<tr><td colspan="7">Nenhum sensor cadastrado.</td></tr>';
+    return;
   }
 
+  tabela.innerHTML = sensores.map((sensor) => {
+    const status = sensor.status || (sensor.ativo === false ? "Inativo" : "Online");
+    const statusClasse = normalizarClasse(status).replace(/\s+/g, "-");
+    const atualidade = !sensor.ultima_leitura_em
+      ? "Sem leitura"
+      : sensor.dados_recentes ? "Atual" : "Desatualizada";
+    return `
+      <tr>
+        <td>${escaparHtml(sensor.sensor || sensor.id_externo)}</td>
+        <td>${escaparHtml(sensor.talhao || "--")}</td>
+        <td>${escaparHtml(sensor.tipo || sensor.codigo_metrica || "--")}</td>
+        <td>${escaparHtml(sensor.leitura || "Sem leitura")}<br><small>${sensor.ultima_leitura_em ? escaparHtml(formatarDataHora(sensor.ultima_leitura_em)) : "Sem leitura registrada"}</small></td>
+        <td><span class="badge-status ${statusClasse}">${escaparHtml(status)}</span></td>
+        <td>${escaparHtml(formatarDataHora(sensor.comunicacao))}</td>
+        <td><span class="badge-status ${atualidade === "Atual" ? "normal" : "atencao"}">${atualidade}</span></td>
+      </tr>`;
+  }).join("");
 }
 
 function carregarGraficoMetricas() {
