@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/login.css">
+  <title>FrutLog - Alterar senha provisória</title>
+</head>
+<body class="pagina-login">
+  <main class="login" aria-label="Alteração obrigatória de senha">
+    <section class="caixa-do-login2">
+      <h1>Crie sua senha pessoal</h1>
+      <p>A senha provisória precisa ser alterada antes de continuar.</p>
+      <form id="form-alterar-senha" novalidate>
+        <div class="input-field">
+          <label class="sr-only" for="senha-atual">Senha provisória atual</label>
+          <input id="senha-atual" name="senhaAtual" type="password" autocomplete="current-password" minlength="8" maxlength="10" placeholder="Senha provisória atual (8 a 10 caracteres)" required>
+        </div>
+        <div class="input-field">
+          <label class="sr-only" for="nova-senha">Nova senha</label>
+          <input id="nova-senha" name="novaSenha" type="password" autocomplete="new-password" minlength="8" maxlength="10" placeholder="Nova senha (8 a 10 caracteres)" required>
+        </div>
+        <div class="input-field">
+          <label class="sr-only" for="confirmar-senha">Confirmar nova senha</label>
+          <input id="confirmar-senha" name="confirmarSenha" type="password" autocomplete="new-password" minlength="8" maxlength="10" placeholder="Confirme a nova senha" required>
+        </div>
+        <p id="mensagem-alterar-senha" class="mensagem-feedback" aria-live="polite"></p>
+        <button class="btn-login" type="submit">Alterar senha</button>
+        <button id="btn-sair-senha-provisoria" class="btn-login" type="button">Sair</button>
+      </form>
+    </section>
+  </main>
+  <script src="js/auth.js"></script>
+  <script src="js/senha-temporaria.js"></script>
+</body>
+</html>

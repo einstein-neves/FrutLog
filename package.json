@@ -1,0 +1,24 @@
+{
+  "name": "frutlog-iot-api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node --env-file=.env src/server.js",
+    "dev": "node --env-file=.env --watch src/server.js",
+    "password-hash": "node scripts/password-hash.js",
+    "bootstrap-admin": "node --env-file=.env scripts/bootstrap-admin.js",
+    "reset-admin-password": "node --env-file=.env scripts/reset-admin-password.js",
+    "ponte": "node --env-file=.env src/iot/ponte-thingspeak.js",
+    "ponte:simular": "node --env-file=.env src/iot/ponte-thingspeak.js --simular",
+    "conferir-esquema": "node --env-file=.env scripts/conferir-esquema.js",
+    "teste": "node testes/predador-nucleo.teste.js && node testes/predador-alertas.teste.js && node testes/ponte-thingspeak.teste.js && node testes/estado-sensor.teste.js && node testes/api-operacao.teste.js",
+    "ia": "node --env-file=.env src/ia/predador.js",
+    "ia:registrar": "node --env-file=.env src/ia/predador.js --registrar",
+    "ia:vigiar": "node --env-file=.env src/ia/predador.js --vigiar"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0"
+  }
+}
