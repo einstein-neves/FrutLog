@@ -89,16 +89,16 @@ const path = require("path");
 // nenhum, so fazia a leitura nunca chegar. Agora quem cadastra escolhe o
 // nome e a ponte obedece -- inclusive se o nome mudar com a ponte no ar.
 //
-// As chaves so aceitam os quatro valores de TYPES em api/[...route].js:
-//   "temperatura" | "umidadeSolo" | "umidadeAr" | "chuva"
+// INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: chuva removida (a API nao aceita mais)
+// As chaves so aceitam os tres valores de TYPES em api/[...route].js:
+//   "temperatura" | "umidadeSolo" | "umidadeAr"
 // Qualquer outra coisa a rota devolve 400 e a leitura e descartada.
 const CAMPO_DA_METRICA = {
   temperatura: Number(process.env.THINGSPEAK_FIELD_TEMPERATURE) || 1,
   umidadeAr: Number(process.env.THINGSPEAK_FIELD_HUMIDITY) || 2,
   umidadeSolo: Number(process.env.THINGSPEAK_FIELD_SOIL_HUMIDITY) || 3,
-  chuva: Number(process.env.THINGSPEAK_FIELD_RAINFALL) || 4,
 };
-
+// FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO
 // -------------------------------------------------------------------------
 // 1b. QUAIS CAMPOS VEM DO MESMO APARELHO FISICO
 // -------------------------------------------------------------------------
