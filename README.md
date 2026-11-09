@@ -75,19 +75,19 @@ O banco de dados foi unificado no **modelo operacional singular**. O esquema cri
 Copie o arquivo `.env.example` para `.env` e preencha as credenciais:
 
 ```env
-SUPABASE_URL=https://SEU-PROJETO.supabase.co
-SUPABASE_SECRET_KEY=sua-chave-service-role
-JWT_SECRET=gere-uma-chave-aleatoria-com-pelo-menos-32-caracteres
-IOT_API_KEY=gere-uma-chave-forte-para-os-dispositivos
-FRONTEND_ORIGIN=http://localhost:5500
+SUPABASE_URL+
+SUPABASE_SECRET_KEY=
+
+IOT_API_KEY=g
+FRONTEND_ORIGIN=
 PORT=3000
 BOOTSTRAP_ADMIN_PASSWORD=
-THINGSPEAK_CHANNEL_ID=id-do-canal
-THINGSPEAK_READ_API_KEY=chave-de-leitura-privada
-THINGSPEAK_FIELD_TEMPERATURE=1
-THINGSPEAK_FIELD_HUMIDITY=2
-THINGSPEAK_FIELD_SOIL_HUMIDITY=3
-THINGSPEAK_FIELD_RAINFALL=4
+THINGSPEAK_CHANNEL_ID=
+THINGSPEAK_READ_API_KEY=
+THINGSPEAK_FIELD_TEMPERATURE=
+THINGSPEAK_FIELD_HUMIDITY=
+THINGSPEAK_FIELD_SOIL_HUMIDITY=
+THINGSPEAK_FIELD_RAINFALL=
 ```
 
 Preencha os valores ThingSpeak com o canal real do hardware e mantenha a chave de leitura apenas no `.env` do servidor. Os números de campo são ajustáveis caso o firmware publique métricas em outra ordem.
