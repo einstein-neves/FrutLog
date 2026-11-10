@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="css/vendor/flatpickr.min.css">
   <link rel="stylesheet" href="css/calendarios.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <title>FrutLog - Administração</title>
+  <title>FrutLog</title>
 </head>
 
 <body class="layout-dashboard" data-console-role="admin">
@@ -35,6 +35,8 @@
       <a href="#telemetria-admin" class="nav-link"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
         Telemetria</a>
 
+      <a href="#sensores-admin" class="nav-link"><i class="fa-solid fa-microchip" aria-hidden="true"></i> Sensores</a>
+
       <a href="#graficos" class="nav-link"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Gráficos</a>
 
       <!--Cadastro de produto espelhado do painel do engenheiro-->
@@ -43,8 +45,6 @@
 
       <a href="#funcionarios" class="nav-link active"><i class="fa-solid fa-user-plus" aria-hidden="true"></i>
         Funcionários</a>
-
-      <a href="#sensores-admin" class="nav-link"><i class="fa-solid fa-microchip" aria-hidden="true"></i> Sensores</a>
 
       <a href="#resumo-tecnico" class="nav-link"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i> Dados de
         Campo</a>
@@ -290,9 +290,16 @@
 
     <!-- SEÇÃO TELEMETRIA -->
 
-    <section id="telemetria-admin" class="cartao thingspeak-dashboard" data-thingspeak-panel
-      aria-labelledby="admin-thingspeak-heading">
+    <section id="telemetria-admin" class="cartao thingspeak-dashboard">
       <div id="telemetria-talhao"></div>
+
+      <div class="clima-mensal-admin">
+        <div class="titulo-cartao"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Clima Mensal</div>
+        <p class="texto-ajuda">Médias mensais das leituras dos sensores.</p>
+        <div class="grafico-clima-mensal">
+          <canvas id="grafico-clima-mensal"></canvas>
+        </div>
+      </div>
     </section>
     <!--======================================================== -->
     <!-- Telemetria por talhao: o painel principal desta aba.
@@ -562,8 +569,8 @@
           </div>
 
           <div class="item-detalhe">
-            <span class="label">Umidade do Solo</span>
-            <span class="valor" id="talhao-umidade-solo">--</span>
+            <span class="label">Umidade Atual</span>
+            <span class="valor" id="talhao-umidade">--</span>
           </div>
 
           <div class="item-detalhe">
@@ -705,13 +712,6 @@
     <!-- SEÇÃO GRÁFICOS -->
     <section id="graficos" class="admin-graficos">
       <div class="admin-graficos-coluna">
-        <article class="cartao cartao-altura-padrao">
-          <div class="titulo-cartao"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Clima Mensal</div>
-          <p class="texto-ajuda">Médias mensais das leituras dos sensores.</p>
-          <div class="admin-grafico-container">
-            <canvas id="grafico-clima-mensal"></canvas>
-          </div>
-        </article>
 
         <article class="cartao">
           <div class="titulo-cartao"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Métricas dos Sensores

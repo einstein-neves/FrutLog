@@ -107,8 +107,8 @@ function dataLocalISO() {
 
 const CABECALHOS_ABAS = {
   "aba-monitoramento": {
-    titulo: "Painel do Técnico Agrícola",
-    descricao: "Registros de campo, ocorrências e acompanhamento dos sensores dos talhões.",
+    titulo: "Monitoramento do Técnico Agrícola",
+    descricao: "Registros de field, ocorrências e acompanhamento dos sensores dos talhões.",
   },
   "aba-registros": {
     titulo: "Registros de Campo",
@@ -117,6 +117,10 @@ const CABECALHOS_ABAS = {
   "aba-telemetria": {
     titulo: "Telemetria",
     descricao: "Leituras dos sensores por talhão, histórico diário e médias mensais.",
+  },
+  "aba-sensores": {
+    titulo: "Sensores",
+    descricao: "Métricas e situação dos sensores instalados nos talhões.",
   },
 };
 
@@ -753,7 +757,18 @@ function selecionarTalhao(idTalhao) {
   preencherTexto("tecnico-talhao-temperatura", monitoramento.temperaturaAtual !== null && monitoramento.temperaturaAtual !== undefined ? `${monitoramento.temperaturaAtual} °C` : "--");
   preencherTexto("tecnico-talhao-umidade", props.diaria?.umidadeAr ? `${props.diaria.umidadeAr}% ar / ${props.diaria.umidadeSolo || "--"}% solo` : "--");
   preencherTexto("tecnico-talhao-prioridade", props.prioridade || "Rotina de acompanhamento");
+  const inspecao = historicoInspecoes.find((item) => item.talhao === idTalhao) || {};
+  preencherTexto("tecnico-talhao-diagnostico", monitoramento.mensagem || props.prioridade || "--");
+  preencherTexto("tecnico-talhao-diagnostico-origem", monitoramento.origem ? `Fonte: ${monitoramento.origem}` : "");
+  preencherTexto("tecnico-talhao-inspecao-data", inspecao.data ? formatarData(inspecao.data) : "--");
+  preencherTexto("tecnico-talhao-inspecao-tecnico", inspecao.tecnico || (inspecao.data ? "Registrado em campo" : "--"));
+  preencherTexto("tecnico-talhao-inspecao-problema", inspecao.problemas || "Nenhuma inspeção registrada.");
+  preencherTexto("tecnico-talhao-inspecao-recomendacao", inspecao.observacoes || "--");
 
+  const linhaIa = document.getElementById("tecnico-talhao-diagnostico")?.closest(".destaque-ia");
+  if (linhaIa) {
+    linhaIa.className = `item-detalhe destaque-ia status-${normalizarClasse(props.status || "sem-leitura").replace(/\s+/g, "-")}`;
+  }
   const badge = document.getElementById("tecnico-talhao-status");
   if (badge) {
     badge.textContent = FrutLog.textoInterface(props.status);

@@ -29,7 +29,7 @@ const CABECALHOS_ABAS = {
     descricao: "Relatórios diários enviados pela equipe técnica.",
   },
   "monitoramento": {
-    titulo: "Monitoramento",
+    titulo: "Monitoramento do Administrador",
     descricao: "Situação dos talhões e acompanhamento da produção.",
   },
   "cadastro-plantio": {
@@ -38,7 +38,7 @@ const CABECALHOS_ABAS = {
   },
   "graficos": {
     titulo: "Gráficos",
-    descricao: "Histórico de colheitas e clima mensal.",
+    descricao: "Métricas dos sensores e histórico de colheitas.",
   },
 };
 
@@ -1230,8 +1230,10 @@ function renderizarDetalhesTalhaoAdmin(codigo) {
     ? `${ia.temperaturaAtual} °C${minutos != null ? ` · há ${minutos} min` : ""}`
     : "--");
   const soloValor = ia.umidadeSolo ?? umidadeSolo?.valor;
-  preencher("talhao-umidade-solo", soloValor != null
-    ? `${soloValor} %${ia.umidadeSolo == null ? " (desatualizada)" : ""}`
+  const arValor = umidadeAr?.valor;
+  const desatualizada = ia.umidadeSolo == null && soloValor != null;
+  preencher("talhao-umidade", soloValor != null || arValor != null
+    ? `${arValor ?? "--"}% ar / ${soloValor ?? "--"}% solo${desatualizada ? " (desatualizada)" : ""}`
     : "--");
   preencher("talhao-ultima-leitura", ultimaLeitura);
   preencher("talhao-diagnostico", ia.mensagem || monitorado.prioridade || "--");
@@ -1384,7 +1386,8 @@ function renderizarGraficoColheita() {
 function renderizarGraficoClimaMensalAdmin() {
   const canvas = document.getElementById("grafico-clima-mensal");
   if (!canvas || typeof Chart === "undefined") return;
-  if (graficoClimaMensalAdmin) graficoClimaMensalAdmin.destroy();
+  const graficoExistente = Chart.getChart(canvas);
+  if (graficoExistente) graficoExistente.destroy();
 
   const leituras = [...telemetriaMensalAdmin, ...telemetriaMensalEsp32Admin];
   const meses = [...new Set(leituras.map((item) => item.mes).filter(Boolean))].sort();

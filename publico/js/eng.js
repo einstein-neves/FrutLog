@@ -5,7 +5,7 @@
 
 const CABECALHOS_ABAS = {
   "monitoramento": {
-    titulo: "Monitoramento da Produção",
+    titulo: "Monitoramento do Engenheiro",
     descricao: "Acompanhamento dos produtos em desenvolvimento nos talhões.",
   },
   "telemetria": {
@@ -341,8 +341,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       ? `${ia.temperaturaAtual} °C${minutos != null ? ` · há ${minutos} min` : ""}`
       : "--");
     const soloValor = ia.umidadeSolo ?? props.diaria?.umidadeSolo;
-    preencherTexto("talhao-umidade-solo", soloValor != null
-      ? `${soloValor} %${ia.umidadeSolo == null ? " (desatualizada)" : ""}`
+    const arValor = props.diaria?.umidadeAr;
+    const desatualizada = ia.umidadeSolo == null && soloValor != null;
+    preencherTexto("talhao-umidade", soloValor != null || arValor != null
+      ? `${arValor ?? "--"}% ar / ${soloValor ?? "--"}% solo${desatualizada ? " (desatualizada)" : ""}`
       : "--");
     preencherTexto("talhao-inspecao-data", formatarData(props.apontamentoTecnico?.data));
     preencherTexto("talhao-inspecao-tecnico", props.apontamentoTecnico?.tecnico || "--");
