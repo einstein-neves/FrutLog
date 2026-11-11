@@ -3,10 +3,7 @@ const { test, expect } = require("playwright/test");
 const paginas = [
   { arquivo: "login.html", titulo: "FrutLog - Login" },
 
-  { arquivo: "eng.html", titulo: "FrutLog - Engenheiro Agronomo", perfil: "engenheiro" },
-  { arquivo: "tec.html", titulo: "FrutLog - Tecnico Agricola", perfil: "tecnico" },
-  { arquivo: "admin.html", titulo: "FrutLog - Administracao", perfil: "admin" },
-
+// HILCCER ROCHA DE ARAUJO MELO ALTERACAO: removidas as linhas duplicadas sem acento
   { arquivo: "eng.html", titulo: "FrutLog - Engenheiro Agrônomo", perfil: "engenheiro" },
   { arquivo: "tec.html", titulo: "FrutLog - Técnico Agrícola", perfil: "tecnico" },
   { arquivo: "admin.html", titulo: "FrutLog - Administração", perfil: "admin" },

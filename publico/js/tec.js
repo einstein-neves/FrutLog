@@ -998,13 +998,15 @@ function carregarAlertas() {
     return;
   }
 
+    // INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: escapa o texto dos alertas (correcao de XSS)
   lista.innerHTML = alertas.map((alerta) => `
-    <article class="alerta-tecnico ${alerta.nivel}">
-      <strong>${alerta.titulo}</strong>
-      <p>${alerta.texto}</p>
+    <article class="alerta-tecnico ${escaparHtml(alerta.nivel)}">
+      <strong>${escaparHtml(alerta.titulo)}</strong>
+      <p>${escaparHtml(alerta.texto)}</p>
     </article>
   `).join("");
-}
+  // FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO
+  }
 
 function exibirMensagem(id, texto, tipo = "sucesso") {
   const elemento = document.getElementById(id);
