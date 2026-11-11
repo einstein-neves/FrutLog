@@ -98,7 +98,7 @@ const METRICAS_TELEMETRIA = {
 };
 const PALETA_TALHOES = ["#2e7d32", "#1565c0", "#ef6c00", "#6a1b9a", "#c62828", "#00838f"];
 // Talhão onde o ESP32 está instalado. Os dados do ThingSpeak são mostrados só para ele.
-const TALHAO_DO_ESP32 = "A1";
+const TALHAO_DO_ESP32 = "T19";
 
 function dataLocalISO() {
   const hoje = new Date();
@@ -107,7 +107,7 @@ function dataLocalISO() {
 
 const CABECALHOS_ABAS = {
   "aba-monitoramento": {
-    titulo: "Painel do Técnico Agrícola",
+    titulo: "Monitoramento do Técnico Agrícola",
     descricao: "Registros de campo, ocorrências e acompanhamento dos sensores dos talhões.",
   },
   "aba-registros": {
@@ -117,6 +117,10 @@ const CABECALHOS_ABAS = {
   "aba-telemetria": {
     titulo: "Telemetria",
     descricao: "Leituras dos sensores por talhão, histórico diário e médias mensais.",
+  },
+  "aba-sensores": {
+    titulo: "Sensores",
+    descricao: "Métricas e situação dos sensores instalados nos talhões.",
   },
 };
 
@@ -751,9 +755,28 @@ function selecionarTalhao(idTalhao) {
   preencherTexto("tecnico-talhao-sensor", props.sensor || "Não associado");
   preencherTexto("tecnico-talhao-limite", monitoramento.temperaturaMaxima !== null && monitoramento.temperaturaMaxima !== undefined ? `${monitoramento.temperaturaMaxima} °C` : "--");
   preencherTexto("tecnico-talhao-temperatura", monitoramento.temperaturaAtual !== null && monitoramento.temperaturaAtual !== undefined ? `${monitoramento.temperaturaAtual} °C` : "--");
-  preencherTexto("tecnico-talhao-umidade", props.diaria?.umidadeAr ? `${props.diaria.umidadeAr}% ar / ${props.diaria.umidadeSolo || "--"}% solo` : "--");
+  // Umidade do solo vem da leitura validada pelo Predador; se ela não existe, o valor mostrado está desatualizado.
+  const arValor = props.diaria?.umidadeAr;
+  const arValido = arValor !== undefined && arValor !== null && arValor !== "--";
+  const soloBruto = props.diaria?.umidadeSolo;
+  const soloValor = monitoramento.umidadeSolo ?? (soloBruto !== undefined && soloBruto !== null && soloBruto !== "--" ? soloBruto : null);
+  const desatualizada = monitoramento.umidadeSolo == null && soloValor != null;
+  preencherTexto("tecnico-talhao-umidade", arValido || soloValor != null
+    ? `${arValido ? arValor : "--"}% ar / ${soloValor ?? "--"}% solo${desatualizada ? " (desatualizada)" : ""}`
+    : "--");
   preencherTexto("tecnico-talhao-prioridade", props.prioridade || "Rotina de acompanhamento");
+  const inspecao = historicoInspecoes.find((item) => item.talhao === idTalhao) || {};
+  preencherTexto("tecnico-talhao-diagnostico", monitoramento.mensagem || props.prioridade || "--");
+  preencherTexto("tecnico-talhao-diagnostico-origem", monitoramento.origem ? `Fonte: ${monitoramento.origem}` : "");
+  preencherTexto("tecnico-talhao-inspecao-data", inspecao.data ? formatarData(inspecao.data) : "--");
+  preencherTexto("tecnico-talhao-inspecao-tecnico", inspecao.tecnico || (inspecao.data ? "Registrado em campo" : "--"));
+  preencherTexto("tecnico-talhao-inspecao-problema", inspecao.problemas || "Nenhuma inspeção registrada.");
+  preencherTexto("tecnico-talhao-inspecao-recomendacao", inspecao.observacoes || "--");
 
+  const linhaIa = document.getElementById("tecnico-talhao-diagnostico")?.closest(".destaque-ia");
+  if (linhaIa) {
+    linhaIa.className = `item-detalhe destaque-ia status-${normalizarClasse(props.status || "sem-leitura").replace(/\s+/g, "-")}`;
+  }
   const badge = document.getElementById("tecnico-talhao-status");
   if (badge) {
     badge.textContent = FrutLog.textoInterface(props.status);
