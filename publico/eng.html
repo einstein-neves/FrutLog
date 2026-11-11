@@ -10,7 +10,9 @@
   <link rel="stylesheet" href="css/eng.css">
   <link rel="stylesheet" href="css/pulse-frutlog.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <title>FrutLog - Engenheiro Agrônomo</title>
+  <title>FrutLog</title>
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23eef3ea'/%3E%3Cpath d='M50 12C30 12 14 22 14 38c0 4 2 8 5 10 2-8 8-15 18-20-7 6-12 12-14 21 3 2 6 3 9 3 14 0 18-18 18-40z' fill='%232e7d32'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/formularios.css">
   <link rel="stylesheet" href="css/vendor/flatpickr.min.css">
   <link rel="stylesheet" href="css/calendarios.css">
@@ -28,14 +30,19 @@
         Monitoramento</a>
 
       <a href="#relatorios-diarios" class="nav-link"><i class="fa-solid fa-file-lines" aria-hidden="true"></i>
-        Relatórios Recebidos</a>
+        Registros de Campo</a>
 
       <a href="#telemetria" class="nav-link"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
         Telemetria</a>
-      <a href="#graficos" class="nav-link"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Gráficos</a>
+
+      <a href="#sensores" class="nav-link"><i class="fa-solid fa-microchip" aria-hidden="true"></i> Sensores</a>
 
       <a href="#cadastro-plantio" class="nav-link"><i class="fa-solid fa-seedling" aria-hidden="true"></i> Cadastrar
         Produto</a>
+
+      <a href="#colheitas" class="nav-link"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i>
+        Colheitas</a>
+
     </nav>
 
     <div class="sidebar-acoes">
@@ -162,6 +169,11 @@
             <span class="valor" id="talhao-ultima-leitura">--</span>
           </div>
 
+          <div class="item-detalhe">
+            <span class="label">Sensor principal</span>
+            <span class="valor" id="talhao-sensor">--</span>
+          </div>
+
           <div class="item-detalhe destaque-ia">
             <span class="label">Diagnóstico da IA Preditiva</span>
             <span class="valor" id="talhao-diagnostico">--</span>
@@ -208,6 +220,14 @@
       <!--=============================== -->
       <section class="cartao">
         <div id="telemetria-talhao"></div>
+
+        <div class="secao-grafico-admin">
+          <div class="titulo-cartao"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Clima Mensal</div>
+          <p class="texto-ajuda">Médias mensais das leituras dos sensores.</p>
+          <div class="area-grafico-admin">
+            <canvas id="grafico-clima-mensal-engenheiro"></canvas>
+          </div>
+        </div>
       </section>
 
       <!-- <section class="cartao-full-diario">
@@ -333,105 +353,97 @@ do solo.</p>
 
 
     <!-- =========================================================== -->
-    <!-- SEÇÃO GRÁFICOS DE CLIMA -->
-    <div id="graficos" hidden>
-      <div class="graficos-lado-a-lado">
-        <div id="historico">
-
-          <section class="cartao cartao-altura-padrao">
-            <div class="titulo-cartao">
-              <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
-              Clima Mensal
-            </div>
-
-            <p class="texto-ajuda">
-              Médias mensais das leituras dos sensores.
-            </p>
-
-            <div class="grafico-clima-mensal">
-              <canvas id="grafico-clima-mensal-engenheiro"></canvas>
-            </div>
-          </section>
-
-          <section class="cartao">
-            <div class="titulo-cartao"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Métricas dos Sensores
-            </div>
-            <div class="filtros-metricas">
-              <div class="item-detalhe-cadastro">
-                <label class="label" for="filtro-metrica-tecnico">Métrica</label>
-                <select id="filtro-metrica-tecnico" class="campo-formulario"></select>
-              </div>
-              <div class="item-detalhe-cadastro">
-                <label class="label" for="filtro-talhao-metrica-tecnico">Talhão</label>
-                <select id="filtro-talhao-metrica-tecnico" class="campo-formulario"></select>
-              </div>
-            </div>
-            <p id="mensagem-grafico-metricas" class="texto-ajuda" aria-live="polite"></p>
-            <div class="grafico-metricas-tecnico"><canvas id="grafico-metricas-tecnico"></canvas></div>
-          </section>
-
-        </div>
-        <!-- FIM: SEÇÃO GRÁFICOS DE CLIMA -->
-
-        <!-- =========================================================== -->
-        <!-- SEÇÃO COLHEITA -->
-        <section id="colheita" class="cartao cartao-altura-padrao">
-          <div class="header-grafico">
-            <div>
-              <div class="titulo-cartao"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Histórico Anual
-                de
-                Colheitas</div>
-
-              <p class="subtitulo-grafico">Acompanhe o volume de produção acumulado ao longo dos anos.</p>
-            </div>
-
-            <div class="filtros-grafico" aria-label="Unidade do grafico">
-              <button class="btn-filtro active" type="button" data-unidade="t">Toneladas (t)</button>
-              <button class="btn-filtro" type="button" data-unidade="sc">Sacas (sc)</button>
-              <button class="btn-filtro" type="button" data-unidade="kg">Quilogramas (kg)</button>
-              <button class="btn-filtro" type="button" data-unidade="cx">Caixas (cx)</button>
-            </div>
-          </div>
-
-          <div class="container-grafico">
-            <canvas id="graficoColheita"></canvas>
-          </div>
-          <p id="mensagem-colheita" class="mensagem-feedback" aria-live="polite"></p>
-
-          <div class="grid-resumo-colheita">
-            <div class="card-resumo destaque-vermelho">
-              <span class="titulo-resumo">ÚLTIMA COLHEITA</span>
-              <div class="dados-resumo"><i class="fa-regular fa-clock icone-resumo" aria-hidden="true"></i>
-                <div><strong id="resumo-ultima-data">--</strong>
-                  <p id="resumo-ultima-valor">--</p>
-                </div>
-              </div>
-              <span class="rodape-resumo" id="resumo-ultima-media">Média: --</span>
-            </div>
-            <div class="card-resumo destaque-amarelo">
-              <span class="titulo-resumo">MENOR COLHEITA</span>
-              <div class="dados-resumo"><i class="fa-solid fa-circle-arrow-down icone-resumo" aria-hidden="true"></i>
-                <div><strong id="resumo-menor-data">--</strong>
-                  <p id="resumo-menor-valor">--</p>
-                </div>
-              </div>
-              <span class="rodape-resumo" id="resumo-menor-media">Média: --</span>
-            </div>
-            <div class="card-resumo destaque-azul">
-              <span class="titulo-resumo">MAIOR COLHEITA</span>
-              <div class="dados-resumo"><i class="fa-solid fa-circle-arrow-up icone-resumo" aria-hidden="true"></i>
-                <div><strong id="resumo-maior-data">--</strong>
-                  <p id="resumo-maior-valor">--</p>
-                </div>
-              </div>
-              <span class="rodape-resumo" id="resumo-maior-media">Média: --</span>
-            </div>
-          </div>
-        </section>
+    <!-- SEÇÃO SENSORES -->
+    <section id="sensores" class="cartao">
+      <div class="titulo-cartao"><i class="fa-solid fa-microchip" aria-hidden="true"></i> Sensores cadastrados</div>
+      <div class="tabela-responsiva">
+        <table class="tabela-dados">
+          <thead>
+            <tr>
+              <th>Identificador</th>
+              <th>Talhão</th>
+              <th>Métrica</th>
+              <th>Leitura</th>
+              <th>Status</th>
+              <th>Última comunicação</th>
+              <th>Atualidade</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-sensores-eng"></tbody>
+        </table>
       </div>
-      <!-- FIM: SEÇÃO COLHEITA -->
 
-    </div>
+      <div class="secao-grafico-admin">
+        <div class="titulo-cartao"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Métricas dos Sensores
+        </div>
+        <div class="filtros-metricas">
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="filtro-metrica-tecnico">Métrica</label>
+            <select id="filtro-metrica-tecnico" class="campo-formulario"></select>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="filtro-talhao-metrica-tecnico">Talhão</label>
+            <select id="filtro-talhao-metrica-tecnico" class="campo-formulario"></select>
+          </div>
+        </div>
+        <p id="mensagem-grafico-metricas" class="texto-ajuda" aria-live="polite"></p>
+        <div class="grafico-metricas-tecnico"><canvas id="grafico-metricas-tecnico"></canvas></div>
+      </div>
+    </section>
+
+    <!-- SEÇÃO COLHEITAS -->
+    <section id="colheitas" class="cartao">
+      <div class="secao-grafico-admin sem-borda">
+        <div class="header-grafico">
+          <div>
+            <div class="titulo-cartao"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Histórico Anual de
+              Colheitas</div>
+            <p class="subtitulo-grafico">Acompanhe o volume de produção acumulado ao longo dos anos.</p>
+          </div>
+          <div class="filtros-grafico" aria-label="Unidade do grafico">
+            <button class="btn-filtro active" type="button" data-unidade="t">Toneladas (t)</button>
+            <button class="btn-filtro" type="button" data-unidade="sc">Sacas (sc)</button>
+            <button class="btn-filtro" type="button" data-unidade="kg">Quilogramas (kg)</button>
+            <button class="btn-filtro" type="button" data-unidade="cx">Caixas (cx)</button>
+          </div>
+        </div>
+
+        <div class="admin-grafico-container">
+          <canvas id="graficoColheita"></canvas>
+        </div>
+        <p id="mensagem-colheita" class="mensagem-feedback" aria-live="polite"></p>
+
+        <div class="grid-resumo-colheita">
+          <div class="card-resumo destaque-vermelho">
+            <span class="titulo-resumo">ÚLTIMA COLHEITA</span>
+            <div class="dados-resumo"><i class="fa-regular fa-clock icone-resumo" aria-hidden="true"></i>
+              <div><strong id="resumo-ultima-data">--</strong>
+                <p id="resumo-ultima-valor">--</p>
+              </div>
+            </div>
+            <span class="rodape-resumo" id="resumo-ultima-media">Média: --</span>
+          </div>
+          <div class="card-resumo destaque-amarelo">
+            <span class="titulo-resumo">MENOR COLHEITA</span>
+            <div class="dados-resumo"><i class="fa-solid fa-circle-arrow-down icone-resumo" aria-hidden="true"></i>
+              <div><strong id="resumo-menor-data">--</strong>
+                <p id="resumo-menor-valor">--</p>
+              </div>
+            </div>
+            <span class="rodape-resumo" id="resumo-menor-media">Média: --</span>
+          </div>
+          <div class="card-resumo destaque-azul">
+            <span class="titulo-resumo">MAIOR COLHEITA</span>
+            <div class="dados-resumo"><i class="fa-solid fa-circle-arrow-up icone-resumo" aria-hidden="true"></i>
+              <div><strong id="resumo-maior-data">--</strong>
+                <p id="resumo-maior-valor">--</p>
+              </div>
+            </div>
+            <span class="rodape-resumo" id="resumo-maior-media">Média: --</span>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- =========================================================== -->
     <!-- SEÇÃO CADASTRO DE PLANTIO -->

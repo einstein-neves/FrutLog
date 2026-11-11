@@ -98,7 +98,7 @@ const METRICAS_TELEMETRIA = {
 };
 const PALETA_TALHOES = ["#2e7d32", "#1565c0", "#ef6c00", "#6a1b9a", "#c62828", "#00838f"];
 // Talhão onde o ESP32 está instalado. Os dados do ThingSpeak são mostrados só para ele.
-const TALHAO_DO_ESP32 = "A1";
+const TALHAO_DO_ESP32 = "T19";
 
 function dataLocalISO() {
   const hoje = new Date();
@@ -108,7 +108,7 @@ function dataLocalISO() {
 const CABECALHOS_ABAS = {
   "aba-monitoramento": {
     titulo: "Monitoramento do Técnico Agrícola",
-    descricao: "Registros de field, ocorrências e acompanhamento dos sensores dos talhões.",
+    descricao: "Registros de campo, ocorrências e acompanhamento dos sensores dos talhões.",
   },
   "aba-registros": {
     titulo: "Registros de Campo",
@@ -755,7 +755,15 @@ function selecionarTalhao(idTalhao) {
   preencherTexto("tecnico-talhao-sensor", props.sensor || "Não associado");
   preencherTexto("tecnico-talhao-limite", monitoramento.temperaturaMaxima !== null && monitoramento.temperaturaMaxima !== undefined ? `${monitoramento.temperaturaMaxima} °C` : "--");
   preencherTexto("tecnico-talhao-temperatura", monitoramento.temperaturaAtual !== null && monitoramento.temperaturaAtual !== undefined ? `${monitoramento.temperaturaAtual} °C` : "--");
-  preencherTexto("tecnico-talhao-umidade", props.diaria?.umidadeAr ? `${props.diaria.umidadeAr}% ar / ${props.diaria.umidadeSolo || "--"}% solo` : "--");
+  // Umidade do solo vem da leitura validada pelo Predador; se ela não existe, o valor mostrado está desatualizado.
+  const arValor = props.diaria?.umidadeAr;
+  const arValido = arValor !== undefined && arValor !== null && arValor !== "--";
+  const soloBruto = props.diaria?.umidadeSolo;
+  const soloValor = monitoramento.umidadeSolo ?? (soloBruto !== undefined && soloBruto !== null && soloBruto !== "--" ? soloBruto : null);
+  const desatualizada = monitoramento.umidadeSolo == null && soloValor != null;
+  preencherTexto("tecnico-talhao-umidade", arValido || soloValor != null
+    ? `${arValido ? arValor : "--"}% ar / ${soloValor ?? "--"}% solo${desatualizada ? " (desatualizada)" : ""}`
+    : "--");
   preencherTexto("tecnico-talhao-prioridade", props.prioridade || "Rotina de acompanhamento");
   const inspecao = historicoInspecoes.find((item) => item.talhao === idTalhao) || {};
   preencherTexto("tecnico-talhao-diagnostico", monitoramento.mensagem || props.prioridade || "--");

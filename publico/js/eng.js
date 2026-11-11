@@ -12,12 +12,16 @@ const CABECALHOS_ABAS = {
     titulo: "Telemetria",
     descricao: "Leituras dos sensores por talhão, histórico diário e médias mensais.",
   },
-  "graficos": {
-    titulo: "Gráficos",
-    descricao: "Histórico de colheitas e clima mensal dos talhões.",
+  "sensores": {
+    titulo: "Sensores",
+    descricao: "Métricas dos sensores por talhão.",
+  },
+  "colheitas": {
+    titulo: "Colheitas",
+    descricao: "Histórico anual de colheitas dos talhões.",
   },
   "relatorios-diarios": {
-    titulo: "Relatórios Recebidos",
+    titulo: "Registros de Campo",
     descricao: "Relatórios de campo enviados pelos técnicos.",
   },
   "cadastro-plantio": {
@@ -335,6 +339,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     preencherTexto("talhao-variedade", props.variedade);
     preencherTexto("talhao-temperatura-maxima", `${props.parametros?.temperaturaMaxima ?? "--"} °C`);
     preencherTexto("talhao-ultima-leitura", formatarDataHora(props.ultima_leitura_em));
+    preencherTexto("talhao-sensor", props.sensor || "Não associado");
     const ia = props.monitoramento || {};
     const minutos = ia.coletadoEm ? Math.round((Date.now() - new Date(ia.coletadoEm)) / 60000) : null;
     preencherTexto("talhao-temperatura-atual", ia.temperaturaAtual != null
@@ -402,6 +407,34 @@ document.addEventListener("DOMContentLoaded", async () => {
   function obterSensores() {
     return sensoresDoPainel;
   }
+
+  function renderizarSensores() {
+    const tabela = document.getElementById("tabela-sensores-eng");
+    if (!tabela) return;
+    if (!sensoresDoPainel.length) {
+      tabela.innerHTML = '<tr><td colspan="7">Nenhum sensor cadastrado.</td></tr>';
+      return;
+    }
+    tabela.innerHTML = sensoresDoPainel.map((sensor) => {
+      const status = sensor.status || (sensor.ativo === false ? "Inativo" : "Online");
+      const leitura = sensor.leitura
+        || (valorSensorValido(sensor) ? `${sensor.valor} ${sensor.unidade || ""}`.trim() : "Sem leitura");
+      const atualidade = !sensor.ultima_leitura_em
+        ? "Sem leitura"
+        : sensor.dados_recentes ? "Atual" : "Desatualizada";
+      return `
+        <tr>
+          <td>${escaparHtml(sensor.sensor || sensor.id_externo)}</td>
+          <td>${escaparHtml(sensor.talhao || "--")}</td>
+          <td>${escaparHtml(sensor.tipo || sensor.codigo_metrica)}</td>
+          <td>${escaparHtml(leitura)}<br><small>${sensor.ultima_leitura_em ? escaparHtml(formatarDataHora(sensor.ultima_leitura_em)) : "Sem leitura registrada"}</small></td>
+          <td><span class="badge-status ${classeStatus(status)}">${escaparHtml(status)}</span></td>
+          <td>${escaparHtml(sensor.comunicacao ? formatarDataHora(sensor.comunicacao) : "Nunca")}</td>
+          <td><span class="badge-status ${atualidade === "Atual" ? "normal" : "atencao"}">${atualidade}</span></td>
+        </tr>`;
+    }).join("");
+  }
+
 
   function carregarGraficoMetricas() {
     const selectMetrica = document.getElementById("filtro-metrica-tecnico");
@@ -1164,6 +1197,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       FrutLogTelemetria.definirTalhoes(talhoes);
     }
 
+    renderizarSensores();
     carregarGraficoMetricas();
 
     if (erros.length) {

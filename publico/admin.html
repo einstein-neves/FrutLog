@@ -14,6 +14,8 @@
   <link rel="stylesheet" href="css/calendarios.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <title>FrutLog</title>
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23eef3ea'/%3E%3Cpath d='M50 12C30 12 14 22 14 38c0 4 2 8 5 10 2-8 8-15 18-20-7 6-12 12-14 21 3 2 6 3 9 3 14 0 18-18 18-40z' fill='%232e7d32'/%3E%3C/svg%3E">
 </head>
 
 <body class="layout-dashboard" data-console-role="admin">
@@ -30,18 +32,19 @@
         Monitoramento </a>
 
       <a href="#relatorios-diarios" class="nav-link"><i class="fa-solid fa-file-lines" aria-hidden="true"></i>
-        Relatórios Recebidos</a>
+        Registros de Campo</a>
 
       <a href="#telemetria-admin" class="nav-link"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
         Telemetria</a>
 
       <a href="#sensores-admin" class="nav-link"><i class="fa-solid fa-microchip" aria-hidden="true"></i> Sensores</a>
 
-      <a href="#graficos" class="nav-link"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Gráficos</a>
-
       <!--Cadastro de produto espelhado do painel do engenheiro-->
       <a href="#cadastro-plantio" class="nav-link"><i class="fa-solid fa-seedling" aria-hidden="true"></i> Cadastrar
         Produto</a>
+
+      <a href="#colheitas-admin" class="nav-link"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i>
+        Colheitas</a>
 
       <a href="#funcionarios" class="nav-link active"><i class="fa-solid fa-user-plus" aria-hidden="true"></i>
         Funcionários</a>
@@ -49,8 +52,7 @@
       <a href="#resumo-tecnico" class="nav-link"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i> Dados de
         Campo</a>
 
-      <a href="#colheitas-admin" class="nav-link"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i>
-        Colheitas</a>
+
 
     </nav>
 
@@ -230,6 +232,24 @@
           <tbody id="tabela-sensores-admin"></tbody>
         </table>
       </div>
+
+      <div class="secao-grafico-admin">
+        <div class="titulo-cartao"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Métricas dos Sensores
+        </div>
+        <div class="filtros-metricas">
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="filtro-metrica-tecnico">Métrica</label>
+            <select id="filtro-metrica-tecnico" class="campo-formulario"></select>
+          </div>
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="filtro-talhao-metrica-tecnico">Talhão</label>
+            <select id="filtro-talhao-metrica-tecnico" class="campo-formulario"></select>
+          </div>
+        </div>
+        <p id="mensagem-grafico-metricas" class="texto-ajuda" aria-live="polite"></p>
+        <div class="grafico-metricas-tecnico"><canvas id="grafico-metricas-tecnico"></canvas></div>
+      </div>
+
     </section>
     <!-- =========================================================== -->
 
@@ -293,10 +313,10 @@
     <section id="telemetria-admin" class="cartao thingspeak-dashboard">
       <div id="telemetria-talhao"></div>
 
-      <div class="clima-mensal-admin">
+      <div class="secao-grafico-admin">
         <div class="titulo-cartao"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Clima Mensal</div>
         <p class="texto-ajuda">Médias mensais das leituras dos sensores.</p>
-        <div class="grafico-clima-mensal">
+        <div class="area-grafico-admin">
           <canvas id="grafico-clima-mensal"></canvas>
         </div>
       </div>
@@ -338,7 +358,7 @@
     <!--  COLHEITAS -->
     <!-- Registro das quantidades colhidas nos talhoes. -->
     <section id="colheitas-admin" class="cartao">
-      <div class="titulo-cartao"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> Registrar colheita
+      <div class="titulo-cartao"><i class=aria-hidden="true"></i>Registrar colheita
       </div>
       <form data-form-colheita>
         <div class="info-grid-cadastro">
@@ -367,73 +387,232 @@
         <div class="area-botao-cadastro">
           <button type="submit" class="btn-primario">Registrar colheita</button>
         </div>
+
+        <div class="secao-grafico-admin">
+          <div class="header-grafico">
+            <div>
+              <div class="titulo-cartao"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Histórico Anual de
+                Colheitas</div>
+              <p class="subtitulo-grafico">Acompanhe o volume de produção acumulado ao longo dos anos.</p>
+            </div>
+            <div class="filtros-grafico" aria-label="Unidade do grafico de colheita">
+              <button class="btn-filtro active" type="button" data-unidade-admin="t">Toneladas (t)</button>
+              <button class="btn-filtro" type="button" data-unidade-admin="sc">Sacas (sc)</button>
+              <button class="btn-filtro" type="button" data-unidade-admin="kg">Quilogramas (kg)</button>
+              <button class="btn-filtro" type="button" data-unidade-admin="cx">Caixas (cx)</button>
+            </div>
+          </div>
+
+          <div class="admin-grafico-container">
+            <canvas id="grafico-colheita-anual"></canvas>
+          </div>
+          <p id="mensagem-colheita-admin" class="mensagem-feedback" aria-live="polite"></p>
+
+          <div class="grid-resumo-colheita">
+            <div class="card-resumo destaque-vermelho">
+              <span class="titulo-resumo">ÚLTIMA COLHEITA</span>
+              <div class="dados-resumo"><i class="fa-regular fa-clock icone-resumo" aria-hidden="true"></i>
+                <div><strong id="resumo-ultima-data">--</strong>
+                  <p id="resumo-ultima-valor">--</p>
+                </div>
+              </div>
+              <span class="rodape-resumo" id="resumo-ultima-media">Média: --</span>
+            </div>
+            <div class="card-resumo destaque-amarelo">
+              <span class="titulo-resumo">MENOR COLHEITA</span>
+              <div class="dados-resumo"><i class="fa-solid fa-circle-arrow-down icone-resumo" aria-hidden="true"></i>
+                <div><strong id="resumo-menor-data">--</strong>
+                  <p id="resumo-menor-valor">--</p>
+                </div>
+              </div>
+              <span class="rodape-resumo" id="resumo-menor-media">Média: --</span>
+            </div>
+            <div class="card-resumo destaque-azul">
+              <span class="titulo-resumo">MAIOR COLHEITA</span>
+              <div class="dados-resumo"><i class="fa-solid fa-circle-arrow-up icone-resumo" aria-hidden="true"></i>
+                <div><strong id="resumo-maior-data">--</strong>
+                  <p id="resumo-maior-valor">--</p>
+                </div>
+              </div>
+              <span class="rodape-resumo" id="resumo-maior-media">Média: --</span>
+            </div>
+          </div>
+        </div>
       </form>
     </section>
 
     <!-- =========================================================== -->
 
     <!-- SEÇÃO RELATÓRIOS -->
-    <section id="relatorios-diarios" class="cartao">
-      <div class="titulo-cartao">
-        <i class="fa-solid fa-file-lines" aria-hidden="true"></i> Relatórios diários recebidos
-      </div>
+    <div id="relatorios-diarios">
+      <section class="cartao">
+        <div class="titulo-cartao">
+          <i class="fa-solid fa-file-lines" aria-hidden="true"></i> Relatórios diários recebidos
+        </div>
 
-      <div class="filtros-relatorios">
-        <label for="filtro-relatorio-texto">Técnico ou texto</label>
-        <input id="filtro-relatorio-texto" class="campo-formulario" type="search" placeholder="Buscar relatório">
+        <div class="filtros-relatorios">
+          <label for="filtro-relatorio-texto">Técnico ou texto</label>
+          <input id="filtro-relatorio-texto" class="campo-formulario" type="search" placeholder="Buscar relatório">
 
-        <label for="filtro-relatorio-data">Data</label>
-        <input id="filtro-relatorio-data" class="campo-formulario" type="date">
+          <label for="filtro-relatorio-data">Data</label>
+          <input id="filtro-relatorio-data" class="campo-formulario" type="date">
 
-        <label for="filtro-relatorio-status">Status</label>
-        <select id="filtro-relatorio-status" class="campo-formulario">
-          <option value="todos">Todos</option>
-          <option value="enviado">Enviado</option>
-          <option value="em_analise">Em analise</option>
-          <option value="concluido">Concluido</option>
-        </select>
-      </div>
+          <label for="filtro-relatorio-status">Status</label>
+          <select id="filtro-relatorio-status" class="campo-formulario">
+            <option value="todos">Todos</option>
+            <option value="enviado">Enviado</option>
+            <option value="em_analise">Em analise</option>
+            <option value="concluido">Concluido</option>
+          </select>
+        </div>
 
-      <!-- =========================================================== -->
+        <!-- =========================================================== -->
 
-      <!-- A seleção em lote arquiva ou restaura sem remover o histórico do banco. -->
-      <div class="acoes-lote-relatorios">
-        <label><input id="selecionar-todos-relatorios" type="checkbox"> Selecionar todos os visíveis</label>
-        <label for="filtro-visibilidade-relatorios">Exibição</label>
-        <select id="filtro-visibilidade-relatorios" class="campo-formulario">
-          <option value="ativos">Visíveis</option>
-          <option value="arquivados">Arquivados</option>
-          <option value="todos">Todos</option>
-        </select>
-        <button class="btn-filtro" type="button" data-arquivar-selecionados disabled>Arquivar
-          selecionados</button>
-        <button class="btn-filtro" type="button" data-restaurar-selecionados disabled>Restaurar
-          selecionados</button>
-        <button class="btn-excluir-relatorio" type="button" data-excluir-selecionados disabled>Excluir
-          selecionados</button>
-      </div>
+        <!-- A seleção em lote arquiva ou restaura sem remover o histórico do banco. -->
+        <div class="acoes-lote-relatorios">
+          <label><input id="selecionar-todos-relatorios" type="checkbox"> Selecionar todos os visíveis</label>
+          <label for="filtro-visibilidade-relatorios">Exibição</label>
+          <select id="filtro-visibilidade-relatorios" class="campo-formulario">
+            <option value="ativos">Visíveis</option>
+            <option value="arquivados">Arquivados</option>
+            <option value="todos">Todos</option>
+          </select>
+          <button class="btn-filtro" type="button" data-arquivar-selecionados disabled>Arquivar
+            selecionados</button>
+          <button class="btn-filtro" type="button" data-restaurar-selecionados disabled>Restaurar
+            selecionados</button>
+          <button class="btn-excluir-relatorio" type="button" data-excluir-selecionados disabled>Excluir
+            selecionados</button>
+        </div>
 
-      <p id="mensagem-relatorios" class="mensagem-feedback" aria-live="polite"></p>
+        <p id="mensagem-relatorios" class="mensagem-feedback" aria-live="polite"></p>
 
-      <div class="tabela-responsiva">
-        <table class="tabela-dados">
-          <thead>
-            <tr>
-              <th>Selecionar</th>
-              <th>Data / recebimento</th>
-              <th>Técnico</th>
-              <th>Relatório de campo</th>
-              <th>Status</th>
-              <th>Acompanhamento</th>
-              <th>Ação</th>
-            </tr>
-          </thead>
-          <tbody id="tabela-relatorios">
-            <!-- As linhas da tabela são injetadas via JavaScript -->
-          </tbody>
-        </table>
-      </div>
-    </section>
+        <div class="tabela-responsiva">
+          <table class="tabela-dados">
+            <thead>
+              <tr>
+                <th>Selecionar</th>
+                <th>Data / recebimento</th>
+                <th>Técnico</th>
+                <th>Relatório de campo</th>
+                <th>Status</th>
+                <th>Acompanhamento</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-relatorios">
+              <!-- As linhas da tabela são injetadas via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+
+      </section>
+
+      <section id="registro-campo" class="cartao">
+        <div class="cabecalho-cadastro">
+          <span class="badge-status">Campo</span>
+          <h2 class="titulo-talhao">Novo registro de campo</h2>
+        </div>
+        <p class="subtitulo-cadastro">Escolha o tipo de registro e preencha os campos. O registro aparece no histórico
+          de registros abaixo.</p>
+
+        <div class="seletor-tipo-registro" role="group" aria-label="Tipo de registro">
+          <button type="button" class="btn-filtro active" data-tipo-registro="inspecao" aria-pressed="true"><i
+              class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Inspeção</button>
+          <button type="button" class="btn-filtro" data-tipo-registro="ocorrencia" aria-pressed="false"><i
+              class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Ocorrência</button>
+        </div>
+
+        <form id="form-registro-campo">
+          <div class="info-grid-cadastro">
+            <div class="item-detalhe-cadastro" data-tipos="inspecao ocorrencia">
+              <label class="label" for="registro-talhao">Talhão</label>
+              <select id="registro-talhao" name="talhao" class="campo-formulario" data-obrigatorio="true"
+                required></select>
+            </div>
+            <div class="item-detalhe-cadastro" data-tipos="inspecao">
+              <label class="label" for="registro-data">Data</label>
+              <input type="date" id="registro-data" name="data" class="campo-formulario">
+            </div>
+            <div class="item-detalhe-cadastro" data-tipos="inspecao">
+              <label class="label" for="registro-sensor">Sensor cadastrado (opcional)</label>
+              <select id="registro-sensor" name="sensor_id" class="campo-formulario">
+                <option value="">Sem sensor associado</option>
+              </select>
+              <p class="texto-ajuda" id="registro-sensor-ajuda" aria-live="polite"></p>
+            </div>
+            <div class="item-detalhe-cadastro" data-tipos="inspecao">
+              <label class="label" for="registro-situacao">Situação da plantação</label>
+              <select id="registro-situacao" name="situacao" class="campo-formulario" data-obrigatorio="true" required>
+                <option value="">Selecione</option>
+                <option value="Normal">Normal</option>
+                <option value="Atencao">Atenção</option>
+                <option value="Critico">Crítico</option>
+              </select>
+            </div>
+            <div class="item-detalhe-cadastro" data-tipos="inspecao">
+              <label class="label" for="registro-problemas">Problemas encontrados</label>
+              <input type="text" id="registro-problemas" name="problemas" class="campo-formulario"
+                placeholder="Ex.: folhas amareladas">
+            </div>
+            <div class="item-detalhe-cadastro" data-tipos="ocorrencia" hidden>
+              <label class="label" for="registro-ocorrencia-tipo">Problema</label>
+              <select id="registro-ocorrencia-tipo" name="tipo" class="campo-formulario" data-obrigatorio="true">
+                <option value="">Selecione</option>
+                <option>Pragas</option>
+                <option value="Doencas">Doenças</option>
+                <option value="Falta de agua">Falta de água</option>
+                <option value="Excesso de agua">Excesso de água</option>
+                <option>Desenvolvimento irregular</option>
+                <option>Problema no sensor</option>
+                <option>Outro</option>
+              </select>
+            </div>
+
+            <div class="item-detalhe-cadastro campo-largo" data-tipos="inspecao ocorrencia">
+              <label class="label" for="registro-observacoes">Observações</label>
+              <textarea id="registro-observacoes" name="observacoes" class="campo-formulario"></textarea>
+            </div>
+          </div>
+          <p class="mensagem-feedback" id="mensagem-registro-campo" aria-live="polite"></p>
+          <div class="area-botao-cadastro">
+            <button type="submit" class="btn-primario" id="btn-registrar-campo"><i class="fa-solid fa-floppy-disk"
+                aria-hidden="true"></i> <span>Registrar Inspeção</span></button>
+          </div>
+        </form>
+      </section>
+
+      <section id="historico-registros" class="cartao">
+        <div class="titulo-cartao"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Histórico de
+          registros</div>
+        <div class="filtros-metricas">
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="filtro-historico-tipo">Tipo de registro</label>
+            <select id="filtro-historico-tipo" class="campo-formulario">
+              <option value="">Todos</option>
+              <option value="inspecao">Inspeções</option>
+              <option value="ocorrencia">Ocorrências</option>
+              <option value="relatorio">Relatórios</option>
+            </select>
+          </div>
+        </div>
+        <div class="tabela-responsiva">
+          <table class="tabela-dados">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Talhão</th>
+                <th>Sensor</th>
+                <th>Detalhes</th>
+                <th>Observações</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-registros-campo"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
 
     <!-- MODAL DE VISUALIZAÇÃO COMPLETA DO RELATÓRIO (COM SUPORTE A ANEXOS) -->
     <div id="modal-relatorio" class="modal-overlay">
@@ -578,6 +757,11 @@
             <span class="valor" id="talhao-ultima-leitura">--</span>
           </div>
 
+          <div class="item-detalhe">
+            <span class="label">Sensor principal</span>
+            <span class="valor" id="talhao-sensor">--</span>
+          </div>
+
           <!-- =========================================================== -->
 
           <!-- Veredito do nucleo da IA Preditiva (src/ia/predador-nucleo.js),
@@ -709,79 +893,6 @@
 
     <!-- =========================================================== -->
     <!-- SEÇÃO GRÁFICOS (GARANTE O GRÁFICO DE COLHEITA ANUAL) -->
-    <!-- SEÇÃO GRÁFICOS -->
-    <section id="graficos" class="admin-graficos">
-      <div class="admin-graficos-coluna">
-
-        <article class="cartao">
-          <div class="titulo-cartao"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Métricas dos Sensores
-          </div>
-          <div class="filtros-metricas">
-            <div class="item-detalhe-cadastro">
-              <label class="label" for="filtro-metrica-tecnico">Métrica</label>
-              <select id="filtro-metrica-tecnico" class="campo-formulario"></select>
-            </div>
-            <div class="item-detalhe-cadastro">
-              <label class="label" for="filtro-talhao-metrica-tecnico">Talhão</label>
-              <select id="filtro-talhao-metrica-tecnico" class="campo-formulario"></select>
-            </div>
-          </div>
-          <p id="mensagem-grafico-metricas" class="texto-ajuda" aria-live="polite"></p>
-          <div class="grafico-metricas-tecnico"><canvas id="grafico-metricas-tecnico"></canvas></div>
-        </article>
-      </div>
-
-      <article class="cartao cartao-altura-padrao">
-        <div class="header-grafico">
-          <div>
-            <div class="titulo-cartao"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Histórico Anual de
-              Colheitas</div>
-            <p class="subtitulo-grafico">Acompanhe o volume de produção acumulado ao longo dos anos.</p>
-          </div>
-          <div class="filtros-grafico" aria-label="Unidade do grafico de colheita">
-            <button class="btn-filtro active" type="button" data-unidade-admin="t">Toneladas (t)</button>
-            <button class="btn-filtro" type="button" data-unidade-admin="sc">Sacas (sc)</button>
-            <button class="btn-filtro" type="button" data-unidade-admin="kg">Quilogramas (kg)</button>
-            <button class="btn-filtro" type="button" data-unidade-admin="cx">Caixas (cx)</button>
-          </div>
-        </div>
-
-        <div class="admin-grafico-container">
-          <canvas id="grafico-colheita-anual"></canvas>
-        </div>
-        <p id="mensagem-colheita-admin" class="mensagem-feedback" aria-live="polite"></p>
-
-        <div class="grid-resumo-colheita">
-          <div class="card-resumo destaque-vermelho">
-            <span class="titulo-resumo">ÚLTIMA COLHEITA</span>
-            <div class="dados-resumo"><i class="fa-regular fa-clock icone-resumo" aria-hidden="true"></i>
-              <div><strong id="resumo-ultima-data">--</strong>
-                <p id="resumo-ultima-valor">--</p>
-              </div>
-            </div>
-            <span class="rodape-resumo" id="resumo-ultima-media">Média: --</span>
-          </div>
-          <div class="card-resumo destaque-amarelo">
-            <span class="titulo-resumo">MENOR COLHEITA</span>
-            <div class="dados-resumo"><i class="fa-solid fa-circle-arrow-down icone-resumo" aria-hidden="true"></i>
-              <div><strong id="resumo-menor-data">--</strong>
-                <p id="resumo-menor-valor">--</p>
-              </div>
-            </div>
-            <span class="rodape-resumo" id="resumo-menor-media">Média: --</span>
-          </div>
-          <div class="card-resumo destaque-azul">
-            <span class="titulo-resumo">MAIOR COLHEITA</span>
-            <div class="dados-resumo"><i class="fa-solid fa-circle-arrow-up icone-resumo" aria-hidden="true"></i>
-              <div><strong id="resumo-maior-data">--</strong>
-                <p id="resumo-maior-valor">--</p>
-              </div>
-            </div>
-            <span class="rodape-resumo" id="resumo-maior-media">Média: --</span>
-          </div>
-        </div>
-      </article>
-    </section>
   </main>
 
 

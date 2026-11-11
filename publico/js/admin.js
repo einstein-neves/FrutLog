@@ -25,7 +25,7 @@ const CABECALHOS_ABAS = {
     descricao: "Leituras dos sensores por talhão, histórico diário e médias mensais.",
   },
   "relatorios-diarios": {
-    titulo: "Relatórios Recebidos",
+    titulo: "Registros de Campo",
     descricao: "Relatórios diários enviados pela equipe técnica.",
   },
   "monitoramento": {
@@ -72,8 +72,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   configurarEncerramentoCicloAdmin();
   configurarCadastroProduto();
   configurarAcoesHistorico();
+  configurarRegistroCampo();
   document.getElementById("filtro-metrica-tecnico")?.addEventListener("change", carregarGraficoMetricas);
   document.getElementById("filtro-talhao-metrica-tecnico")?.addEventListener("change", carregarGraficoMetricas);
+  document.getElementById("filtro-historico-tipo")?.addEventListener("change", renderizarHistoricoRegistros);
+  carregarRelatoriosHistorico();
   carregarHistoricoQuandoVisivel();
   preencherSelectTalhoes();
 
@@ -595,6 +598,7 @@ function preencherSelectTalhoes() {
     atualizarSensoresDoTalhaoProduto();
     atualizarResumoCicloAtualAdmin();
   }
+  preencherSelectRegistroTalhao();
 }
 
 /**
@@ -1097,6 +1101,7 @@ function renderizarPainelTecnico() {
   }
 
   if (historicoOperacaoCarregado) renderizarHistoricoAdmin();
+  renderizarHistoricoRegistros();
   preencherSelectTalhoes();
 }
 
@@ -1236,6 +1241,7 @@ function renderizarDetalhesTalhaoAdmin(codigo) {
     ? `${arValor ?? "--"}% ar / ${soloValor ?? "--"}% solo${desatualizada ? " (desatualizada)" : ""}`
     : "--");
   preencher("talhao-ultima-leitura", ultimaLeitura);
+  preencher("talhao-sensor", dadosTalhao.sensor || sensores[0]?.sensor || "Não associado");
   preencher("talhao-diagnostico", ia.mensagem || monitorado.prioridade || "--");
   preencher("talhao-diagnostico-origem", ia.origem ? `Fonte: ${ia.origem}` : "");
 
@@ -1247,7 +1253,7 @@ function renderizarDetalhesTalhaoAdmin(codigo) {
   }
 
   preencher("talhao-inspecao-data", inspecao.data ? formatarData(inspecao.data) : "--");
-  preencher("talhao-inspecao-tecnico", inspecao.data ? "Registrado em campo" : "--");
+  preencher("talhao-inspecao-tecnico", inspecao.tecnico || (inspecao.data ? "Registrado em campo" : "--"));
   preencher("talhao-inspecao-problema", inspecao.problemas || "Nenhuma inspeção registrada.");
   preencher("talhao-inspecao-recomendacao", inspecao.observacoes || "--");
 
@@ -1693,6 +1699,196 @@ async function atualizarLeiturasAoVivo() {
     mensagem.className = "mensagem-feedback";
   }
   renderizarMapaAdmin();
+}
+
+
+// Histórico de registros (mesmo conteúdo da tela do técnico): inspeções e
+// ocorrências vêm de /painel-tecnico; os relatórios diários, de /relatorios-diarios.
+let historicoRelatoriosAdmin = [];
+
+async function carregarRelatoriosHistorico() {
+  try {
+    historicoRelatoriosAdmin = (await FrutLog.apiFetch("/relatorios-diarios")).relatorios || [];
+  } catch (erro) {
+    historicoRelatoriosAdmin = [];
+  }
+  renderizarHistoricoRegistros();
+}
+
+function renderizarHistoricoRegistros() {
+  const tabela = document.getElementById("tabela-registros-campo");
+  if (!tabela) return;
+  const filtro = document.getElementById("filtro-historico-tipo")?.value || "";
+  const rotulos = { inspecao: "Inspeção", ocorrencia: "Ocorrência", relatorio: "Relatório" };
+
+  const registros = [
+    ...(painelTecnico.inspecoes || []).map((item) => ({
+      tipo: "inspecao", data: item.data, talhao: item.talhao, sensor: item.sensor,
+      detalhe: `${FrutLog.textoInterface(item.situacao)} · ${item.problemas || "Sem ocorrência"}`,
+      observacao: item.observacoes,
+    })),
+    ...(painelTecnico.ocorrencias || []).map((item) => ({
+      tipo: "ocorrencia", data: item.data, talhao: item.talhao, sensor: null,
+      detalhe: item.tipo || item.problema, observacao: item.observacao,
+    })),
+    ...historicoRelatoriosAdmin.map((item) => ({
+      tipo: "relatorio", data: item.data_relatorio, talhao: null, sensor: null,
+      detalhe: "Relatório diário", observacao: String(item.conteudo || "").slice(0, 120),
+    })),
+  ]
+    .filter((item) => !filtro || item.tipo === filtro)
+    .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
+
+  tabela.innerHTML = registros.length ? registros.map((item) => `
+    <tr>
+      <td>${escaparHtml(formatarData(item.data))}</td>
+      <td>${escaparHtml(rotulos[item.tipo])}</td>
+      <td>${escaparHtml(item.talhao || "--")}</td>
+      <td>${escaparHtml(item.sensor || "--")}</td>
+      <td>${escaparHtml(item.detalhe || "--")}</td>
+      <td>${escaparHtml(item.observacao || "-")}</td>
+    </tr>
+  `).join("") : '<tr><td colspan="6">Nenhum registro encontrado.</td></tr>';
+}
+
+
+// ===== Novo registro de campo (mesmo formulário do técnico) =====
+let tipoRegistroAtual = "inspecao";
+const ROTULOS_TIPO_REGISTRO = { inspecao: "Inspeção", ocorrencia: "Ocorrência" };
+
+function dataLocalISO() {
+  const hoje = new Date();
+  return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
+}
+
+function definirDataRegistro(iso) {
+  const campo = document.getElementById("registro-data");
+  if (!campo) return;
+  campo.value = iso;
+  if (campo._flatpickr) campo._flatpickr.setDate(iso, false);
+}
+
+function rotuloStatusSensor(status) {
+  return ({ Online: "Online", Offline: "Offline", Manutencao: "Em manutenção", Desativado: "Desativado" })[status] || status || "Sem status";
+}
+
+function preencherSelectRegistroTalhao() {
+  const select = document.getElementById("registro-talhao");
+  if (!select) return;
+  const atual = select.value;
+  const codigos = obterCodigosTalhoesAdmin();
+  select.innerHTML = `<option value="">${codigos.length ? "Selecione o talhão" : "Nenhum talhão carregado"}</option>` +
+    codigos.map((codigo) => `<option value="${escaparHtml(codigo)}">${escaparHtml(codigo)}</option>`).join("");
+  if (codigos.includes(atual)) select.value = atual;
+  atualizarSelectSensoresRegistro();
+}
+
+function atualizarSelectSensoresRegistro() {
+  const select = document.getElementById("registro-sensor");
+  if (!select) return;
+  const ajuda = document.getElementById("registro-sensor-ajuda");
+  const codigoTalhao = document.getElementById("registro-talhao")?.value || "";
+  const anterior = select.value;
+  const disponiveis = codigoTalhao
+    ? sensores.filter((sensor) => sensor.ativo && sensor.talhao === codigoTalhao)
+    : [];
+
+  select.innerHTML = '<option value="">Sem sensor associado</option>' + disponiveis
+    .map((sensor) => `<option value="${escaparHtml(sensor.id)}">${escaparHtml(sensor.sensor)} · ${escaparHtml(nomeMetrica(sensor.tipo))} (${escaparHtml(rotuloStatusSensor(sensor.status))})</option>`)
+    .join("");
+  if (disponiveis.some((sensor) => sensor.id === anterior)) select.value = anterior;
+
+  if (ajuda) {
+    ajuda.textContent = !codigoTalhao
+      ? "Selecione um talhão para listar os sensores cadastrados nele."
+      : disponiveis.length
+        ? `${disponiveis.length} sensor(es) ativo(s) cadastrado(s) no talhão ${codigoTalhao}.`
+        : `Nenhum sensor ativo cadastrado no talhão ${codigoTalhao}.`;
+  }
+}
+
+function definirTipoRegistro(tipo) {
+  tipoRegistroAtual = tipo;
+  document.querySelectorAll("[data-tipo-registro]").forEach((botao) => {
+    const ativo = botao.dataset.tipoRegistro === tipo;
+    botao.classList.toggle("active", ativo);
+    botao.setAttribute("aria-pressed", String(ativo));
+  });
+  // Mostra só os campos do tipo escolhido; os ocultos ficam desabilitados e não bloqueiam o envio.
+  document.querySelectorAll("#form-registro-campo [data-tipos]").forEach((grupo) => {
+    const visivel = grupo.dataset.tipos.split(" ").includes(tipo);
+    grupo.hidden = !visivel;
+    grupo.querySelectorAll("input, select, textarea").forEach((controle) => {
+      controle.disabled = !visivel;
+      if (controle.dataset.obrigatorio === "true") controle.required = visivel;
+    });
+  });
+  const rotuloBotao = document.querySelector("#btn-registrar-campo span");
+  if (rotuloBotao) rotuloBotao.textContent = `Registrar ${ROTULOS_TIPO_REGISTRO[tipo]}`;
+  atualizarSelectSensoresRegistro();
+  const mensagem = document.getElementById("mensagem-registro-campo");
+  if (mensagem) mensagem.textContent = "";
+}
+
+async function registrarCampo(evento) {
+  evento.preventDefault();
+  const formulario = evento.currentTarget;
+  const dados = Object.fromEntries(new FormData(formulario));
+  const botao = formulario.querySelector('[type="submit"]');
+  if (botao) botao.disabled = true;
+
+  try {
+    if (!dados.talhao) throw new Error("Selecione o talhão.");
+    if (tipoRegistroAtual === "inspecao") {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dados.data || "")) throw new Error("Selecione uma data válida.");
+      if (!dados.situacao) throw new Error("Informe a situação da plantação.");
+      await FrutLog.apiFetch("/inspecoes", {
+        method: "POST",
+        body: JSON.stringify({
+          talhao: dados.talhao,
+          data: dados.data,
+          situacao: dados.situacao,
+          sensor_id: dados.sensor_id || null,
+          problemas: dados.problemas || "Sem ocorrência",
+          observacoes: dados.observacoes || "-",
+        }),
+      });
+    } else {
+      if (!dados.tipo) throw new Error("Selecione o problema da ocorrência.");
+      await FrutLog.apiFetch("/ocorrencias", {
+        method: "POST",
+        body: JSON.stringify({
+          talhao: dados.talhao,
+          tipo: dados.tipo,
+          observacao: dados.observacoes || "-",
+        }),
+      });
+    }
+
+    await carregarDadosConectados();
+    exibirMensagem("mensagem-registro-campo", `${ROTULOS_TIPO_REGISTRO[tipoRegistroAtual]} registrada com sucesso.`, "sucesso");
+    // Limpa o formulário mantendo talhão e data para lançar o próximo registro.
+    const talhaoAtual = dados.talhao;
+    const dataAtual = dados.data || dataLocalISO();
+    formulario.reset();
+    document.getElementById("registro-talhao").value = talhaoAtual;
+    definirDataRegistro(dataAtual);
+    atualizarSelectSensoresRegistro();
+  } catch (erro) {
+    exibirMensagem("mensagem-registro-campo", erro.message, "erro");
+  } finally {
+    if (botao) botao.disabled = false;
+  }
+}
+
+function configurarRegistroCampo() {
+  document.getElementById("form-registro-campo")?.addEventListener("submit", registrarCampo);
+  document.getElementById("registro-talhao")?.addEventListener("change", atualizarSelectSensoresRegistro);
+  document.querySelectorAll("[data-tipo-registro]").forEach((botao) => {
+    botao.addEventListener("click", () => definirTipoRegistro(botao.dataset.tipoRegistro));
+  });
+  definirDataRegistro(dataLocalISO());
+  definirTipoRegistro(tipoRegistroAtual);
 }
 
 async function atualizarDadosCampoConectados() {
