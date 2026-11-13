@@ -158,7 +158,7 @@ function aparelhoFalhou(leitura) {
       if (bruto === null || bruto === undefined || String(bruto).trim() === "") return false;
       // Zero so conta como ausencia dentro de um grupo: e assim que o sketch
       // sinaliza falha. Fora de grupo, zero continua sendo valor valido
-      // (0 mm de chuva, por exemplo, e informacao legitima).
+      // (0% de umidade do solo, por exemplo, e informacao legitima). -- HILCCER ROCHA DE ARAUJO MELO ALTERACAO
       return Number(String(bruto).replace(",", ".")) !== 0;
     });
 

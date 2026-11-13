@@ -84,7 +84,8 @@ const FrutLogTelemetria = (() => {
 
   /** Escapa texto antes de ir para innerHTML. Cada tela tem a sua; aqui o
    *  modulo precisa ser independente, entao carrega a propria. */
-  function escapar(texto) {
+  // HILCCER ROCHA DE ARAUJO MELO ALTERACAO: renomeada de escapar para escaparHtml (mesmo nome usado no resto do projeto)
+  function escaparHtml(texto) {
     return String(texto ?? "").replace(/[&<>"']/g, (ch) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
     })[ch]);
@@ -189,7 +190,7 @@ const FrutLogTelemetria = (() => {
             <thead>
               <tr>
                 <th>Data/hora</th>
-                ${METRICAS.map((metrica) => `<th>${escapar(metrica.nome)} (${escapar(metrica.unidade)})</th>`).join("")}
+                ${METRICAS.map((metrica) => `<th>${escaparHtml(metrica.nome)} (${escaparHtml(metrica.unidade)})</th>`).join("")}
               </tr>
             </thead>
             <tbody data-linhas-telemetria></tbody>
@@ -210,8 +211,8 @@ const FrutLogTelemetria = (() => {
     const area = container.querySelector("[data-graficos-telemetria]");
     area.innerHTML = METRICAS.map((metrica) => `
       <div class="grafico-metrica" data-grafico="${metrica.chave}">
-        <div class="titulo-grafico-metrica">${escapar(metrica.nome)} (${escapar(metrica.unidade)})</div>
-        <div class="area-grafico-metrica"><canvas aria-label="Histórico de ${escapar(metrica.nome)}"></canvas></div>
+        <div class="titulo-grafico-metrica">${escaparHtml(metrica.nome)} (${escaparHtml(metrica.unidade)})</div>
+        <div class="area-grafico-metrica"><canvas aria-label="Histórico de ${escaparHtml(metrica.nome)}"></canvas></div>
         <p class="detalhe-origem" data-aviso="${metrica.chave}"></p>
       </div>
     `).join("");
@@ -239,7 +240,7 @@ const FrutLogTelemetria = (() => {
     area.innerHTML = codigos.map((codigo) => {
       const ativo = codigo === selecionado ? " active" : "";
       return `<button class="btn-talhao${ativo}" type="button" aria-pressed="${codigo === selecionado}"
-        data-talhao-telemetria="${escapar(codigo)}">${escapar(codigo)}</button>`;
+        data-talhao-telemetria="${escaparHtml(codigo)}">${escaparHtml(codigo)}</button>`;
     }).join("");
 
     if (selecionado) atualizar();
@@ -296,8 +297,8 @@ const FrutLogTelemetria = (() => {
     area.innerHTML = METRICAS.map((metrica) => {
       const { valor, classe } = estadoDaMetrica(metricas[metrica.chave], metrica);
       return `<article class="cartao-metrica ${classe}">
-        <span>${escapar(metrica.nome)} (${escapar(metrica.unidade)})</span>
-        <strong>${escapar(valor)}</strong>
+        <span>${escaparHtml(metrica.nome)} (${escaparHtml(metrica.unidade)})</span>
+        <strong>${escaparHtml(valor)}</strong>
       </article>`;
     }).join("");
   }
@@ -345,13 +346,13 @@ const FrutLogTelemetria = (() => {
 
     corpo.innerHTML = linhas.map(([em, valores]) => `
       <tr>
-        <td>${escapar(formatarHora(em))}</td>
+        <td>${escaparHtml(formatarHora(em))}</td>
         ${METRICAS.map((metrica) => {
           const valor = valores[metrica.chave];
           // "--" aqui significa so "esta metrica nao mediu neste instante".
           // A distincao entre "sem sensor" e "sensor mudo" fica nos cartoes,
           // que e onde ela muda o que a pessoa deve fazer.
-          return `<td>${valor === undefined ? "--" : escapar(valor)}</td>`;
+          return `<td>${valor === undefined ? "--" : escaparHtml(valor)}</td>`;
         }).join("")}
       </tr>
     `).join("");
