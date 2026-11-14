@@ -66,7 +66,8 @@ document.addEventListener("DOMContentLoaded", () => {
     umidadeSolo: "Umidade do solo (%)",
   };
   const colunas = Object.keys(nomes);
-  const escapar = (valor) => String(valor ?? "").replace(/[&<>"']/g, (caractere) => ({
+  // HILCCER ROCHA DE ARAUJO MELO ALTERACAO: renomeada de escapar para escaparHtml (mesmo nome usado no resto do projeto)
+  const escaparHtml = (valor) => String(valor ?? "").replace(/[&<>"']/g, (caractere) => ({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
@@ -86,8 +87,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const leitura = [...feeds].reverse().find((feed) => Number.isFinite(feed.values?.[chave]));
       return `
         <article>
-          <span>${escapar(nome)}</span>
-          <strong>${escapar(leitura?.values[chave] ?? "--")}</strong>
+          <span>${escaparHtml(nome)}</span>
+          <strong>${escaparHtml(leitura?.values[chave] ?? "--")}</strong>
         </article>
       `;
     }).join("");
@@ -134,8 +135,8 @@ document.addEventListener("DOMContentLoaded", () => {
         corpoTabela.innerHTML = feeds.length
           ? feeds.slice(-12).reverse().map((feed) => `
             <tr>
-              <td>${escapar(formatarDataHora(feed.created_at))}</td>
-              ${colunas.map((chave) => `<td>${escapar(feed.values[chave] ?? "--")}</td>`).join("")}
+              <td>${escaparHtml(formatarDataHora(feed.created_at))}</td>
+              ${colunas.map((chave) => `<td>${escaparHtml(feed.values[chave] ?? "--")}</td>`).join("")}
             </tr>
           `).join("")
           : `<tr><td colspan="${colunas.length + 1}">O canal ainda não possui leituras.</td></tr>`;

@@ -4,7 +4,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const relatorios = [];
   const relatoriosSelecionados = new Set();
-  const escapar = (valor) => String(valor ?? "").replace(/[&<>"']/g, (caractere) => ({
+  // HILCCER ROCHA DE ARAUJO MELO ALTERACAO: renomeada de escapar para escaparHtml (mesmo nome usado no resto do projeto)
+  const escaparHtml = (valor) => String(valor ?? "").replace(/[&<>"']/g, (caractere) => ({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
@@ -115,22 +116,22 @@ document.addEventListener("DOMContentLoaded", () => {
       const trecho = resumo.length > 110 ? `${resumo.slice(0, 110)}…` : resumo;
       return `
         <tr>
-          <td><input type="checkbox" data-selecionar-relatorio="${escapar(relatorio.id)}" aria-label="Selecionar relatório de ${escapar(relatorio.tecnico_nome)}" ${relatoriosSelecionados.has(String(relatorio.id)) ? "checked" : ""}></td>
-          <td>${escapar(formatarData(relatorio.data_relatorio))}<br><small>Recebido ${escapar(formatarDataHora(relatorio.criado_em))}</small></td>
-          <td><strong>${escapar(relatorio.tecnico_nome || "Técnico não identificado")}</strong><br><small>Matrícula ${escapar(relatorio.tecnico_matricula || "não informada")}</small></td>
-          <td class="conteudo-relatorio"><span>${escapar(trecho)}</span><br><button class="btn-abrir-relatorio" type="button" data-abrir-relatorio="${escapar(relatorio.id)}">Abrir relatório</button></td>
-          <td><span class="badge-status ${relatorio.status === "concluido" ? "normal" : "atencao"}">${escapar(statusVisivel)}</span></td>
+          <td><input type="checkbox" data-selecionar-relatorio="${escaparHtml(relatorio.id)}" aria-label="Selecionar relatório de ${escaparHtml(relatorio.tecnico_nome)}" ${relatoriosSelecionados.has(String(relatorio.id)) ? "checked" : ""}></td>
+          <td>${escaparHtml(formatarData(relatorio.data_relatorio))}<br><small>Recebido ${escaparHtml(formatarDataHora(relatorio.criado_em))}</small></td>
+          <td><strong>${escaparHtml(relatorio.tecnico_nome || "Técnico não identificado")}</strong><br><small>Matrícula ${escaparHtml(relatorio.tecnico_matricula || "não informada")}</small></td>
+          <td class="conteudo-relatorio"><span>${escaparHtml(trecho)}</span><br><button class="btn-abrir-relatorio" type="button" data-abrir-relatorio="${escaparHtml(relatorio.id)}">Abrir relatório</button></td>
+          <td><span class="badge-status ${relatorio.status === "concluido" ? "normal" : "atencao"}">${escaparHtml(statusVisivel)}</span></td>
           <td>
             <div class="acoes-relatorio">
-              <select class="campo-formulario" data-status-relatorio="${escapar(relatorio.id)}" aria-label="Novo status do relatório de ${escapar(relatorio.tecnico_nome)}">
+              <select class="campo-formulario" data-status-relatorio="${escaparHtml(relatorio.id)}" aria-label="Novo status do relatório de ${escaparHtml(relatorio.tecnico_nome)}">
                 <option value="" disabled ${relatorio.status === "enviado" ? "selected" : ""}>Escolha o acompanhamento</option>
                 <option value="em_analise" ${relatorio.status === "em_analise" ? "selected" : ""}>Em análise</option>
                 <option value="concluido" ${relatorio.status === "concluido" ? "selected" : ""}>Concluído</option>
               </select>
-              <button class="btn-filtro" type="button" data-salvar-relatorio="${escapar(relatorio.id)}">Atualizar</button>
+              <button class="btn-filtro" type="button" data-salvar-relatorio="${escaparHtml(relatorio.id)}">Atualizar</button>
             </div>
           </td>
-          <td><button class="btn-excluir-relatorio" type="button" data-excluir-relatorio="${escapar(relatorio.id)}" aria-label="Excluir relatório de ${escapar(relatorio.tecnico_nome)}">Excluir</button></td>
+          <td><button class="btn-excluir-relatorio" type="button" data-excluir-relatorio="${escaparHtml(relatorio.id)}" aria-label="Excluir relatório de ${escaparHtml(relatorio.tecnico_nome)}">Excluir</button></td>
         </tr>`;
     }).join("");
     atualizarControlesSelecao(encontrados);
@@ -216,9 +217,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function carregarRelatorios() {
     try {
-      if (!FrutLog.AUTENTICACAO_API_ATIVA) {
-        throw new Error("A API autenticada é necessária para consultar relatórios.");
-      }
+// HILCCER ROCHA DE ARAUJO MELO ALTERACAO: removida checagem que nunca disparava (AUTENTICACAO_API_ATIVA e sempre true)
       const resposta = await FrutLog.apiFetch("/relatorios-diarios");
       relatorios.splice(0, relatorios.length, ...(resposta.relatorios || []));
       atualizarLista();
@@ -232,7 +231,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (erro) {
       console.error("Falha ao carregar relatórios diários:", erro);
-      tabela.innerHTML = `<tr><td colspan="7">${escapar(erro.message)}</td></tr>`;
+      tabela.innerHTML = `<tr><td colspan="7">${escaparHtml(erro.message)}</td></tr>`;
       const mensagem = document.getElementById("mensagem-relatorios");
       if (mensagem) {
         mensagem.textContent = erro.message;
