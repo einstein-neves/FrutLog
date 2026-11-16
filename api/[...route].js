@@ -27,7 +27,7 @@ function config() {
       fields: {
         temperatura: Number(process.env.THINGSPEAK_FIELD_TEMPERATURE) || 1,
         umidadeAr: Number(process.env.THINGSPEAK_FIELD_HUMIDITY) || 2,
-        umidadeSolo: Number(process.env.THINGSPEAK_FIELD_SOIL_HUMIDITY) || 3,     
+        umidadeSolo: Number(process.env.THINGSPEAK_FIELD_SOIL_HUMIDITY) || 3,
       }
     },
     origins: [...new Set(origins)]
@@ -109,6 +109,12 @@ function date(v) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(v))) return null;
   const parsed = new Date(`${v}T00:00:00.000Z`);
   return Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== v ? null : v;
+}
+
+// Data de hoje no fuso do Brasil (AAAA-MM-DD). Usar toISOString() daria a data em UTC,
+// que depois das 21h em Recife já é o dia seguinte e deixaria passar a data de amanhã.
+function hojeNoBrasil() {
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 }
 
 function dataMaisRecente(...datas) {
@@ -1658,6 +1664,7 @@ module.exports = async (req, res) => {
           inspecoes: inspections.map((i) => ({
             id: i.id,
             data: i.inspecionado_em?.slice(0, 10),
+            criado_em: i.criado_em,
             talhao: plots.find((p) => p.id === i.talhao_id)?.codigo,
             situacao: i.status ? i.status[0].toUpperCase() + i.status.slice(1) : "Normal",
             problemas: i.descricao_problema,
@@ -1678,6 +1685,7 @@ module.exports = async (req, res) => {
           ocorrencias: occurrences.map((o) => ({
             id: o.id,
             data: o.registrado_em?.slice(0, 10),
+            criado_em: o.criado_em,
             talhao: plots.find((p) => p.id === o.talhao_id)?.codigo,
             tipo: o.tipo,
             observacao: o.observacao
@@ -1808,6 +1816,9 @@ module.exports = async (req, res) => {
       if (route === "/inspecoes") {
         if (!text(d.talhao) || !date(d.data) || !["Normal", "Atencao", "Critico"].includes(d.situacao)) {
           return reply(res, 400, { mensagem: "Dados de inspeção inválidos." }, origin);
+        }
+        if (d.data > hojeNoBrasil()) {
+          return reply(res, 400, { mensagem: "A data da inspeção não pode ser futura." }, origin);
         }
         const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&arquivado_em=is.null&select=id&limit=1`))[0];
         if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);

@@ -13,7 +13,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   configurarRelatorioDiario();
   document.getElementById("relatorio-data").value = dataLocalISO();
   const dataRegistro = document.getElementById("registro-data");
-  if (dataRegistro) dataRegistro.value = dataLocalISO();
+  if (dataRegistro) {
+    dataRegistro.value = dataLocalISO();
+    dataRegistro.max = dataLocalISO();
+  }
   preencherFiltroMetricaTelemetria();
   if (FrutLog.AUTENTICACAO_API_ATIVA) {
     try {
@@ -177,7 +180,7 @@ function configurarRelatorioDiario() {
     const botao = formulario.querySelector('[type="submit"]');
     const liberarBotao = FrutLogFeedback.ocupar(botao, "Enviando...");
     try {
-// HILCCER ROCHA DE ARAUJO MELO ALTERACAO: removida checagem que nunca disparava (AUTENTICACAO_API_ATIVA e sempre true)
+      // HILCCER ROCHA DE ARAUJO MELO ALTERACAO: removida checagem que nunca disparava (AUTENTICACAO_API_ATIVA e sempre true)
       const resposta = await FrutLog.apiFetch("/relatorios-diarios", {
         method: "POST",
         body: JSON.stringify(dados),
@@ -329,7 +332,7 @@ function preencherFiltroTelemetria() {
 }
 
 async function carregarTelemetriaDiaria() {
-    // HILCCER ROCHA DE ARAUJO MELO ALTERACAO: removida checagem que nunca disparava (AUTENTICACAO_API_ATIVA e sempre true)
+  // HILCCER ROCHA DE ARAUJO MELO ALTERACAO: removida checagem que nunca disparava (AUTENTICACAO_API_ATIVA e sempre true)
   try {
     const resposta = await FrutLog.apiFetch("/telemetria/diaria");
     telemetriaDiaria = resposta.leituras || [];
@@ -657,22 +660,24 @@ function carregarHistoricoRegistros() {
 
   const registros = [
     ...historicoInspecoes.map((item) => ({
-      tipo: "inspecao", data: item.data, talhao: item.talhao, sensor: item.sensor,
+      tipo: "inspecao", data: item.data, criado: item.criado_em, talhao: item.talhao, sensor: item.sensor,
       detalhe: `${FrutLog.textoInterface(item.situacao)} · ${item.problemas || "Sem ocorrência"}`,
       observacao: item.observacoes,
     })),
     ...historicoOcorrencias.map((item) => ({
-      tipo: "ocorrencia", data: item.data, talhao: item.talhao, sensor: null,
+      tipo: "ocorrencia", data: item.data, criado: item.criado_em, talhao: item.talhao, sensor: null,
       detalhe: item.tipo || item.problema, observacao: item.observacao,
     })),
     ...historicoRelatorios.map((item) => ({
-      tipo: "relatorio", data: item.data_relatorio, talhao: null, sensor: null,
+      tipo: "relatorio", data: item.data_relatorio, criado: item.criado_em, talhao: null, sensor: null,
       detalhe: "Relatório diário", observacao: String(item.conteudo || "").slice(0, 120),
     })),
-
   ]
     .filter((item) => !filtro || item.tipo === filtro)
-    .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
+    // Mais recente no topo: primeiro pela data; no mesmo dia, pela hora do cadastro.
+    .sort((a, b) =>
+      String(b.data || "").localeCompare(String(a.data || "")) ||
+      (Date.parse(b.criado) || 0) - (Date.parse(a.criado) || 0));
 
   tabela.innerHTML = registros.length ? registros.map((item) => `
     <tr>
@@ -956,15 +961,15 @@ function carregarAlertas() {
     return;
   }
 
-// INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: escapa o texto dos alertas (correcao de XSS)
+  // INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: escapa o texto dos alertas (correcao de XSS)
   lista.innerHTML = alertas.map((alerta) => `
     <article class="alerta-tecnico ${escaparHtml(alerta.nivel)}">
       <strong>${escaparHtml(alerta.titulo)}</strong>
       <p>${escaparHtml(alerta.texto)}</p>
     </article>
   `).join("");
-// FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO
-  }
+  // FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO
+}
 
 function exibirMensagem(id, texto, tipo = "sucesso") {
   const elemento = document.getElementById(id);
@@ -1032,6 +1037,9 @@ async function registrarCampo(evento) {
     if (!dados.talhao) throw new Error("Selecione o talhão.");
     if (tipoRegistroAtual !== "ocorrencia" && !/^\d{4}-\d{2}-\d{2}$/.test(dados.data || "")) {
       throw new Error("Selecione uma data válida.");
+    }
+    if (tipoRegistroAtual !== "ocorrencia" && dados.data > dataLocalISO()) {
+      throw new Error("A data não pode ser futura.");
     }
 
     if (tipoRegistroAtual === "inspecao") {
