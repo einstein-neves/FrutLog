@@ -88,16 +88,33 @@ function passwordOk(password, stored) {
 }
 
 const hits = new Map();
+const JANELA_MS = 60000;
+const MAX_ENTRADAS = 10000; // teto de segurança: a memória nunca passa disso
+
+// Limpeza: a cada minuto, apaga quem já saiu da janela de 60 s.
+// Fica FORA da função rateLimit, para existir um único timer.
+setInterval(() => {
+  const agora = Date.now();
+  for (const [chave, estado] of hits) {
+    if (agora - estado.at > JANELA_MS) hits.delete(chave);
+  }
+}, JANELA_MS).unref(); // .unref(): o timer não impede o servidor de encerrar
+
 function rateLimit(req, maximum, scope) {
   const ip = String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "?").split(",")[0].trim();
   const key = `${scope}:${ip}`;
   const now = Date.now();
   const state = hits.get(key) || { at: now, count: 0 };
-  if (now - state.at > 60000) {
+  if (now - state.at > JANELA_MS) {
     state.at = now;
     state.count = 0;
   }
   state.count++;
+
+  // Teto: se o Map lotou e a chave é nova, descarta a mais antiga.
+  if (!hits.has(key) && hits.size >= MAX_ENTRADAS) {
+    hits.delete(hits.keys().next().value);
+  }
   hits.set(key, state);
   return state.count <= maximum;
 }
