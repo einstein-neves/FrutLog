@@ -140,7 +140,7 @@ const FrutLogFeedback = (() => {
     botao.dataset.desabilitadoOriginal = botao.disabled ? "1" : "";
     botao.disabled = true;
     botao.setAttribute("aria-busy", "true");
-    botao.innerHTML = `<span class="frutlog-spinner" aria-hidden="true"></span>${escapar(texto)}`;
+    botao.innerHTML = `<span class="frutlog-spinner" aria-hidden="true"></span>${escaparHtml(texto)}`;
     return () => liberar(botao);
   }
 
@@ -270,7 +270,8 @@ const FrutLogFeedback = (() => {
    * @param {*} valor - Valor a escapar.
    * @returns {string} Texto seguro para interpolar em HTML.
    */
-  function escapar(valor) {
+  // HILCCER ROCHA DE ARAUJO MELO ALTERACAO: renomeada de escapar para escaparHtml (mesmo nome usado no resto do projeto)
+  function escaparHtml(valor) {
     return String(valor ?? "").replace(/[&<>"']/g, (caractere) => ({
       "&": "&amp;",
       "<": "&lt;",

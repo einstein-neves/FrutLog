@@ -13,7 +13,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   configurarRelatorioDiario();
   document.getElementById("relatorio-data").value = dataLocalISO();
   const dataRegistro = document.getElementById("registro-data");
-  if (dataRegistro) dataRegistro.value = dataLocalISO();
+  if (dataRegistro) {
+    dataRegistro.value = dataLocalISO();
+    dataRegistro.max = dataLocalISO();
+  }
   preencherFiltroMetricaTelemetria();
   if (FrutLog.AUTENTICACAO_API_ATIVA) {
     try {
@@ -177,9 +180,7 @@ function configurarRelatorioDiario() {
     const botao = formulario.querySelector('[type="submit"]');
     const liberarBotao = FrutLogFeedback.ocupar(botao, "Enviando...");
     try {
-      if (!FrutLog.AUTENTICACAO_API_ATIVA) {
-        throw new Error("O envio de relatórios requer a API autenticada.");
-      }
+      // HILCCER ROCHA DE ARAUJO MELO ALTERACAO: removida checagem que nunca disparava (AUTENTICACAO_API_ATIVA e sempre true)
       const resposta = await FrutLog.apiFetch("/relatorios-diarios", {
         method: "POST",
         body: JSON.stringify(dados),
@@ -223,10 +224,8 @@ function preencherTexto(id, valor) {
   if (elemento) elemento.textContent = valor;
 }
 
-function atualizarTalhoesMonitorados() {
-  if (FrutLog.AUTENTICACAO_API_ATIVA) return;
-  talhoes = talhoes.map((feature) => FrutLogTalhoes.aplicarMonitoramento(feature));
-}
+// HILCCER ROCHA DE ARAUJO MELO ALTERACAO: removida atualizarTalhoesMonitorados(). Ela saia logo na
+// primeira linha (AUTENTICACAO_API_ATIVA e sempre true), entao nunca fazia nada.
 
 async function carregarPainelTecnico() {
   const [painel, talhoesServidor] = await Promise.all([
@@ -333,7 +332,7 @@ function preencherFiltroTelemetria() {
 }
 
 async function carregarTelemetriaDiaria() {
-  if (!FrutLog.AUTENTICACAO_API_ATIVA) return;
+  // HILCCER ROCHA DE ARAUJO MELO ALTERACAO: removida checagem que nunca disparava (AUTENTICACAO_API_ATIVA e sempre true)
   try {
     const resposta = await FrutLog.apiFetch("/telemetria/diaria");
     telemetriaDiaria = resposta.leituras || [];
@@ -489,59 +488,24 @@ function pontosParaString(pontos) {
   return pontos.map((ponto) => `${ponto[0]},${ponto[1]}`).join(" ");
 }
 
+// INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: removida a parte "sem servidor" destas 3 funcoes.
+// Ela nunca rodava, porque AUTENTICACAO_API_ATIVA e sempre true.
 function obterSensores() {
-  if (FrutLog.AUTENTICACAO_API_ATIVA) return sensoresDoServidor;
-  atualizarTalhoesMonitorados();
-
-  return talhoes.map((feature) => {
-    const props = feature.properties;
-    const monitoramento = props.monitoramento || {};
-
-    return {
-      sensor: props.sensor || "Não associado",
-      talhao: props.codigo,
-      status: props.sensor === "Não associado" ? "Atencao" : monitoramento.status || props.status,
-      comunicacao: props.apontamentoTecnico?.data || "--",
-      leitura: monitoramento.temperaturaAtual !== null && monitoramento.temperaturaAtual !== undefined
-        ? `${monitoramento.temperaturaAtual} C`
-        : "--",
-    };
-  });
+  return sensoresDoServidor;
 }
 
 function obterTarefasDia() {
-  if (FrutLog.AUTENTICACAO_API_ATIVA) return painelTecnico.tarefas || [];
-  atualizarTalhoesMonitorados();
-
-  return talhoes
-    .filter((feature) => feature.properties.status !== "Normal" || feature.properties.sensor === "Não associado")
-    .map((feature) => ({
-      talhao: feature.properties.codigo,
-      prioridade: feature.properties.status === "Critico" ? "Critico" : "Atencao",
-      atividade: feature.properties.prioridade || "Verificar situação do talhão.",
-    }));
+  return painelTecnico.tarefas || [];
 }
 
 function obterAlertas() {
-  if (FrutLog.AUTENTICACAO_API_ATIVA) {
-    return (painelTecnico.alertas || []).map((alerta) => ({
-      nivel: alerta.severidade || "atencao",
-      titulo: alerta.titulo,
-      texto: alerta.mensagem,
-    }));
-  }
-  atualizarTalhoesMonitorados();
-
-  return talhoes
-    .filter((feature) => feature.properties.status !== "Normal" || feature.properties.sensor === "Não associado")
-    .map((feature) => ({
-      nivel: feature.properties.status === "Critico" ? "critico" : "atencao",
-      titulo: `Talhão ${feature.properties.codigo} exige acompanhamento`,
-      texto: feature.properties.sensor === "Não associado"
-        ? "Talhão sem sensor associado após configuração ou divisão."
-        : feature.properties.prioridade,
-    }));
+  return (painelTecnico.alertas || []).map((alerta) => ({
+    nivel: alerta.severidade || "atencao",
+    titulo: alerta.titulo,
+    texto: alerta.mensagem,
+  }));
 }
+// FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO
 
 function preencherSelectTalhoes(select) {
   if (!select) return;
@@ -623,7 +587,6 @@ function carregarTalhoes() {
   const lista = document.getElementById("lista-talhoes");
   const resumo = document.getElementById("resumo-operacao-tecnico");
 
-  atualizarTalhoesMonitorados();
   renderizarBotoesTalhao();
   renderizarMapa();
 
@@ -671,7 +634,6 @@ function renderizarMapa() {
   const svgMapa = document.getElementById("camada-talhoes");
   if (!svgMapa) return;
 
-  atualizarTalhoesMonitorados();
   const pendentes = talhoes.filter((feature) => feature.properties.geometriaPendente).length;
   preencherTexto(
     "mensagem-geometria-talhoes",
@@ -698,22 +660,24 @@ function carregarHistoricoRegistros() {
 
   const registros = [
     ...historicoInspecoes.map((item) => ({
-      tipo: "inspecao", data: item.data, talhao: item.talhao, sensor: item.sensor,
+      tipo: "inspecao", data: item.data, criado: item.criado_em, talhao: item.talhao, sensor: item.sensor,
       detalhe: `${FrutLog.textoInterface(item.situacao)} · ${item.problemas || "Sem ocorrência"}`,
       observacao: item.observacoes,
     })),
     ...historicoOcorrencias.map((item) => ({
-      tipo: "ocorrencia", data: item.data, talhao: item.talhao, sensor: null,
+      tipo: "ocorrencia", data: item.data, criado: item.criado_em, talhao: item.talhao, sensor: null,
       detalhe: item.tipo || item.problema, observacao: item.observacao,
     })),
     ...historicoRelatorios.map((item) => ({
-      tipo: "relatorio", data: item.data_relatorio, talhao: null, sensor: null,
+      tipo: "relatorio", data: item.data_relatorio, criado: item.criado_em, talhao: null, sensor: null,
       detalhe: "Relatório diário", observacao: String(item.conteudo || "").slice(0, 120),
     })),
-
   ]
     .filter((item) => !filtro || item.tipo === filtro)
-    .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
+    // Mais recente no topo: primeiro pela data; no mesmo dia, pela hora do cadastro.
+    .sort((a, b) =>
+      String(b.data || "").localeCompare(String(a.data || "")) ||
+      (Date.parse(b.criado) || 0) - (Date.parse(a.criado) || 0));
 
   tabela.innerHTML = registros.length ? registros.map((item) => `
     <tr>
@@ -728,7 +692,6 @@ function carregarHistoricoRegistros() {
 }
 
 function selecionarTalhao(idTalhao) {
-  atualizarTalhoesMonitorados();
   const talhao = talhoes.find((item) => item.properties.codigo === idTalhao);
   if (!talhao) return;
 
@@ -998,7 +961,7 @@ function carregarAlertas() {
     return;
   }
 
-    // INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: escapa o texto dos alertas (correcao de XSS)
+  // INICIO HILCCER ROCHA DE ARAUJO MELO ALTERACAO: escapa o texto dos alertas (correcao de XSS)
   lista.innerHTML = alertas.map((alerta) => `
     <article class="alerta-tecnico ${escaparHtml(alerta.nivel)}">
       <strong>${escaparHtml(alerta.titulo)}</strong>
@@ -1006,7 +969,7 @@ function carregarAlertas() {
     </article>
   `).join("");
   // FIM HILCCER ROCHA DE ARAUJO MELO ALTERACAO
-  }
+}
 
 function exibirMensagem(id, texto, tipo = "sucesso") {
   const elemento = document.getElementById(id);
@@ -1074,6 +1037,9 @@ async function registrarCampo(evento) {
     if (!dados.talhao) throw new Error("Selecione o talhão.");
     if (tipoRegistroAtual !== "ocorrencia" && !/^\d{4}-\d{2}-\d{2}$/.test(dados.data || "")) {
       throw new Error("Selecione uma data válida.");
+    }
+    if (tipoRegistroAtual !== "ocorrencia" && dados.data > dataLocalISO()) {
+      throw new Error("A data não pode ser futura.");
     }
 
     if (tipoRegistroAtual === "inspecao") {

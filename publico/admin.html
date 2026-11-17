@@ -16,6 +16,7 @@
   <title>FrutLog</title>
   <link rel="icon" type="image/svg+xml"
     href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23eef3ea'/%3E%3Cpath d='M50 12C30 12 14 22 14 38c0 4 2 8 5 10 2-8 8-15 18-20-7 6-12 12-14 21 3 2 6 3 9 3 14 0 18-18 18-40z' fill='%232e7d32'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/chatbot.css">
 </head>
 
 <body class="layout-dashboard" data-console-role="admin">
@@ -90,6 +91,12 @@
           <div class="item-detalhe-cadastro">
             <label class="label" for="funcionario-nome">Nome</label>
             <input id="funcionario-nome" name="nome" class="campo-formulario" required>
+          </div>
+
+          <div class="item-detalhe-cadastro">
+            <label class="label" for="funcionario-email">E-mail para notificações</label>
+            <input id="funcionario-email" name="email" type="email" maxlength="254" class="campo-formulario" placeholder="nome@exemplo.com" autocomplete="email">
+            <span class="texto-ajuda">Opcional. Recebe avisos de acesso e atualizações relacionadas ao seu perfil.</span>
           </div>
 
           <div class="item-detalhe-cadastro">
@@ -899,26 +906,6 @@
   <!-- CHATBOT  DAvi -->
   <!-- =========================================================== -->
   <!-- SEÇÃO ASSISTENTE (CHATBOT) -->
-  <section id="painel-chatbot" class="painel-chatbot" aria-label="Assistente FrutLog" hidden>
-    <header class="cabecalho-chatbot">
-      <strong>Assistente FrutLog</strong>
-      <button id="fechar-chatbot" type="button" aria-label="Fechar assistente">×</button>
-    </header>
-    <div id="mensagens-chatbot" class="mensagens-chatbot" aria-live="polite">
-      <p class="mensagem-chatbot">Pergunte sobre ocorrências recentes ou o estado dos sensores.</p>
-    </div>
-    <form id="form-chatbot" class="form-chatbot">
-      <label class="sr-only" for="pergunta-chatbot">Sua pergunta</label>
-      <input id="pergunta-chatbot" name="pergunta" maxlength="300" autocomplete="off" placeholder="Digite sua pergunta"
-        required>
-      <button type="submit">Enviar</button>
-    </form>
-  </section>
-  <button id="chatbot" class="chatbot" type="button" aria-label="Abrir assistente" aria-expanded="false"
-    aria-controls="painel-chatbot">
-    <i class="fa-solid fa-comment-dots" aria-hidden="true"></i>
-  </button>
-
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="js/auth.js"></script>
@@ -931,13 +918,15 @@
     Antes de admin.js, que e quem chama montar() e definirTalhoes(). -->
   <script src="js/frutlog-telemetria.js"></script>
   <script src="js/colheitas.js"></script>
-  <script src="js/chatbot.js"></script>
   <script src="js/editor-mapa-admin.js"></script>
   <script src="js/admin.js"></script>
   <script src="js/pulse-frutlog.js"></script>
   <script src="js/vendor/flatpickr.min.js"></script>
   <script src="js/vendor/flatpickr-pt.js"></script>
   <script src="js/calendarios.js"></script>
+  <script src="js/assistente.js"></script>
+  <script src="js/chatbot-historico.js"></script>
+  <script src="js/chatbot.js"></script>
 </body>
 
 </html>

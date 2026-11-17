@@ -291,6 +291,7 @@ function configurarFormularioFuncionario() {
     try {
       const payload = {
         nome: dados.nome,
+        email: dados.email,
         cargo: dados.cargo,
         profissao: dados.profissao,
         perfil: dados.perfil,
@@ -314,6 +315,7 @@ function configurarFormularioFuncionario() {
           id: resposta.id,
           matricula: resposta.matricula,
           nome: dados.nome,
+          email: dados.email,
           cargo: dados.cargo,
           profissao: dados.profissao,
           perfil: dados.perfil,
@@ -355,7 +357,7 @@ function carregarFuncionarios() {
   const filtrados = funcionarios.filter((funcionario) => {
     const ativo = funcionario.status ? funcionario.status === "ativo" : funcionario.ativo === true;
     const combinaStatus = statusFiltro === "todos" || (statusFiltro === "ativo" ? ativo : !ativo);
-    const texto = [funcionario.matricula, funcionario.nome, funcionario.cargo, funcionario.profissao, funcionario.perfil]
+    const texto = [funcionario.matricula, funcionario.nome, funcionario.email, funcionario.cargo, funcionario.profissao, funcionario.perfil]
       .join(" ").toLocaleLowerCase("pt-BR");
     return combinaStatus && texto.includes(termo);
   });
@@ -372,7 +374,7 @@ function carregarFuncionarios() {
     return `
       <tr>
         <td>${escaparHtml(funcionario.matricula)}</td>
-        <td>${escaparHtml(funcionario.nome)}</td>
+        <td>${escaparHtml(funcionario.nome)}<br><small>${escaparHtml(funcionario.email || "E-mail não informado")}</small></td>
         <td>${escaparHtml(funcionario.cargo)}</td>
         <td>${escaparHtml(funcionario.perfil)}</td>
         <td><span class="badge-status ${status}">${textoStatus}</span></td>
@@ -422,6 +424,7 @@ function configurarAcoesTabelas() {
       document.getElementById("funcionario-id").value = funcionario.id;
       document.getElementById("funcionario-matricula").value = funcionario.matricula;
       document.getElementById("funcionario-nome").value = funcionario.nome;
+      document.getElementById("funcionario-email").value = funcionario.email || "";
       document.getElementById("funcionario-cargo").value = funcionario.cargo;
       document.getElementById("funcionario-perfil").value = funcionario.perfil;
       document.getElementById("funcionario-senha").value = "";
@@ -1723,21 +1726,23 @@ function renderizarHistoricoRegistros() {
 
   const registros = [
     ...(painelTecnico.inspecoes || []).map((item) => ({
-      tipo: "inspecao", data: item.data, talhao: item.talhao, sensor: item.sensor,
+      tipo: "inspecao", data: item.data, criado: item.criado_em, talhao: item.talhao, sensor: item.sensor,
       detalhe: `${FrutLog.textoInterface(item.situacao)} · ${item.problemas || "Sem ocorrência"}`,
       observacao: item.observacoes,
     })),
     ...(painelTecnico.ocorrencias || []).map((item) => ({
-      tipo: "ocorrencia", data: item.data, talhao: item.talhao, sensor: null,
+      tipo: "ocorrencia", data: item.data, criado: item.criado_em, talhao: item.talhao, sensor: null,
       detalhe: item.tipo || item.problema, observacao: item.observacao,
     })),
     ...historicoRelatoriosAdmin.map((item) => ({
-      tipo: "relatorio", data: item.data_relatorio, talhao: null, sensor: null,
+      tipo: "relatorio", data: item.data_relatorio, criado: item.criado_em, talhao: null, sensor: null,
       detalhe: "Relatório diário", observacao: String(item.conteudo || "").slice(0, 120),
     })),
   ]
     .filter((item) => !filtro || item.tipo === filtro)
-    .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
+    .sort((a, b) =>
+      String(b.data || "").localeCompare(String(a.data || "")) ||
+      (Date.parse(b.criado) || 0) - (Date.parse(a.criado) || 0));
 
   tabela.innerHTML = registros.length ? registros.map((item) => `
     <tr>
@@ -1841,6 +1846,7 @@ async function registrarCampo(evento) {
     if (!dados.talhao) throw new Error("Selecione o talhão.");
     if (tipoRegistroAtual === "inspecao") {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(dados.data || "")) throw new Error("Selecione uma data válida.");
+      if (dados.data > dataLocalISO()) throw new Error("A data da inspeção não pode ser futura.");
       if (!dados.situacao) throw new Error("Informe a situação da plantação.");
       await FrutLog.apiFetch("/inspecoes", {
         method: "POST",
@@ -1887,6 +1893,8 @@ function configurarRegistroCampo() {
   document.querySelectorAll("[data-tipo-registro]").forEach((botao) => {
     botao.addEventListener("click", () => definirTipoRegistro(botao.dataset.tipoRegistro));
   });
+  const campoData = document.getElementById("registro-data");
+  if (campoData) campoData.max = dataLocalISO();
   definirDataRegistro(dataLocalISO());
   definirTipoRegistro(tipoRegistroAtual);
 }
