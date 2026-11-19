@@ -291,6 +291,7 @@ function configurarFormularioFuncionario() {
     try {
       const payload = {
         nome: dados.nome,
+        email: dados.email,
         cargo: dados.cargo,
         profissao: dados.profissao,
         perfil: dados.perfil,
@@ -314,6 +315,7 @@ function configurarFormularioFuncionario() {
           id: resposta.id,
           matricula: resposta.matricula,
           nome: dados.nome,
+          email: dados.email,
           cargo: dados.cargo,
           profissao: dados.profissao,
           perfil: dados.perfil,
@@ -355,7 +357,7 @@ function carregarFuncionarios() {
   const filtrados = funcionarios.filter((funcionario) => {
     const ativo = funcionario.status ? funcionario.status === "ativo" : funcionario.ativo === true;
     const combinaStatus = statusFiltro === "todos" || (statusFiltro === "ativo" ? ativo : !ativo);
-    const texto = [funcionario.matricula, funcionario.nome, funcionario.cargo, funcionario.profissao, funcionario.perfil]
+    const texto = [funcionario.matricula, funcionario.nome, funcionario.email, funcionario.cargo, funcionario.profissao, funcionario.perfil]
       .join(" ").toLocaleLowerCase("pt-BR");
     return combinaStatus && texto.includes(termo);
   });
@@ -372,7 +374,7 @@ function carregarFuncionarios() {
     return `
       <tr>
         <td>${escaparHtml(funcionario.matricula)}</td>
-        <td>${escaparHtml(funcionario.nome)}</td>
+        <td>${escaparHtml(funcionario.nome)}<br><small>${escaparHtml(funcionario.email || "E-mail não informado")}</small></td>
         <td>${escaparHtml(funcionario.cargo)}</td>
         <td>${escaparHtml(funcionario.perfil)}</td>
         <td><span class="badge-status ${status}">${textoStatus}</span></td>
@@ -422,6 +424,7 @@ function configurarAcoesTabelas() {
       document.getElementById("funcionario-id").value = funcionario.id;
       document.getElementById("funcionario-matricula").value = funcionario.matricula;
       document.getElementById("funcionario-nome").value = funcionario.nome;
+      document.getElementById("funcionario-email").value = funcionario.email || "";
       document.getElementById("funcionario-cargo").value = funcionario.cargo;
       document.getElementById("funcionario-perfil").value = funcionario.perfil;
       document.getElementById("funcionario-senha").value = "";

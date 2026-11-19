@@ -17,6 +17,7 @@ Object.keys(variaveis).forEach((chave) => {
 const handler = require("../api/[...route]");
 const agora = new Date();
 const usuario = { id: "usuario-1", matricula: "T001", nome: "Tecnico de teste", perfil: "tecnico" };
+const senhaHashTeste = "hash-ficticio-api-operacao";
 let perfilBanco = usuario.perfil;
 const requisicoesBanco = [];
 let leituraEm = agora.toISOString();
@@ -34,7 +35,7 @@ global.fetch = async (url, init = {}) => {
   const recurso = endereco.pathname.split("/").pop();
   requisicoesBanco.push({ recurso, search: endereco.search, method: init.method || "GET" });
   if (recurso === "usuario") {
-    return respostaBanco([{ id: usuario.id, matricula: usuario.matricula, perfil: perfilBanco, status: "ativo" }]);
+    return respostaBanco([{ id: usuario.id, organizacao_id: "org-1", matricula: usuario.matricula, perfil: perfilBanco, status: "ativo", senha_hash: senhaHashTeste, senha_temporaria: false }]);
   }
   if (recurso === "organizacao") return respostaBanco([{ id: "org-1" }]);
   if (recurso === "fazenda") return respostaBanco([{ id: "fazenda-1" }]);
@@ -113,7 +114,7 @@ function fazerRequisicao(method, path, body, perfil = "tecnico") {
   return new Promise((resolve) => {
     const textoBody = body === undefined ? "" : JSON.stringify(body);
     perfilBanco = perfil === "admin" ? "administrador" : perfil;
-    const token = criarToken({ ...usuario, perfil }, process.env.JWT_SECRET);
+    const token = criarToken({ ...usuario, perfil }, process.env.JWT_SECRET, senhaHashTeste);
     const req = {
       method,
       url: path,
@@ -144,7 +145,16 @@ function fazerRequisicao(method, path, body, perfil = "tecnico") {
 
 async function executar() {
   try {
-    let resposta = await fazerRequisicao("GET", "/api/sensores");
+    const dataFutura = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
+    let resposta = await fazerRequisicao("POST", "/api/inspecoes", {
+      talhao: "T14", data: dataFutura, situacao: "Normal"
+    });
+    assert.equal(resposta.status, 400);
+    assert.match(resposta.body.mensagem, /pode ser futura/);
+    assert.ok(!requisicoesBanco.some((item) => item.recurso === "inspecao" && item.method === "POST"));
+    console.log("PASSOU  chatbot preserva bloqueio de data futura da main");
+
+    resposta = await fazerRequisicao("GET", "/api/sensores");
     assert.equal(resposta.status, 200);
     assert.equal(resposta.body.sensores[0].status, "Online");
     assert.equal(resposta.body.sensores[0].dados_recentes, true);

@@ -1,5 +1,8 @@
 const crypto = require("crypto");
-const { criarToken, autenticarRequisicao } = require("./session");
+const { validarEndereco } = require("../src/email");
+const { createChatbot } = require("./chatbot");
+const askChatbot = createChatbot();
+const { criarToken, validarSessao } = require("./session");
 const { db, listarTalhoesComTemperatura, farmsForOrganization } = require("./database");
 const { diagnosticarTalhoes } = require("../src/ia/predador-nucleo.js");
 const { dadosRecentes, estadoSensor } = require("../src/operacao/estado-sensor");
@@ -20,6 +23,9 @@ function config() {
     url: process.env.SUPABASE_URL.replace(/\/$/, ""),
     key,
     jwt: process.env.JWT_SECRET,
+    deepseekApiKey: process.env.DEEPSEEK_API_KEY || "",
+    deepseekModel: process.env.DEEPSEEK_MODEL || "deepseek-flash",
+    chatbotStaleMinutes: Math.max(1, Math.min(1440, Number(process.env.CHATBOT_STALE_MINUTES) || 15)),
     iot: process.env.IOT_API_KEY,
     thingSpeak: {
       channelId: process.env.THINGSPEAK_CHANNEL_ID || "",
@@ -100,7 +106,9 @@ setInterval(() => {
 }, JANELA_MS).unref(); // .unref(): o timer não impede o servidor de encerrar
 
 function rateLimit(req, maximum, scope) {
-  const ip = String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "?").split(",")[0].trim();
+  // req.ip e calculado pelo Express conforme os proxies explicitamente confiaveis.
+  // No handler HTTP direto, somente o endereco do socket e confiavel.
+  const ip = String(req.ip || req.socket?.remoteAddress || "?").replace(/^::ffff:/, "");
   const key = `${scope}:${ip}`;
   const now = Date.now();
   const state = hits.get(key) || { at: now, count: 0 };
@@ -250,7 +258,7 @@ module.exports = async (req, res) => {
       return reply(res, 200, {
         sucesso: true,
         usuario: safe,
-        token: criarToken(safe, c.jwt)
+        token: criarToken(safe, c.jwt, user.senha_hash)
       }, origin);
     }
 
@@ -359,22 +367,30 @@ module.exports = async (req, res) => {
     }
 
     // Validação de Sessão para Rotas Protegidas
-    const user = autenticarRequisicao(req, c.jwt);
-    if (!user) return reply(res, 401, { mensagem: "Não autorizado." }, origin);
+    const user = await validarSessao(req, c);
+    if (!user) return reply(res, 401, { mensagem: "Sessao expirada ou revogada. Faca login novamente." }, origin);
+    if (user.mustChangePassword && !(req.method === "POST" && route === "/alterar-senha")) {
+      return reply(res, 403, {
+        mensagem: "Altere sua senha provisória antes de continuar.",
+        codigo: "SENHA_PROVISORIA"
+      }, origin);
+    }
 
-    // Recheck mutable account privileges before any write, so an old token
-    // cannot keep changing data after an account is blocked or its role changes.
-    if (req.method !== "GET") {
-      const currentUser = (await db(
-        c,
-        "usuario",
-        "GET",
-        undefined,
-        `?id=eq.${encodeURIComponent(user.sub)}&select=id,perfil,status&limit=1`
-      ))[0];
-      const currentRole = currentUser?.perfil === "administrador" ? "admin" : currentUser?.perfil;
-      if (!currentUser || currentUser.status !== "ativo" || currentRole !== user.perfil) {
-        return reply(res, 401, { mensagem: "Sessao revogada ou perfil alterado. Faca login novamente." }, origin);
+    if (req.method === "POST" && route === "/chatbot/perguntar") {
+      if (!rateLimit(req, 10, "chatbot")) {
+        return reply(res, 429, { mensagem: "Muitas perguntas em pouco tempo. Aguarde um minuto." }, origin);
+      }
+      const d = await parseBody(req, 4096);
+      const question = d.pergunta;
+      if (typeof question !== "string" || !question.trim() || question.length > 1000) return reply(res, 400, { mensagem: "Digite uma pergunta de até 1.000 caracteres." }, origin);
+
+      try {
+        const result = await askChatbot({ config: c, user, authorization: req.headers.authorization,
+          conversationId: d.conversationId || "principal", question });
+        return reply(res, 200, result, origin);
+      } catch (error) {
+        console.error("Assistente:", error.status || 500);
+        return reply(res, error.status || 503, { mensagem: error.status ? error.message : "Não foi possível consultar o assistente agora. Tente novamente." }, origin);
       }
     }
 
@@ -560,8 +576,9 @@ module.exports = async (req, res) => {
         return reply(res, 401, { mensagem: "Senha atual inválida." }, origin);
       }
 
+      const novaSenhaHash = hashPassword(d.novaSenha);
       await db(c, `usuario?id=eq.${encodeURIComponent(user.sub)}`, "PATCH", {
-        senha_hash: hashPassword(d.novaSenha),
+        senha_hash: novaSenhaHash,
         senha_temporaria: false
       });
 
@@ -575,14 +592,7 @@ module.exports = async (req, res) => {
       return reply(res, 200, {
         sucesso: true,
         usuario: updatedUser,
-        token: criarToken(updatedUser, c.jwt)
-      }, origin);
-    }
-
-    if (user.mustChangePassword) {
-      return reply(res, 403, {
-        mensagem: "Altere sua senha provisória antes de continuar.",
-        codigo: "SENHA_PROVISORIA"
+        token: criarToken(updatedUser, c.jwt, novaSenhaHash)
       }, origin);
     }
 
@@ -1931,6 +1941,7 @@ module.exports = async (req, res) => {
     const employeeMatch = route.match(/^\/funcionarios\/([^/]+)$/);
     if (employeeMatch && ["PUT", "PATCH", "DELETE"].includes(req.method)) {
       if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissão." }, origin);
+      if (!user.organizacaoId) return reply(res, 403, { mensagem: "Organização da conta não configurada." }, origin);
       const employeeId = decodeURIComponent(employeeMatch[1]);
       if (employeeId === String(user.sub)) {
         return reply(res, 400, { mensagem: "Não e permitido alterar ou excluir o proprio usuário." }, origin);
@@ -1940,11 +1951,14 @@ module.exports = async (req, res) => {
         "usuario",
         "GET",
         undefined,
-        `?id=eq.${encodeURIComponent(employeeId)}&select=id,status,profissao&limit=1`
+        `?id=eq.${encodeURIComponent(employeeId)}&organizacao_id=eq.${encodeURIComponent(user.organizacaoId)}&select=id,status,profissao&limit=1`
       ))[0];
       if (!employee) return reply(res, 404, { mensagem: "Funcionário não encontrado." }, origin);
       if (req.method === "PUT") {
         const d = await parseBody(req);
+        if (d.email !== undefined && d.email !== null && (typeof d.email !== "string" || (d.email.trim() && !validarEndereco(d.email.trim())))) {
+          return reply(res, 400, { mensagem: "Informe um e-mail válido ou deixe o campo vazio." }, origin);
+        }
         const status = d.status === undefined ? employee.status : d.status;
         const profissao = d.profissao === undefined
           ? employee.profissao || ""
@@ -1967,11 +1981,12 @@ module.exports = async (req, res) => {
           perfil: d.perfil === "admin" ? "administrador" : d.perfil,
           status
         };
+        if (d.email !== undefined) updates.email = d.email?.trim() || null;
         if (d.senha) {
           updates.senha_hash = hashPassword(d.senha);
           updates.senha_temporaria = true;
         }
-        await db(c, `usuario?id=eq.${encodeURIComponent(employeeId)}`, "PATCH", updates);
+        await db(c, `usuario?id=eq.${encodeURIComponent(employeeId)}&organizacao_id=eq.${encodeURIComponent(user.organizacaoId)}`, "PATCH", updates);
         return reply(res, 200, { sucesso: true }, origin);
       }
       if (req.method === "PATCH") {
@@ -1979,14 +1994,15 @@ module.exports = async (req, res) => {
         if (!["ativo", "inativo"].includes(d.status)) {
           return reply(res, 400, { mensagem: "Status de funcionário inválido." }, origin);
         }
-        await db(c, `usuario?id=eq.${encodeURIComponent(employeeId)}`, "PATCH", { status: d.status });
+        await db(c, `usuario?id=eq.${encodeURIComponent(employeeId)}&organizacao_id=eq.${encodeURIComponent(user.organizacaoId)}`, "PATCH", { status: d.status });
         return reply(res, 200, { sucesso: true, status: d.status }, origin);
       }
-      await db(c, `usuario?id=eq.${encodeURIComponent(employeeId)}`, "DELETE");
+      await db(c, `usuario?id=eq.${encodeURIComponent(employeeId)}&organizacao_id=eq.${encodeURIComponent(user.organizacaoId)}`, "DELETE");
       return reply(res, 200, { sucesso: true }, origin);
     }
 
     if (["/funcionarios", "/admin/usuarios"].includes(route)) {
+      if (!user.organizacaoId) return reply(res, 403, { mensagem: "Organização da conta não configurada." }, origin);
       if (req.method === "GET") {
         if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissão." }, origin);
         const rows = await db(
@@ -1994,7 +2010,7 @@ module.exports = async (req, res) => {
           "usuario",
           "GET",
           undefined,
-          "?select=id,matricula,nome_completo,perfil,cargo,profissao,status,criado_em&order=matricula"
+          `?organizacao_id=eq.${encodeURIComponent(user.organizacaoId)}&select=id,matricula,nome_completo,email,perfil,cargo,profissao,status,criado_em&order=matricula`
         );
         return reply(
           res,
@@ -2004,6 +2020,7 @@ module.exports = async (req, res) => {
               id: r.id,
               matricula: r.matricula,
               nome: r.nome_completo,
+              email: r.email || "",
               perfil: r.perfil === "administrador" ? "admin" : r.perfil,
               cargo: r.cargo,
               profissao: r.profissao || "",
@@ -2019,6 +2036,9 @@ module.exports = async (req, res) => {
       if (req.method === "POST") {
         if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissão." }, origin);
         const d = await parseBody(req);
+        if (d.email !== undefined && d.email !== null && (typeof d.email !== "string" || (d.email.trim() && !validarEndereco(d.email.trim())))) {
+          return reply(res, 400, { mensagem: "Informe um e-mail válido ou deixe o campo vazio." }, origin);
+        }
         const perfil = d.perfil === undefined ? "tecnico" : d.perfil;
         const status = d.status === undefined ? "ativo" : d.status;
         const profissao = d.profissao === undefined
@@ -2038,7 +2058,7 @@ module.exports = async (req, res) => {
           return reply(res, 400, { mensagem: "A senha temporária deve possuir entre 8 e 10 caracteres." }, origin);
         }
 
-        const org = (await db(c, "organizacao", "GET", undefined, "?select=id&order=criado_em&limit=1"))[0];
+        const org = (await db(c, "organizacao", "GET", undefined, `?id=eq.${encodeURIComponent(user.organizacaoId)}&select=id&limit=1`))[0];
         if (!org) return reply(res, 503, { mensagem: "Organizacao não configurada." }, origin);
 
         const matriculaResponse = await db(c, "rpc/proxima_matricula_funcionario", "POST", {});
@@ -2051,6 +2071,7 @@ module.exports = async (req, res) => {
           organizacao_id: org.id,
           matricula,
           nome_completo: text(d.nome),
+          email: d.email?.trim() || null,
           cargo: text(d.cargo),
           profissao,
           perfil: perfil === "admin" ? "administrador" : perfil,
