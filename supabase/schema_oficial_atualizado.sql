@@ -83,6 +83,9 @@ create table if not exists public.usuario (
   status public.status_registro not null default 'ativo',
   senha_hash text not null,
   senha_temporaria boolean not null default false,
+  totp_secret_ciphertext text,
+  totp_ativado_em timestamptz,
+  totp_ultimo_passo bigint not null default -1,
   firebase_uid varchar(128),
   criado_em timestamptz not null default now(),
   atualizado_em timestamptz not null default now()
@@ -157,8 +160,10 @@ create table if not exists public.dispositivo (
   status public.status_dispositivo not null default 'online',
   instalado_em timestamptz not null default now(),
   ultimo_sinal_em timestamptz,
+  responsavel_usuario_id uuid references public.usuario(id) on delete set null,
   constraint dispositivo_unico_por_org unique (organizacao_id, id_externo)
 );
+create index if not exists dispositivo_responsavel_idx on public.dispositivo(responsavel_usuario_id);
 
 -- 4.8 Sensor
 create table if not exists public.sensor (
@@ -659,11 +664,12 @@ select
   round(avg(ls.valor)::numeric, 2) as valor_medio,
   min(ls.valor) as valor_minimo,
   max(ls.valor) as valor_maximo,
-  count(*) as leituras_contabilizadas
+  count(*) as leituras_contabilizadas,
+  d.id as dispositivo_id
 from public.leitura_sensor ls
 join public.sensor s on s.id = ls.sensor_id
 join public.dispositivo d on d.id = ls.dispositivo_id
-group by d.talhao_id, s.codigo_metrica, date_trunc('day', ls.coletado_em)::date;
+group by d.talhao_id, s.codigo_metrica, date_trunc('day', ls.coletado_em)::date, d.id;
 
 -- 8. Permissões de Acesso e Row Level Security (RLS)
 grant usage on schema public to service_role;

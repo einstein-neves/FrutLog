@@ -1,5 +1,10 @@
 const crypto = require("crypto");
 const { validarEndereco } = require("../src/email");
+const QRCode = require("qrcode");
+const {
+  criarSegredo, verificarCodigo, criptografarSegredo, descriptografarSegredo,
+  uri: criarUriTotp, criarCodigosRecuperacao, hashCodigoRecuperacao,
+} = require("./totp");
 const { createChatbot } = require("./chatbot");
 const askChatbot = createChatbot();
 const { criarToken, validarSessao } = require("./session");
@@ -85,6 +90,23 @@ function hashPassword(password) {
   return `pbkdf2$${rounds}$${salt}$${hash}`;
 }
 
+function versaoCredencialOtp(usuario, segredo) {
+  return crypto.createHmac("sha256", segredo)
+    .update(JSON.stringify(["frutlog-session-v1", String(usuario.id), usuario.senha_hash])).digest("hex");
+}
+
+function filtroDonoDispositivo(user) {
+  return user.perfil === "admin" ? "" : `&responsavel_usuario_id=eq.${encodeURIComponent(user.sub)}`;
+}
+
+function registrarBloqueioIdor(user, recurso, id) {
+  console.warn(JSON.stringify({ evento: "IDOR_BLOQUEADO", missao: process.env.SECURITY_MISSION_CODE || "PREENCHER", usuario: user.sub, recurso, id }));
+}
+
+function registrarBloqueioOtp(motivo) {
+  console.warn(JSON.stringify({ evento: "OTP_BLOQUEADO", missao: process.env.SECURITY_MISSION_CODE || "PREENCHER", motivo }));
+}
+
 function passwordOk(password, stored) {
   const [kind, rounds, salt, hash] = String(stored || "").split("$");
   if (kind !== "pbkdf2" || !/^\d+$/.test(rounds) || !salt || !/^[a-f0-9]{64}$/i.test(hash)) return false;
@@ -136,6 +158,24 @@ function date(v) {
   return Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== v ? null : v;
 }
 
+async function talhaoDaOrganizacao(config, user, codigo, select = "id") {
+  const farms = await farmsForOrganization(config, user.organizacaoId);
+  if (!farms.length) return null;
+  return (await db(config, "talhao", "GET", undefined,
+    `?codigo=eq.${encodeURIComponent(codigo)}&fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&arquivado_em=is.null&select=${select}&limit=1`))[0] || null;
+}
+
+async function sensoresDaSessao(config, user, plotIds) {
+  if (!plotIds?.length) return [];
+  const devices = await db(config, "dispositivo", "GET", undefined,
+    `?talhao_id=in.(${plotIds.join(",")})&select=id${filtroDonoDispositivo(user)}`);
+  const deviceIds = devices.map((device) => device.id);
+  if (!deviceIds.length) return [];
+  const sensors = await db(config, "sensor", "GET", undefined,
+    `?dispositivo_id=in.(${deviceIds.join(",")})&select=id`);
+  return sensors.map((sensor) => sensor.id);
+}
+
 // Data de hoje no fuso do Brasil (AAAA-MM-DD). Usar toISOString() daria a data em UTC,
 // que depois das 21h em Recife já é o dia seguinte e deixaria passar a data de amanhã.
 function hojeNoBrasil() {
@@ -183,7 +223,7 @@ module.exports = async (req, res) => {
   }
 
   const route = new URL(req.url, "http://localhost").pathname.replace(/^\/api/, "") || "/";
-  const isLoginRequest = req.method === "POST" && route === "/login";
+  const isLoginRequest = req.method === "POST" && ["/login", "/login/otp"].includes(route);
   if (!rateLimit(req, isLoginRequest ? 10 : 120, isLoginRequest ? "login" : "api")) {
     return reply(res, 429, { mensagem: "Muitas requisicoes." }, origin);
   }
@@ -241,13 +281,124 @@ module.exports = async (req, res) => {
         "usuario",
         "GET",
         undefined,
-        `?matricula=eq.${encodeURIComponent(matricula)}&select=id,matricula,nome_completo,perfil,senha_hash,status,senha_temporaria&limit=1`
+        `?matricula=eq.${encodeURIComponent(matricula)}&select=id,matricula,nome_completo,perfil,senha_hash,status,senha_temporaria,totp_secret_ciphertext,totp_ativado_em&limit=1`
       );
       const user = users[0];
       if (!user || user.status !== "ativo" || !passwordOk(senha, user.senha_hash)) {
         return reply(res, 401, { mensagem: "Matrícula ou senha inválida." }, origin);
       }
 
+      if (!process.env.TOTP_ENCRYPTION_KEY || process.env.TOTP_ENCRYPTION_KEY.length < 32) {
+        return reply(res, 503, { mensagem: "Configure TOTP_ENCRYPTION_KEY com pelo menos 32 caracteres." }, origin);
+      }
+      const challengeId = crypto.randomUUID();
+      const modo = user.totp_secret_ciphertext ? "login" : "setup";
+      const segredo = modo === "setup" ? criarSegredo() : null;
+      const segredoCifrado = segredo ? criptografarSegredo(segredo, process.env.TOTP_ENCRYPTION_KEY) : null;
+      const credencialHash = versaoCredencialOtp(user, c.jwt);
+      await db(c, `desafio_login_otp?expira_em=lt.${encodeURIComponent(new Date().toISOString())}`, "DELETE");
+      await db(c, `desafio_login_otp?usuario_id=eq.${encodeURIComponent(user.id)}`, "DELETE");
+      await db(c, "desafio_login_otp", "POST", {
+        id: challengeId, usuario_id: user.id, codigo_hash: null, credencial_hash: credencialHash,
+        modo, totp_secret_ciphertext: segredoCifrado,
+        expira_em: new Date(Date.now() + 5 * 60 * 1000).toISOString(), tentativas: 0
+      });
+      const configuracaoTotp = segredo ? {
+        qrCode: await QRCode.toDataURL(criarUriTotp(segredo, user.matricula)),
+        segredoManual: segredo,
+      } : {};
+      return reply(res, 200, {
+        sucesso: true, otpRequerido: true, desafio: challengeId, modo,
+        mensagem: modo === "setup" ? "Configure o FrutLog no aplicativo autenticador e informe o codigo." : "Informe o codigo do aplicativo autenticador.",
+        ...configuracaoTotp,
+      }, origin);
+    }
+
+    if (req.method === "POST" && route === "/login/otp") {
+      if (!process.env.TOTP_ENCRYPTION_KEY || process.env.TOTP_ENCRYPTION_KEY.length < 32) {
+        return reply(res, 503, { mensagem: "Autenticacao por aplicativo indisponivel." }, origin);
+      }
+      const d = await parseBody(req, 4096);
+      const challengeId = typeof d.desafio === "string" && /^[a-f0-9-]{36}$/i.test(d.desafio) ? d.desafio : "";
+      const codigo = typeof d.codigo === "string" ? d.codigo.replace(/\s/g, "") : "";
+      const recoveryCode = typeof d.codigoRecuperacao === "string" ? d.codigoRecuperacao : "";
+      if (!challengeId || (!/^\d{6}$/.test(codigo) && !recoveryCode)) {
+        registrarBloqueioOtp("formato_ou_desafio_invalido");
+        return reply(res, 401, { mensagem: "Codigo invalido ou expirado." }, origin);
+      }
+      const challengeAtual = (await db(c, "desafio_login_otp", "GET", undefined,
+        `?id=eq.${encodeURIComponent(challengeId)}&select=id,usuario_id,modo,totp_secret_ciphertext,credencial_hash,expira_em,tentativas&limit=1`))[0];
+      if (!challengeAtual) {
+        registrarBloqueioOtp("desafio_invalido_ou_expirado");
+        return reply(res, 401, { mensagem: "Codigo invalido ou expirado." }, origin);
+      }
+      const user = (await db(c, "usuario", "GET", undefined,
+        `?id=eq.${encodeURIComponent(challengeAtual.usuario_id)}&status=eq.ativo&select=id,matricula,nome_completo,perfil,senha_hash,senha_temporaria,totp_secret_ciphertext,totp_ultimo_passo&limit=1`))[0];
+      if (!user) {
+        registrarBloqueioOtp("conta_indisponivel");
+        return reply(res, 401, { mensagem: "Codigo invalido ou expirado." }, origin);
+      }
+      const credencialAtual = versaoCredencialOtp(user, c.jwt);
+      const credencialDoDesafio = challengeAtual.credencial_hash;
+      if (!/^[a-f0-9]{64}$/i.test(credencialDoDesafio || "") || !crypto.timingSafeEqual(Buffer.from(credencialAtual, "hex"), Buffer.from(credencialDoDesafio, "hex"))) {
+        registrarBloqueioOtp("credencial_alterada");
+        return reply(res, 401, { mensagem: "Codigo invalido ou expirado." }, origin);
+      }
+      let passoUsado = null;
+      let codigoValido = false;
+      let recoveryHash = null;
+      let codigosRecuperacao;
+      if (recoveryCode && challengeAtual.modo === "login") {
+        recoveryHash = hashCodigoRecuperacao(user.id, recoveryCode, process.env.TOTP_ENCRYPTION_KEY);
+        codigoValido = recoveryHash && (await db(c, "usuario_codigo_recuperacao", "GET", undefined,
+          `?usuario_id=eq.${encodeURIComponent(user.id)}&codigo_hash=eq.${encodeURIComponent(recoveryHash)}&select=id&limit=1`)).length > 0;
+      } else if (/^\d{6}$/.test(codigo)) {
+        const segredo = challengeAtual.modo === "setup"
+          ? descriptografarSegredo(challengeAtual.totp_secret_ciphertext, process.env.TOTP_ENCRYPTION_KEY)
+          : descriptografarSegredo(user.totp_secret_ciphertext, process.env.TOTP_ENCRYPTION_KEY);
+        passoUsado = verificarCodigo(segredo, codigo, Date.now(), challengeAtual.modo === "setup" ? -1 : user.totp_ultimo_passo);
+        codigoValido = passoUsado !== null;
+      }
+      const consumido = await db(c, "rpc/consumir_desafio_login_otp", "POST", {
+        p_id: challengeId, p_codigo_valido: codigoValido, p_credencial_hash: credencialAtual
+      });
+      const challenge = Array.isArray(consumido) ? consumido[0] : consumido;
+      const userId = challenge?.usuario_id;
+      if (!userId) {
+        registrarBloqueioOtp(codigoValido ? "desafio_expirado_ou_consumido" : "codigo_invalido_expirado_ou_reutilizado");
+        return reply(res, 401, { mensagem: "Codigo invalido ou expirado." }, origin);
+      }
+      if (challenge.modo === "setup") {
+        codigosRecuperacao = criarCodigosRecuperacao();
+        await db(c, `usuario_codigo_recuperacao?usuario_id=eq.${encodeURIComponent(user.id)}`, "DELETE");
+        await db(c, "usuario_codigo_recuperacao", "POST", codigosRecuperacao.map((code) => ({
+          usuario_id: user.id, codigo_hash: hashCodigoRecuperacao(user.id, code, process.env.TOTP_ENCRYPTION_KEY)
+        })));
+      }
+      if (recoveryHash) {
+        const removed = await db(c, "rpc/consumir_codigo_recuperacao", "POST", {
+          p_usuario_id: user.id, p_codigo_hash: recoveryHash
+        });
+        if (removed !== true) {
+          registrarBloqueioOtp("recuperacao_invalida_ou_reutilizada");
+          return reply(res, 401, { mensagem: "Codigo de recuperacao invalido ou ja utilizado." }, origin);
+        }
+      } else {
+        const updated = challenge.modo === "setup"
+          ? await db(c, `usuario?id=eq.${encodeURIComponent(user.id)}&senha_hash=eq.${encodeURIComponent(user.senha_hash)}&totp_secret_ciphertext=is.null`, "PATCH", {
+            totp_secret_ciphertext: challenge.totp_secret_ciphertext,
+            totp_ativado_em: new Date().toISOString(),
+            totp_ultimo_passo: passoUsado
+          })
+          : await db(c, `usuario?id=eq.${encodeURIComponent(user.id)}&senha_hash=eq.${encodeURIComponent(user.senha_hash)}&totp_ultimo_passo=lt.${passoUsado}`, "PATCH", {
+            totp_ultimo_passo: passoUsado
+          });
+        if (!updated.length) {
+          if (challenge.modo === "setup") await db(c, `usuario_codigo_recuperacao?usuario_id=eq.${encodeURIComponent(user.id)}`, "DELETE");
+          registrarBloqueioOtp("codigo_reutilizado_ou_credencial_alterada");
+          return reply(res, 401, { mensagem: "Codigo invalido, expirado ou ja utilizado." }, origin);
+        }
+      }
       const safe = {
         id: user.id,
         matricula: user.matricula,
@@ -258,7 +409,8 @@ module.exports = async (req, res) => {
       return reply(res, 200, {
         sucesso: true,
         usuario: safe,
-        token: criarToken(safe, c.jwt, user.senha_hash)
+        token: criarToken(safe, c.jwt, user.senha_hash),
+        ...(codigosRecuperacao ? { codigosRecuperacao } : {})
       }, origin);
     }
 
@@ -310,16 +462,16 @@ module.exports = async (req, res) => {
     // ---------------------------------------------------------------------
     // POR QUE EXISTE: antes, a ponte guardava o identificador de cada
     // dispositivo numa lista dentro do próprio código. Isso obrigava a digitar
-    // o mesmo nome em DOIS lugares — na tela Sensores e no arquivo da ponte —
+    // O identificador do dispositivo e mantido no cadastro da tela Sensores.
     // e a divergência entre eles não dava erro nenhum: a leitura simplesmente
     // nunca chegava. Com esta rota o cadastro da tela passa a ser a única
     // fonte do nome. Quem cadastra escolhe o nome; o código não conhece nome.
     //
-    // POR QUE FICA ACIMA DA FRONTEIRA DE SESSÃO: quem chama é um processo de
+    // Esta rota e usada pelo processo de servidor da ponte IoT.
     // servidor, não um navegador logado. Autentica com a mesma x-iot-key da
     // rota de telemetria, igual a um ESP32 faria.
     //
-    // POR QUE ISSO NÃO AFROUXA A SEGURANÇA: quem tem a x-iot-key já podia
+    // A rota exige a chave IoT configurada no servidor.
     // GRAVAR leitura por POST /iot/telemetria. Poder ler a lista de sensores
     // é estritamente menos do que isso.
     if (req.method === "GET" && route === "/iot/sensores") {
@@ -348,7 +500,7 @@ module.exports = async (req, res) => {
 
       // Sensor cujo dispositivo foi desativado, ou cujo talhão foi arquivado,
       // sai da lista: a ponte não deve continuar alimentando um talhão que
-      // saiu de operação. É o mesmo critério do mapa, que só mostra ativos.
+      // Archived devices and plots are excluded from the active map.
       const catalogo = sensors.reduce((lista, sensor) => {
         const device = deviceById.get(sensor.dispositivo_id);
         const codigoTalhao = device && plotById.get(device.talhao_id);
@@ -395,7 +547,7 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === "GET" && route === "/chatbot/contexto") {
-      const farms = await farmsForOrganization(c);
+      const farms = await farmsForOrganization(c, user.organizacaoId);
       if (!farms.length) {
         return reply(res, 200, { consultado_em: new Date().toISOString(), ocorrencias: [], sensores: [] }, origin);
       }
@@ -423,7 +575,7 @@ module.exports = async (req, res) => {
           "dispositivo",
           "GET",
           undefined,
-          `?talhao_id=in.(${plotIds.join(",")})&select=id,id_externo,talhao_id,status,ultimo_sinal_em`
+          `?talhao_id=in.(${plotIds.join(",")})&select=id,id_externo,talhao_id,status,ultimo_sinal_em,responsavel_usuario_id${filtroDonoDispositivo(user)}`
         ),
       ]);
       const deviceIds = devices.map((device) => device.id);
@@ -498,7 +650,7 @@ module.exports = async (req, res) => {
       }
       //passo 2.2 os dados reais 
 
-      const farms = await farmsForOrganization(c);
+      const farms = await farmsForOrganization(c, user.organizacaoId);
       if (!farms.length) {
         return reply(res, 200, { consultado_em: new Date().toISOString(), talhoes: [] }, origin);
       }
@@ -511,7 +663,7 @@ module.exports = async (req, res) => {
       const talhaoIds = talhoes.map((talhao) => talhao.id);
       const dispositivos = talhaoIds.length
         ? await db(c, "dispositivo", "GET", undefined,
-          `?talhao_id=in.(${talhaoIds.join(",")})&select=id,id_externo,talhao_id,status`)
+          `?talhao_id=in.(${talhaoIds.join(",")})&select=id,id_externo,talhao_id,status${filtroDonoDispositivo(user)}`)
         : [];
 
       const dispositivoIds = dispositivos.map((dispositivo) => dispositivo.id);
@@ -526,7 +678,8 @@ module.exports = async (req, res) => {
           `?sensor_id=in.(${sensorIds.join(",")})&select=sensor_id,valor,unidade,qualidade,coletado_em`)
         : [];
 
-      const regras = await db(c, "regra_alerta", "GET", undefined, "?habilitado=is.true&select=*");
+      const regras = await db(c, "regra_alerta", "GET", undefined,
+        `?organizacao_id=eq.${encodeURIComponent(user.organizacaoId)}&habilitado=is.true&select=*`);
 
       // Quais talhoes tem cultura plantada agora. Sem isso o nucleo julgaria
       // um talhao colhido contra o teto de temperatura da cultura anterior.
@@ -649,12 +802,16 @@ module.exports = async (req, res) => {
       if (!["engenheiro", "admin"].includes(user.perfil)) {
         return reply(res, 403, { mensagem: "Sem permissão." }, origin);
       }
+      const farms = await farmsForOrganization(c, user.organizacaoId);
+      const plots = farms.length ? await db(c, "talhao", "GET", undefined,
+        `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&select=id`) : [];
+      if (!plots.length) return reply(res, 200, { colheitas: [] }, origin);
       const harvests = await db(
         c,
         "colheita",
         "GET",
         undefined,
-        "?arquivado_em=is.null&select=ano,quantidade,unidade&order=ano&limit=10000"
+        `?talhao_id=in.(${plots.map((plot) => plot.id).join(",")})&arquivado_em=is.null&select=ano,quantidade,unidade&order=ano&limit=10000`
       );
       const annual = new Map();
       harvests.forEach((row) => {
@@ -783,7 +940,7 @@ module.exports = async (req, res) => {
     if (telemetriaTalhaoMatch && req.method === "GET") {
       const codigoTalhao = decodeURIComponent(telemetriaTalhaoMatch[1]);
 
-      const farms = await farmsForOrganization(c);
+      const farms = await farmsForOrganization(c, user.organizacaoId);
       if (!farms.length) return reply(res, 200, { talhao: codigoTalhao, metricas: {} }, origin);
 
       const plot = (await db(c, "talhao", "GET", undefined,
@@ -791,7 +948,7 @@ module.exports = async (req, res) => {
       if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado nesta organização." }, origin);
 
       const devices = await db(c, "dispositivo", "GET", undefined,
-        `?talhao_id=eq.${encodeURIComponent(plot.id)}&status=neq.desativado&select=id`);
+        `?talhao_id=eq.${encodeURIComponent(plot.id)}&status=neq.desativado&select=id${filtroDonoDispositivo(user)}`);
       const deviceIds = devices.map((device) => device.id);
 
       const sensors = deviceIds.length
@@ -844,19 +1001,19 @@ module.exports = async (req, res) => {
       const inicioHistorico = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth() - 11, 1))
         .toISOString()
         .slice(0, 10);
-      const [plots, readings] = await Promise.all([
-        db(c, "talhao", "GET", undefined, "?select=id,codigo"),
-        db(
-          c,
-          "v_telemetria_diaria_talhao",
-          "GET",
-          undefined,
-          `?dia=gte.${inicioHistorico}&select=talhao_id,codigo_metrica,dia,valor_medio,valor_minimo,valor_maximo,leituras_contabilizadas&order=dia.desc&limit=10000`
-        )
-      ]);
+      const farms = await farmsForOrganization(c, user.organizacaoId);
+      const plots = farms.length ? await db(c, "talhao", "GET", undefined,
+        `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&select=id,codigo`) : [];
+      const plotIdsList = plots.map((plot) => plot.id);
+      const ownedDevices = plotIdsList.length ? await db(c, "dispositivo", "GET", undefined,
+        `?talhao_id=in.(${plotIdsList.join(",")})&select=id${filtroDonoDispositivo(user)}`) : [];
+      const ownedDeviceIds = ownedDevices.map((device) => device.id);
+      const readings = ownedDeviceIds.length ? await db(c, "v_telemetria_diaria_talhao", "GET", undefined,
+        `?dispositivo_id=in.(${ownedDeviceIds.join(",")})&dia=gte.${inicioHistorico}&select=dispositivo_id,talhao_id,codigo_metrica,dia,valor_medio,valor_minimo,valor_maximo,leituras_contabilizadas&order=dia.desc&limit=10000`) : [];
+      const plotIdsPermitidos = new Set(plots.map((plot) => plot.id));
       const plotCodes = new Map(plots.map((plot) => [plot.id, plot.codigo]));
       const monthly = new Map();
-      readings.forEach((reading) => {
+      readings.filter((reading) => plotIdsPermitidos.has(reading.talhao_id)).forEach((reading) => {
         const mes = reading.dia.slice(0, 7);
         const key = `${reading.talhao_id}:${reading.codigo_metrica}:${mes}`;
         const quantidade = Number(reading.leituras_contabilizadas);
@@ -876,12 +1033,30 @@ module.exports = async (req, res) => {
         item.valor_maximo = Math.max(item.valor_maximo, Number(reading.valor_maximo));
         monthly.set(key, item);
       });
-      const leiaDiaria = readings
-        .filter((reading) => reading.dia >= desde)
-        .map((reading) => ({
-          ...reading,
-          talhao: plotCodes.get(reading.talhao_id) || null
-        }));
+      const daily = new Map();
+      readings.filter((reading) => plotIdsPermitidos.has(reading.talhao_id) && reading.dia >= desde).forEach((reading) => {
+        const key = `${reading.talhao_id}:${reading.codigo_metrica}:${reading.dia}`;
+        const count = Number(reading.leituras_contabilizadas);
+        const item = daily.get(key) || {
+          talhao_id: reading.talhao_id,
+          talhao: plotCodes.get(reading.talhao_id) || null,
+          codigo_metrica: reading.codigo_metrica,
+          dia: reading.dia,
+          somaPonderada: 0,
+          leituras_contabilizadas: 0,
+          valor_minimo: Number(reading.valor_minimo),
+          valor_maximo: Number(reading.valor_maximo)
+        };
+        item.somaPonderada += Number(reading.valor_medio) * count;
+        item.leituras_contabilizadas += count;
+        item.valor_minimo = Math.min(item.valor_minimo, Number(reading.valor_minimo));
+        item.valor_maximo = Math.max(item.valor_maximo, Number(reading.valor_maximo));
+        daily.set(key, item);
+      });
+      const leiaDiaria = [...daily.values()].map((item) => ({
+        ...item,
+        valor_medio: Number((item.somaPonderada / item.leituras_contabilizadas).toFixed(2))
+      }));
       const leiaMensal = [...monthly.values()]
         .map((item) => ({
           ...item,
@@ -907,13 +1082,7 @@ module.exports = async (req, res) => {
       ) {
         return reply(res, 400, { mensagem: "Informe talhão, data, quantidade positiva e unidade valida." }, origin);
       }
-      const plot = (await db(
-        c,
-        "talhao",
-        "GET",
-        undefined,
-        `?codigo=eq.${encodeURIComponent(d.talhao)}&arquivado_em=is.null&select=id&limit=1`
-      ))[0];
+      const plot = await talhaoDaOrganizacao(c, user, d.talhao);
       if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
 
       const cicloAtivo = (await db(
@@ -967,7 +1136,14 @@ module.exports = async (req, res) => {
         if (!ehTecnico && !["engenheiro", "admin"].includes(user.perfil)) {
           return reply(res, 403, { mensagem: "Sem permissão para consultar relatórios." }, origin);
         }
-        const filtroAutor = ehTecnico ? `&usuario_id=eq.${encodeURIComponent(user.sub)}` : "";
+        let filtroAutor = `&usuario_id=eq.${encodeURIComponent(user.sub)}`;
+        if (!ehTecnico) {
+          const autoresOrg = await db(c, "usuario", "GET", undefined,
+            `?organizacao_id=eq.${encodeURIComponent(user.organizacaoId)}&select=id`);
+          filtroAutor = autoresOrg.length
+            ? `&usuario_id=in.(${autoresOrg.map((autor) => encodeURIComponent(autor.id)).join(",")})`
+            : "&usuario_id=eq.00000000-0000-0000-0000-000000000000";
+        }
         const reports = await db(
           c, "relatorio_campo_diario", "GET", undefined,
           `?select=id,usuario_id,tecnico_nome,data_relatorio,conteudo,status,criado_em,atualizado_em,arquivado_em&order=data_relatorio.desc,criado_em.desc&limit=500${filtroAutor}`
@@ -1023,15 +1199,18 @@ module.exports = async (req, res) => {
           "relatorio_campo_diario",
           "GET",
           undefined,
-          `?id=eq.${encodeURIComponent(reportId)}&select=id&limit=1`
+          `?id=eq.${encodeURIComponent(reportId)}&select=id,usuario_id&limit=1`
         ))[0];
-        if (!report) return reply(res, 404, { mensagem: "Relatório não encontrado." }, origin);
+        if (!report) return reply(res, 404, { mensagem: "Relatorio nao encontrado." }, origin);
+        const autor = (await db(c, "usuario", "GET", undefined,
+          `?id=eq.${encodeURIComponent(report.usuario_id)}&organizacao_id=eq.${encodeURIComponent(user.organizacaoId)}&select=id&limit=1`))[0];
+        if (!autor) return reply(res, 404, { mensagem: "Relatorio nao encontrado." }, origin);
         await db(
           c,
           "relatorio_campo_diario",
           "DELETE",
           undefined,
-          `?id=eq.${encodeURIComponent(reportId)}`
+          `?id=eq.${encodeURIComponent(reportId)}&usuario_id=eq.${encodeURIComponent(report.usuario_id)}`
         );
         return reply(res, 200, { sucesso: true, excluido: true }, origin);
       }
@@ -1051,13 +1230,16 @@ module.exports = async (req, res) => {
           "relatorio_campo_diario",
           "GET",
           undefined,
-          `?id=eq.${encodeURIComponent(reportId)}&select=id&limit=1`
+          `?id=eq.${encodeURIComponent(reportId)}&select=id,usuario_id&limit=1`
         ))[0];
-        if (!report) return reply(res, 404, { mensagem: "Relatório não encontrado." }, origin);
+        if (!report) return reply(res, 404, { mensagem: "Relatorio nao encontrado." }, origin);
+        const autor = (await db(c, "usuario", "GET", undefined,
+          `?id=eq.${encodeURIComponent(report.usuario_id)}&organizacao_id=eq.${encodeURIComponent(user.organizacaoId)}&select=id&limit=1`))[0];
+        if (!autor) return reply(res, 404, { mensagem: "Relatorio nao encontrado." }, origin);
         const atualizacao = {};
         if (atualizarStatus) atualizacao.status = d.status;
         if (atualizarArquivo) atualizacao.arquivado_em = d.arquivado ? new Date().toISOString() : null;
-        await db(c, `relatorio_campo_diario?id=eq.${encodeURIComponent(reportId)}`, "PATCH", atualizacao);
+        await db(c, `relatorio_campo_diario?id=eq.${encodeURIComponent(reportId)}&usuario_id=eq.${encodeURIComponent(report.usuario_id)}`, "PATCH", atualizacao);
         return reply(res, 200, { sucesso: true, arquivado: atualizarArquivo ? d.arquivado : undefined }, origin);
       }
 
@@ -1066,7 +1248,7 @@ module.exports = async (req, res) => {
 
     // 4. Rotas Granulares: Talhões
     if (req.method === "GET" && route === "/talhoes") {
-      const farms = await farmsForOrganization(c);
+      const farms = await farmsForOrganization(c, user.organizacaoId);
       if (!farms.length) return reply(res, 503, { mensagem: "Fazenda não configurada." }, origin);
       const filtroFazendas = `fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})`;
       const [plots, arquivados] = await Promise.all([
@@ -1135,7 +1317,7 @@ module.exports = async (req, res) => {
         return reply(res, 400, { mensagem: "Lista de talhões removidos inválida." }, origin);
       }
 
-      const farms = await farmsForOrganization(c);
+      const farms = await farmsForOrganization(c, user.organizacaoId);
       if (!farms.length) return reply(res, 503, { mensagem: "Fazenda não configurada." }, origin);
 
       const candidateCodes = [...new Set([
@@ -1217,9 +1399,9 @@ module.exports = async (req, res) => {
       return reply(res, 200, { sucesso: true, talhoes: persistedPlots }, origin);
     }
 
-    // 5. Rotas Granulares: Sensores e Última Leitura
+    // 5. Rotas Granulares: Sensores e Ultima Leitura
     if (req.method === "GET" && route === "/sensores") {
-      const farms = await farmsForOrganization(c);
+      const farms = await farmsForOrganization(c, user.organizacaoId);
       if (!farms.length) return reply(res, 200, { sensores: [] }, origin);
       const plots = await db(
         c,
@@ -1235,7 +1417,7 @@ module.exports = async (req, res) => {
         "dispositivo",
         "GET",
         undefined,
-        `?talhao_id=in.(${plotIds.join(",")})&select=id,id_externo,talhao_id,status,ultimo_sinal_em`
+        `?talhao_id=in.(${plotIds.join(",")})&select=id,id_externo,talhao_id,status,ultimo_sinal_em,responsavel_usuario_id${filtroDonoDispositivo(user)}`
       );
       if (!devices.length) return reply(res, 200, { sensores: [] }, origin);
       const sensors = await db(
@@ -1275,6 +1457,7 @@ module.exports = async (req, res) => {
           }),
           ativo: s.status === "ativo",
           leitura: r ? `${r.valor} ${r.unidade}` : "Sem leitura",
+          responsavel_usuario_id: d?.responsavel_usuario_id || null,
           valor: r?.valor,
           comunicacao,
           ultima_leitura_em: r?.coletado_em || null,
@@ -1286,10 +1469,14 @@ module.exports = async (req, res) => {
 
     // 6. Rotas Granulares: Inspeções
     if (req.method === "GET" && route === "/inspecoes") {
-      const [plots, inspections] = await Promise.all([
-        db(c, "talhao", "GET", undefined, "?select=id,codigo"),
-        db(c, "inspecao", "GET", undefined, "?select=*&order=inspecionado_em.desc&limit=100")
-      ]);
+      const farms = await farmsForOrganization(c, user.organizacaoId);
+      const plots = farms.length ? await db(c, "talhao", "GET", undefined,
+        `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&select=id,codigo`) : [];
+      const plotIds = plots.map((plot) => plot.id);
+      const ownedSensorIds = await sensoresDaSessao(c, user, plots.map((plot) => plot.id));
+      const inspectionScope = user.perfil === "admin" ? "" : `&or=(sensor_id.is.null,sensor_id.in.(${ownedSensorIds.join(",") || "00000000-0000-0000-0000-000000000000"}))`;
+      const inspections = plotIds.length ? await db(c, "inspecao", "GET", undefined,
+        `?talhao_id=in.(${plotIds.join(",")})${inspectionScope}&select=*&order=inspecionado_em.desc&limit=100`) : [];
       const plotMap = new Map(plots.map((p) => [p.id, p.codigo]));
       const rows = inspections.map((i) => ({
         id: i.id,
@@ -1307,9 +1494,12 @@ module.exports = async (req, res) => {
 
     // 7. Rotas Granulares: Ocorrências
     if (req.method === "GET" && route === "/ocorrencias") {
+      const farms = await farmsForOrganization(c, user.organizacaoId);
+      const plotsInOrg = farms.length ? await db(c, "talhao", "GET", undefined, `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&select=id,codigo`) : [];
+      const plotIdsInOrg = plotsInOrg.map((plot) => plot.id);
       const [plots, occurrences] = await Promise.all([
-        db(c, "talhao", "GET", undefined, "?select=id,codigo"),
-        db(c, "ocorrencia", "GET", undefined, "?select=*&order=registrado_em.desc&limit=100")
+        Promise.resolve(plotsInOrg),
+        plotIdsInOrg.length ? db(c, "ocorrencia", "GET", undefined, `?talhao_id=in.(${plotIdsInOrg.join(",")})&select=*&order=registrado_em.desc&limit=100`) : Promise.resolve([])
       ]);
       const plotMap = new Map(plots.map((p) => [p.id, p.codigo]));
       const rows = occurrences.map((o) => ({
@@ -1326,10 +1516,16 @@ module.exports = async (req, res) => {
 
     // 8. Rotas Granulares: Problemas de Sensor
     if (req.method === "GET" && route === "/sensores/problemas") {
+      const farms = await farmsForOrganization(c, user.organizacaoId);
+      const plotsInOrg = farms.length ? await db(c, "talhao", "GET", undefined, `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&select=id,codigo`) : [];
+      const plotIdsInOrg = plotsInOrg.map((plot) => plot.id);
+      const devicesInOrg = plotIdsInOrg.length ? await db(c, "dispositivo", "GET", undefined, `?talhao_id=in.(${plotIdsInOrg.join(",")})&select=id${filtroDonoDispositivo(user)}`) : [];
+      const deviceIdsInOrg = devicesInOrg.map((device) => device.id);
+      const sensorsInOrg = deviceIdsInOrg.length ? await db(c, "sensor", "GET", undefined, `?dispositivo_id=in.(${deviceIdsInOrg.join(",")})&select=id,id_externo`) : [];
       const [plots, sensors, problems] = await Promise.all([
-        db(c, "talhao", "GET", undefined, "?select=id,codigo"),
-        db(c, "sensor", "GET", undefined, "?select=id,id_externo"),
-        db(c, "problema_sensor", "GET", undefined, "?select=*&order=data.desc&limit=100")
+        Promise.resolve(plotsInOrg),
+        Promise.resolve(sensorsInOrg),
+        deviceIdsInOrg.length ? db(c, "problema_sensor", "GET", undefined, `?talhao_id=in.(${plotIdsInOrg.join(",")})&sensor_id=in.(${sensorsInOrg.map((sensor) => sensor.id).join(",") || "00000000-0000-0000-0000-000000000000"})&select=*&order=data.desc&limit=100`) : Promise.resolve([])
       ]);
       const plotMap = new Map(plots.map((p) => [p.id, p.codigo]));
       const sensorMap = new Map(sensors.map((s) => [s.id, s.id_externo]));
@@ -1349,17 +1545,24 @@ module.exports = async (req, res) => {
 
     // 9. Rotas Granulares: Alertas
     if (req.method === "GET" && route === "/alertas") {
-      const alerts = await db(c, "alerta", "GET", undefined, "?select=*&order=aberto_em.desc&limit=50");
+      const farms = await farmsForOrganization(c, user.organizacaoId);
+      const plots = farms.length ? await db(c, "talhao", "GET", undefined, `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&select=id`) : [];
+      const sensorIds = await sensoresDaSessao(c, user, plots.map((plot) => plot.id));
+      const sensorScope = user.perfil === "admin" ? "" : `&or=(sensor_id.is.null,sensor_id.in.(${sensorIds.join(",") || "00000000-0000-0000-0000-000000000000"}))`;
+      const alerts = plots.length ? await db(c, "alerta", "GET", undefined, `?talhao_id=in.(${plots.map((plot) => plot.id).join(",")})${sensorScope}&select=*&order=aberto_em.desc&limit=50`) : [];
       return reply(res, 200, { alertas: alerts }, origin);
     }
 
     // 10. Rotas Granulares: Plantios e Ciclos de Cultura
     if (req.method === "GET" && route === "/plantios") {
+      const farms = await farmsForOrganization(c, user.organizacaoId);
+      const plotsInOrg = farms.length ? await db(c, "talhao", "GET", undefined, `?fazenda_id=in.(${farms.map((farm) => farm.id).join(",")})&select=id,codigo`) : [];
+      const plotIdsInOrg = plotsInOrg.map((plot) => plot.id);
       const [plots, cultivars, cultures, cycles] = await Promise.all([
-        db(c, "talhao", "GET", undefined, "?select=id,codigo"),
+        Promise.resolve(plotsInOrg),
         db(c, "cultivar", "GET", undefined, "?select=id,nome,cultura_id"),
         db(c, "cultura", "GET", undefined, "?select=id,nome_comum"),
-        db(c, "ciclo_cultura", "GET", undefined, "?select=*&order=plantado_em.desc&limit=100")
+        plotIdsInOrg.length ? db(c, "ciclo_cultura", "GET", undefined, `?talhao_id=in.(${plotIdsInOrg.join(",")})&select=*&order=plantado_em.desc&limit=100`) : Promise.resolve([])
       ]);
       const plotMap = new Map(plots.map((p) => [p.id, p.codigo]));
       const cultivarMap = new Map(cultivars.map((cv) => [cv.id, cv]));
@@ -1403,7 +1606,7 @@ module.exports = async (req, res) => {
       if (typeof data.arquivado !== "boolean") {
         return reply(res, 400, { mensagem: "Informe se o registro deve ser arquivado." }, origin);
       }
-      const farms = await farmsForOrganization(c);
+      const farms = await farmsForOrganization(c, user.organizacaoId);
       const farmIds = farms.map((farm) => farm.id);
       if (!farmIds.length) return reply(res, 503, { mensagem: "Fazenda nao configurada." }, origin);
       // ATENCAO (Supabase/PostgREST): cada tabela tem colunas diferentes e o
@@ -1435,7 +1638,7 @@ module.exports = async (req, res) => {
 
     if (req.method === "GET" && route === "/admin/historico-operacao") {
       if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissao." }, origin);
-      const farms = await farmsForOrganization(c);
+      const farms = await farmsForOrganization(c, user.organizacaoId);
       if (!farms.length) return reply(res, 503, { mensagem: "Fazenda nao configurada." }, origin);
 
       const [plots, cycles, cultivars, cultures, devices, sensors, alerts, harvests] = await Promise.all([
@@ -1528,7 +1731,7 @@ module.exports = async (req, res) => {
         return reply(res, 403, { mensagem: "Sem permissão." }, origin);
       }
 
-      const farms = await farmsForOrganization(c);
+      const farms = await farmsForOrganization(c, user.organizacaoId);
       if (!farms.length) return reply(res, 503, { mensagem: "Fazenda não configurada." }, origin);
       const plots = await listarTalhoesComTemperatura(
         c,
@@ -1537,7 +1740,7 @@ module.exports = async (req, res) => {
       const plotIds = plots.map((plot) => plot.id);
       const devices = plotIds.length
         ? await db(c, "dispositivo", "GET", undefined,
-          `?talhao_id=in.(${plotIds.join(",")})&select=id,id_externo,talhao_id,status,ultimo_sinal_em`)
+          `?talhao_id=in.(${plotIds.join(",")})&select=id,id_externo,talhao_id,status,ultimo_sinal_em,responsavel_usuario_id${filtroDonoDispositivo(user)}`)
         : [];
       const deviceIds = devices.map((device) => device.id);
       const sensors = deviceIds.length
@@ -1545,6 +1748,7 @@ module.exports = async (req, res) => {
           `?dispositivo_id=in.(${deviceIds.join(",")})&select=id,id_externo,dispositivo_id,codigo_metrica,unidade,status`)
         : [];
       const sensorIds = sensors.map((sensor) => sensor.id);
+      const sensorRecordScope = user.perfil === "admin" ? "" : `&or=(sensor_id.is.null,sensor_id.in.(${sensorIds.join(",") || "00000000-0000-0000-0000-000000000000"}))`;
       const [readings, inspections, cycles, occurrences, sensorProblems, alerts, cultivars, cultures] = await Promise.all([
         sensorIds.length
           ? db(c, "v_ultima_leitura_sensor", "GET", undefined,
@@ -1552,7 +1756,7 @@ module.exports = async (req, res) => {
           : Promise.resolve([]),
         plotIds.length
           ? db(c, "inspecao", "GET", undefined,
-            `?talhao_id=in.(${plotIds.join(",")})&select=*&order=inspecionado_em.desc&limit=30`)
+            `?talhao_id=in.(${plotIds.join(",")})${sensorRecordScope}&select=*&order=inspecionado_em.desc&limit=30`)
           : Promise.resolve([]),
         plotIds.length
           ? db(c, "ciclo_cultura", "GET", undefined,
@@ -1564,11 +1768,11 @@ module.exports = async (req, res) => {
           : Promise.resolve([]),
         plotIds.length
           ? db(c, "problema_sensor", "GET", undefined,
-            `?talhao_id=in.(${plotIds.join(",")})&select=*&order=data.desc&limit=100`)
+            `?talhao_id=in.(${plotIds.join(",")})${sensorRecordScope}&select=*&order=data.desc&limit=100`)
           : Promise.resolve([]),
         plotIds.length
           ? db(c, "alerta", "GET", undefined,
-            `?talhao_id=in.(${plotIds.join(",")})&status=eq.aberto&select=*&order=aberto_em.desc&limit=100`)
+            `?talhao_id=in.(${plotIds.join(",")})&status=eq.aberto${sensorRecordScope}&select=*&order=aberto_em.desc&limit=100`)
           : Promise.resolve([]),
         db(c, "cultivar", "GET", undefined, "?select=id,nome,cultura_id"),
         db(c, "cultura", "GET", undefined, "?select=id,nome_comum")
@@ -1606,6 +1810,7 @@ module.exports = async (req, res) => {
             ultimaComunicacao: comunicacao
           }),
           leitura: r ? `${r.valor} ${r.unidade}` : "Sem leitura",
+          responsavel_usuario_id: d?.responsavel_usuario_id || null,
           comunicacao,
           ultima_leitura_em: r?.coletado_em || null,
           dados_recentes: dadosRecentes(r?.coletado_em),
@@ -1676,7 +1881,7 @@ module.exports = async (req, res) => {
               : semComunicacao ? "Verifique a comunicação do sensor"
                 : critical ? "Umidade do solo abaixo de 30%"
                   : semLeitura ? "Aguardando leitura de sensor"
-                    : !temDadosRecentes ? "Última leitura há mais de 5 minutos"
+                    : !temDadosRecentes ? "ultima leitura ha mais de cinco minutos"
                       : attention ? "Verifique a umidade do solo"
                         : "Rotina de acompanhamento"
         };
@@ -1746,7 +1951,7 @@ module.exports = async (req, res) => {
       const codigoTalhao = text(d.talhao, 40);
       if (!codigoTalhao) return reply(res, 400, { mensagem: "Selecione um talhão." }, origin);
 
-      const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(codigoTalhao)}&arquivado_em=is.null&select=id&limit=1`))[0];
+      const plot = await talhaoDaOrganizacao(c, user, codigoTalhao);
       if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
       const ciclo = (await db(
         c,
@@ -1777,7 +1982,7 @@ module.exports = async (req, res) => {
         return reply(res, 400, { mensagem: "Dados de plantio inválidos." }, origin);
       }
 
-      const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&arquivado_em=is.null&select=id,area_hectares&limit=1`))[0];
+      const plot = await talhaoDaOrganizacao(c, user, d.talhao, "id,area_hectares");
       if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
       const areaPlantada = Number(plot.area_hectares);
       const temperaturaMaxima = Number(String(d.temperaturaMaxima ?? "").replace(",", "."));
@@ -1847,7 +2052,7 @@ module.exports = async (req, res) => {
         if (d.data > hojeNoBrasil()) {
           return reply(res, 400, { mensagem: "A data da inspeção não pode ser futura." }, origin);
         }
-        const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&arquivado_em=is.null&select=id&limit=1`))[0];
+        const plot = await talhaoDaOrganizacao(c, user, d.talhao);
         if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
 
         const sensorId = text(d.sensor_id, 80);
@@ -1869,10 +2074,11 @@ module.exports = async (req, res) => {
             "dispositivo",
             "GET",
             undefined,
-            `?id=eq.${encodeURIComponent(sensor.dispositivo_id)}&select=talhao_id&limit=1`
+          `?id=eq.${encodeURIComponent(sensor.dispositivo_id)}&organizacao_id=eq.${encodeURIComponent(user.organizacaoId)}&select=talhao_id&limit=1${filtroDonoDispositivo(user)}`
           ))[0];
           if (!device || device.talhao_id !== plot.id) {
-            return reply(res, 400, { mensagem: "O sensor selecionado não pertence ao talhão informado." }, origin);
+            registrarBloqueioIdor(user, "sensor", sensorId);
+            return reply(res, 404, { mensagem: "Sensor não encontrado para este usuário." }, origin);
           }
           linkedSensorId = sensor.id;
         }
@@ -1893,7 +2099,7 @@ module.exports = async (req, res) => {
         if (!text(d.talhao) || !text(d.tipo)) {
           return reply(res, 400, { mensagem: "Dados de ocorrência inválidos." }, origin);
         }
-        const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&arquivado_em=is.null&select=id&limit=1`))[0];
+        const plot = await talhaoDaOrganizacao(c, user, d.talhao);
         if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
 
         await db(c, "rpc/registrar_ocorrencia_com_alerta", "POST", {
@@ -1910,7 +2116,7 @@ module.exports = async (req, res) => {
         if (!text(d.talhao) || !date(d.data) || !text(d.problema)) {
           return reply(res, 400, { mensagem: "Dados de problema de sensor inválidos." }, origin);
         }
-        const plot = (await db(c, "talhao", "GET", undefined, `?codigo=eq.${encodeURIComponent(d.talhao)}&arquivado_em=is.null&select=id&limit=1`))[0];
+        const plot = await talhaoDaOrganizacao(c, user, d.talhao);
         if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
 
         const sensorCodigo = text(d.sensor, 80);
@@ -1918,9 +2124,10 @@ module.exports = async (req, res) => {
         if (sensorCodigo) {
           sensor = (await db(c, "sensor", "GET", undefined, `?id_externo=eq.${encodeURIComponent(sensorCodigo)}&status=eq.ativo&select=id,dispositivo_id&limit=1`))[0];
           if (!sensor) return reply(res, 404, { mensagem: "Sensor não encontrado." }, origin);
-          const device = (await db(c, "dispositivo", "GET", undefined, `?id=eq.${encodeURIComponent(sensor.dispositivo_id)}&select=talhao_id&limit=1`))[0];
+          const device = (await db(c, "dispositivo", "GET", undefined, `?id=eq.${encodeURIComponent(sensor.dispositivo_id)}&organizacao_id=eq.${encodeURIComponent(user.organizacaoId)}&select=talhao_id&limit=1${filtroDonoDispositivo(user)}`))[0];
           if (!device || device.talhao_id !== plot.id) {
-            return reply(res, 400, { mensagem: "O sensor selecionado não pertence ao talhão informado." }, origin);
+            registrarBloqueioIdor(user, "sensor", sensor.id);
+            return reply(res, 404, { mensagem: "Sensor não encontrado para este usuário." }, origin);
           }
         }
         await db(c, "rpc/registrar_problema_sensor_com_alerta", "POST", {
@@ -1991,7 +2198,7 @@ module.exports = async (req, res) => {
       }
       if (req.method === "PATCH") {
         const d = await parseBody(req);
-        if (!["ativo", "inativo"].includes(d.status)) {
+        if (d.status !== undefined && !["ativo", "inativo"].includes(d.status)) {
           return reply(res, 400, { mensagem: "Status de funcionário inválido." }, origin);
         }
         await db(c, `usuario?id=eq.${encodeURIComponent(employeeId)}&organizacao_id=eq.${encodeURIComponent(user.organizacaoId)}`, "PATCH", { status: d.status });
@@ -2089,22 +2296,40 @@ module.exports = async (req, res) => {
 
     const sensorMatch = route.match(/^\/sensores\/([^/]+)$/);
     if (sensorMatch && ["PATCH", "DELETE"].includes(req.method)) {
-      if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissão." }, origin);
+      if (req.method === "DELETE" && user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissão." }, origin);
       const sensorId = decodeURIComponent(sensorMatch[1]);
       const sensor = (await db(
         c,
         "sensor",
         "GET",
         undefined,
-        `?id=eq.${encodeURIComponent(sensorId)}&select=id&limit=1`
+        `?id=eq.${encodeURIComponent(sensorId)}&select=id,dispositivo_id&limit=1`
       ))[0];
       if (!sensor) return reply(res, 404, { mensagem: "Sensor não encontrado." }, origin);
+      const device = (await db(c, "dispositivo", "GET", undefined, `?id=eq.${encodeURIComponent(sensor.dispositivo_id)}&organizacao_id=eq.${encodeURIComponent(user.organizacaoId)}&select=id,responsavel_usuario_id&limit=1${filtroDonoDispositivo(user)}`))[0];
+      if (!device) {
+        registrarBloqueioIdor(user, "sensor", sensorId);
+        return reply(res, 404, { mensagem: "Sensor não encontrado para este usuário." }, origin);
+      }
       if (req.method === "PATCH") {
         const d = await parseBody(req);
-        if (!["ativo", "inativo"].includes(d.status)) {
-          return reply(res, 400, { mensagem: "Status de sensor inválido." }, origin);
+        if (user.perfil !== "admin" && d.responsavelUsuarioId !== undefined) {
+          return reply(res, 403, { mensagem: "Somente administradores podem alterar o responsável." }, origin);
         }
-        await db(c, `sensor?id=eq.${encodeURIComponent(sensorId)}`, "PATCH", { status: d.status });
+        if (Object.keys(d).some((key) => !["status", "responsavelUsuarioId"].includes(key))) {
+          return reply(res, 400, { mensagem: "Campo de atualização inválido." }, origin);
+        }
+        if (d.status !== undefined && !["ativo", "inativo"].includes(d.status)) {
+          return reply(res, 400, { mensagem: "Status de sensor invalido." }, origin);
+        }
+        if (d.responsavelUsuarioId !== undefined) {
+          const employeeId = text(d.responsavelUsuarioId, 64);
+          if (!employeeId) return reply(res, 400, { mensagem: "Selecione o responsavel do dispositivo." }, origin);
+          const employee = (await db(c, "usuario", "GET", undefined, `?id=eq.${encodeURIComponent(employeeId)}&organizacao_id=eq.${encodeURIComponent(user.organizacaoId)}&status=eq.ativo&select=id&limit=1`))[0];
+          if (!employee) return reply(res, 400, { mensagem: "Responsavel invalido para esta organizacao." }, origin);
+          await db(c, `dispositivo?id=eq.${encodeURIComponent(device.id)}&organizacao_id=eq.${encodeURIComponent(user.organizacaoId)}`, "PATCH", { responsavel_usuario_id: employee.id });
+        }
+        if (d.status !== undefined) await db(c, `sensor?id=eq.${encodeURIComponent(sensorId)}`, "PATCH", { status: d.status });
         return reply(res, 200, { sucesso: true }, origin);
       }
       await db(c, `sensor?id=eq.${encodeURIComponent(sensorId)}`, "DELETE");
@@ -2118,20 +2343,17 @@ module.exports = async (req, res) => {
       const codigoMetrica = d.tipo;
       const unidade = text(d.unidade, 20);
       const codigoTalhao = text(d.talhao, 40);
-      if (!idExterno || !unidade || !codigoTalhao || !TYPES.includes(codigoMetrica)) {
+      const employeeId = text(d.responsavelUsuarioId, 64);
+      if (!idExterno || !unidade || !codigoTalhao || !employeeId || !TYPES.includes(codigoMetrica)) {
         return reply(res, 400, { mensagem: "Dados inválidos para cadastro do sensor." }, origin);
       }
 
-      const plot = (await db(
-        c,
-        "talhao",
-        "GET",
-        undefined,
-        `?codigo=eq.${encodeURIComponent(codigoTalhao)}&arquivado_em=is.null&select=id&limit=1`
-      ))[0];
+      const plot = await talhaoDaOrganizacao(c, user, codigoTalhao);
       if (!plot) return reply(res, 404, { mensagem: "Talhão não encontrado." }, origin);
 
-      const org = (await db(c, "organizacao", "GET", undefined, "?select=id&order=criado_em&limit=1"))[0];
+      const org = (await db(c, "organizacao", "GET", undefined, `?id=eq.${encodeURIComponent(user.organizacaoId)}&select=id&limit=1`))[0];
+      const employee = org ? (await db(c, "usuario", "GET", undefined, `?id=eq.${encodeURIComponent(employeeId)}&organizacao_id=eq.${encodeURIComponent(org.id)}&status=eq.ativo&select=id&limit=1`))[0] : null;
+      if (!employee) return reply(res, 400, { mensagem: "Responsavel invalido para esta organizacao." }, origin);
       if (!org) return reply(res, 503, { mensagem: "Organizacao não configurada." }, origin);
 
       let device = (await db(
@@ -2139,16 +2361,23 @@ module.exports = async (req, res) => {
         "dispositivo",
         "GET",
         undefined,
-        `?organizacao_id=eq.${encodeURIComponent(org.id)}&id_externo=eq.${encodeURIComponent(idExterno)}&select=id,talhao_id&limit=1`
+        `?organizacao_id=eq.${encodeURIComponent(org.id)}&id_externo=eq.${encodeURIComponent(idExterno)}&select=id,talhao_id,responsavel_usuario_id&limit=1`
       ))[0];
       if (device && device.talhao_id !== plot.id) {
         return reply(res, 409, { mensagem: "O identificador do dispositivo já está associado a outro talhão." }, origin);
+      }
+      if (device && device.responsavel_usuario_id && device.responsavel_usuario_id !== employee.id) {
+        return reply(res, 409, { mensagem: "Este dispositivo ja pertence a outro usuario." }, origin);
+      }
+      if (device && !device.responsavel_usuario_id) {
+        await db(c, `dispositivo?id=eq.${encodeURIComponent(device.id)}`, "PATCH", { responsavel_usuario_id: employee.id });
       }
       if (!device) {
         const created = await db(c, "dispositivo", "POST", {
           organizacao_id: org.id,
           talhao_id: plot.id,
           id_externo: idExterno,
+          responsavel_usuario_id: employee.id,
           status: "offline"
         });
         device = Array.isArray(created) ? created[0] : created;
