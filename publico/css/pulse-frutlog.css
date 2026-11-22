@@ -245,3 +245,13 @@ transition: background-color 180ms ease;
 .pagina-login .mensagem-feedback { color: #647180; }
 .pagina-login .mensagem-feedback.erro { color: #b33232; }
 .pagina-login .mensagem-feedback.sucesso { color: #26734d; }
+
+/* Respiro entre a mensagem de status e o botão do login. */
+.pagina-login .caixa-do-login2 .mensagem-feedback { margin: 10px 0 16px; }
+
+/* Botão secundário (ex.: "Sair") e cartão compacto de uma coluna. */
+.pagina-login .btn-login.btn-secundario { background: transparent; border: 1px solid #d7dde3; color: #26734d; }
+.pagina-login .btn-login.btn-secundario:hover { background: #f0f5f2; }
+.pagina-login .login-compacto { width: min(480px, 100%); min-height: auto; }
+.pagina-login .caixa-do-login2 h1 { margin: 0 0 8px; color: #202a35; font-size: 26px; text-align: left; }
+.pagina-login .caixa-do-login2 > p { margin: 0 0 20px; color: #647180; font-size: 14px; }

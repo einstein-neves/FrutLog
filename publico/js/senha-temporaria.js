@@ -8,6 +8,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const formulario = document.getElementById("form-alterar-senha");
   const mensagem = document.getElementById("mensagem-alterar-senha");
   document.getElementById("btn-sair-senha-provisoria").addEventListener("click", FrutLog.encerrarSessao);
+  document.querySelectorAll(".btn-toggle-senha").forEach((botao) => {
+    botao.addEventListener("click", () => {
+      const campo = botao.closest(".input-field").querySelector("input");
+      const visivel = campo.type === "text";
+      campo.type = visivel ? "password" : "text";
+      botao.setAttribute("aria-label", visivel ? "Mostrar senha" : "Ocultar senha");
+      const icone = botao.querySelector("i");
+      icone.classList.toggle("fa-eye", visivel);
+      icone.classList.toggle("fa-eye-slash", !visivel);
+    });
+  });
 
   formulario.addEventListener("submit", async (evento) => {
     evento.preventDefault();
