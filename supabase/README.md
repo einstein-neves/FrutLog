@@ -9,9 +9,10 @@ Este diretório contém o esquema de dados oficial e consolidado do **FrutLog**,
 1. Acesse o painel do seu projeto no [Supabase](https://supabase.com).
 2. No menu lateral, clique em **SQL Editor**.
 3. Crie uma nova consulta clicando em **+ New query**.
-4. Para uma instalacao nova, execute `schema_oficial_atualizado.sql` e depois as migracoes `030_login_otp.sql` e `031_totp_idor.sql`. A migracao `029_notificacoes_email.sql` e opcional e necessaria somente para notificacoes por email.
-5. Para uma instalacao existente, preserve os dados e aplique somente as migracoes pendentes na ordem documentada (`006` a `012`, `014` a `029`, depois `030_login_otp.sql` e `031_totp_idor.sql`). A `013` e uma rotina de recuperacao do Admin. Confirme previamente quais ja foram aplicadas. Nao reexecute o esquema-base sobre um banco em operacao.
-6. Configure `SUPABASE_URL` e a chave `service_role` apenas no `.env` local e execute `npm run bootstrap-admin` para criar o primeiro administrador.
+4. Para uma instalacao nova, execute `schema_oficial_atualizado.sql` e depois as migracoes `030_login_otp.sql`, `031_totp_idor.sql` e `032_recuperacao_autenticador.sql`. A migracao `029_notificacoes_email.sql` e opcional e necessaria somente para notificacoes por email.
+5. Para uma instalacao existente, preserve os dados e aplique somente as migracoes pendentes na ordem documentada (`006` a `012`, `014` a `029`, depois `030_login_otp.sql`, `031_totp_idor.sql` e `032_recuperacao_autenticador.sql`). A `013` e uma rotina de recuperacao do Admin. Confirme previamente quais ja foram aplicadas. Nao reexecute o esquema-base sobre um banco em operacao.
+6. Aplique tambem `033_login_2fa_email.sql` para disponibilizar a alternativa de codigo por e-mail no login. Ela depende da `032` e garante a coluna `usuario.email`.
+7. Configure `SUPABASE_URL` e a chave `service_role` apenas no `.env` local e execute `npm run bootstrap-admin` para criar o primeiro administrador.
 
 O esquema nao inclui usuarios, talhoes, sensores, credenciais ou leituras de exemplo. `schema.sql` e mantido como esquema-base historico; os arquivos de migracao numerados tambem permanecem inalterados.
 

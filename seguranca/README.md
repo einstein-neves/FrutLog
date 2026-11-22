@@ -11,6 +11,10 @@
 
 O FrutLog monitora condicoes agricolas por sensores conectados a ESP32. A placa envia telemetria por MQTT ao ThingSpeak; a aplicacao web e a API Node.js/Express consultam e registram dados no PostgreSQL do Supabase. O login do painel e a autorizacao operacional ficam na API; a ingestao IoT usa chave de maquina.
 
+Todas as rotas `/api` passam pelo mesmo handler de origem, limite e sessao. `/api/relatorios` e um alias de `/api/relatorios-diarios`, com as mesmas regras de leitura e escrita: tecnicos consultam os proprios relatorios; Engenharia e Administracao consultam os autores da organizacao. O controller de demonstracao nao e montado no servidor.
+
+Erros nao tratados retornam mensagem generica e `erroId`, sem detalhes de SQL, inclusive fora de producao. Falhas do banco e da conexao retornam HTTP 503; erros internos retornam 500. O log estruturado `ERRO_API` permite correlacionar o `erroId` com metodo, rota, recurso e codigo do banco, sem registrar filtros, corpos de erro, tokens ou hashes. Regressao HTTP: `testes/seguranca/relatorios-http.test.cjs`.
+
 ## Controle 1 - MFA TOTP
 
 ### 3. Ameaca e impacto

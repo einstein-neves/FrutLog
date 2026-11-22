@@ -86,7 +86,9 @@ function request(method, path, { perfil = "admin", temporaria = false, body, ip 
   const originalError = console.error;
   console.error = () => {};
   try { r = await request("GET", "/alertas"); } finally { console.error = originalError; }
-  assert.equal(r.status, 500);
-  assert.match(r.data.mensagem, /estrutura-interna-simulada/);
-  console.log("CONFIRMADO: detalhes do banco sao devolvidos mesmo em producao.");
+  assert.equal(r.status, 503);
+  assert.ok(!JSON.stringify(r.data).includes("estrutura-interna-simulada"));
+  assert.ok(!JSON.stringify(r.data).includes("erro-interno-simulado"));
+  assert.ok(r.data.erroId);
+  console.log("CORRIGIDO: detalhes do banco nao sao devolvidos ao cliente.");
 })().catch((e) => { console.error(e); process.exitCode = 1; });
