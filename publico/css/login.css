@@ -192,6 +192,18 @@
   opacity: 0.75;
 }
 
+.btn-voltar-login {
+  display: block;
+  margin: 10px auto;
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}
+
 .caixa-do-login2 .mensagem-feedback {
   color: #e2ded8;
 }
