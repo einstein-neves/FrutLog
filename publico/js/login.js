@@ -11,6 +11,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const formularioLogin = document.getElementById("formularioLogin");
   const botaoLogin = document.querySelector(".btn-login");
   const mensagemLogin = document.getElementById("mensagem-login");
+  const campoOtp = document.getElementById("codigo-otp");
+  const caixaOtp = document.getElementById("campo-otp");
+  const caixaSetupTotp = document.getElementById("configurar-totp");
+  const alternarRecuperacao = document.getElementById("alternar-recuperacao");
+  const campoCodigos = document.getElementById("codigos-recuperacao");
+  let modoOtp = "login";
+  let usarRecuperacao = false;
+  let sessaoPendente = null;
+  let desafioOtp = null;
 
   function exibirMensagem(texto, tipo = "") {
     if (mensagemLogin) {
@@ -40,6 +49,26 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify({ matricula, senha }),
       });
 
+      if (dados?.otpRequerido && dados.desafio) {
+        desafioOtp = dados.desafio;
+        modoOtp = dados.modo || "login";
+        campoMatricula.readOnly = true;
+        campoSenha.closest(".input-field").hidden = true;
+        botaoMostrarSenha.disabled = true;
+        campoOtp.disabled = false;
+        campoOtp.required = true;
+        caixaOtp.hidden = false;
+        alternarRecuperacao.hidden = modoOtp !== "login";
+        if (modoOtp === "setup") {
+          document.getElementById("totp-qr").src = dados.qrCode;
+          document.getElementById("totp-segredo").textContent = dados.segredoManual;
+          caixaSetupTotp.hidden = false;
+        }
+        campoOtp.focus();
+        exibirMensagem(dados.mensagem || "Informe o codigo do aplicativo autenticador.");
+        return;
+      }
+
       if (!dados?.sucesso) {
         throw new Error(dados?.mensagem || "Matrícula ou senha inválida.");
       }
@@ -66,6 +95,50 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  async function confirmarOtp() {
+    const dados = await FrutLog.apiFetch("/login/otp", {
+      method: "POST",
+      body: JSON.stringify({ desafio: desafioOtp, ...(usarRecuperacao
+        ? { codigoRecuperacao: campoOtp.value.trim() }
+        : { codigo: campoOtp.value.trim() }) }),
+    });
+    if (!dados?.sucesso || !dados.usuario || !dados.token) throw new Error(dados?.mensagem || "Codigo invalido.");
+    if (Array.isArray(dados.codigosRecuperacao)) {
+      sessaoPendente = dados;
+      document.getElementById("lista-codigos-recuperacao").textContent = dados.codigosRecuperacao.join("\n");
+      campoCodigos.hidden = false;
+      formularioLogin.querySelector('[type="submit"]').hidden = true;
+      document.getElementById("confirmar-codigos").focus();
+      exibirMensagem("Autenticador configurado. Salve seus codigos de recuperacao antes de continuar.");
+      return;
+    }
+    finalizarLogin(dados);
+  }
+
+  function finalizarLogin(dados) {
+    FrutLog.salvarSessao(dados.usuario, dados.token);
+    if (dados.usuario.mustChangePassword) window.location.replace("senha-temporaria.html");
+    else FrutLog.redirecionarPorPerfil(dados.usuario.perfil);
+  }
+
+  alternarRecuperacao?.addEventListener("click", () => {
+    usarRecuperacao = !usarRecuperacao;
+    campoOtp.value = "";
+    campoOtp.maxLength = usarRecuperacao ? 14 : 6;
+    campoOtp.pattern = usarRecuperacao ? "[A-Za-z2-7-]{14}" : "[0-9]{6}";
+    campoOtp.inputMode = usarRecuperacao ? "text" : "numeric";
+    campoOtp.placeholder = usarRecuperacao ? "Codigo de recuperacao" : "Codigo de 6 digitos do autenticador";
+    alternarRecuperacao.textContent = usarRecuperacao ? "Usar codigo do autenticador" : "Usar codigo de recuperacao";
+    campoOtp.focus();
+  });
+
+  document.getElementById("confirmar-codigos")?.addEventListener("change", (evento) => {
+    document.getElementById("continuar-login").disabled = !evento.target.checked;
+  });
+  document.getElementById("continuar-login")?.addEventListener("click", () => {
+    if (sessaoPendente) finalizarLogin(sessaoPendente);
+  });
+
   if (botaoMostrarSenha && campoSenha) {
     botaoMostrarSenha.addEventListener("click", alternarVisibilidadeSenha);
   }
@@ -73,6 +146,20 @@ document.addEventListener("DOMContentLoaded", () => {
 if (formularioLogin) {
     formularioLogin.addEventListener("submit", async (evento) => {
       evento.preventDefault();
+
+      if (desafioOtp) {
+        if (usarRecuperacao ? !/^[A-Za-z2-7]{4}-?[A-Za-z2-7]{4}-?[A-Za-z2-7]{4}$/.test(campoOtp.value.trim()) : !/^\d{6}$/.test(campoOtp.value.trim())) {
+          exibirMensagem(usarRecuperacao ? "Digite um codigo de recuperacao valido." : "Digite o codigo de 6 digitos do autenticador.", "erro");
+          campoOtp.focus();
+          return;
+        }
+        botaoLogin.disabled = true;
+        botaoLogin.textContent = "Verificando...";
+        try { await confirmarOtp(); }
+        catch (erro) { campoOtp.value = ""; exibirMensagem(erro.message, "erro"); }
+        finally { botaoLogin.disabled = false; botaoLogin.textContent = "Verificar codigo"; }
+        return;
+      }
 
       const matricula = campoMatricula.value.trim();
       const senha = campoSenha.value;
@@ -102,7 +189,7 @@ if (formularioLogin) {
       await realizarLogin(matricula, senha);
 
       botaoLogin.disabled = false;
-      botaoLogin.textContent = "Entrar";
+      botaoLogin.textContent = desafioOtp ? "Verificar codigo" : "Entrar";
     });
   }
 });

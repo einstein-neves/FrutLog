@@ -458,6 +458,25 @@ function configurarAcoesTabelas() {
   });
 
   // A tabela de sensores é redesenhada após cada ação, então use delegação.
+  document.getElementById("tabela-sensores-admin")?.addEventListener("change", async (evento) => {
+    const seletor = evento.target.closest("[data-responsavel-sensor]");
+    if (!seletor || !seletor.value) return;
+    const liberar = FrutLogFeedback.ocupar(seletor, "Salvando...");
+    try {
+      await FrutLog.apiFetch(`/sensores/${encodeURIComponent(seletor.dataset.responsavelSensor)}`, {
+        method: "PATCH", body: JSON.stringify({ responsavelUsuarioId: seletor.value }),
+      });
+      const responsavelUsuarioId = seletor.value;
+      sensores = sensores.map((sensor) => String(sensor.id) === String(seletor.dataset.responsavelSensor)
+        ? { ...sensor, responsavel_usuario_id: responsavelUsuarioId } : sensor);
+      exibirMensagem("mensagem-sensor", "Responsavel do dispositivo atualizado.", "sucesso");
+      renderizarSensores();
+    } catch (erro) {
+      liberar();
+      exibirMensagem("mensagem-sensor", erro.message, "erro");
+    }
+  });
+
   document.getElementById("tabela-sensores-admin")?.addEventListener("click", async (evento) => {
     const excluir = evento.target.closest("[data-excluir-sensor]");
     const alternar = evento.target.closest("[data-alternar-sensor]");
@@ -521,6 +540,7 @@ function configurarFormularioSensor() {
         sensor: resposta.sensor.id_externo,
         id: resposta.sensor.id,
         talhao: dados.talhao,
+        responsavel_usuario_id: dados.responsavelUsuarioId,
         tipo: dados.tipo,
         unidade: dados.unidade,
         leitura: "Sem leitura",
@@ -721,10 +741,12 @@ function renderizarSensores() {
     const atualidade = !sensor.ultima_leitura_em
       ? "Sem leitura"
       : sensor.dados_recentes ? "Atual" : "Desatualizada";
+    const usuariosAtivos = funcionarios.filter((funcionario) => funcionario.status === "ativo" || funcionario.ativo === true);
+    const opcoesResponsavel = usuariosAtivos.map((funcionario) => `<option value="${escaparHtml(funcionario.id)}" ${String(funcionario.id) === String(sensor.responsavel_usuario_id) ? "selected" : ""}>${escaparHtml(funcionario.nome_completo || funcionario.nome || funcionario.matricula)}</option>`).join("");
     return `
       <tr>
         <td>${escaparHtml(sensor.sensor || sensor.id_externo)}</td>
-        <td>${escaparHtml(sensor.talhao || "--")}</td>
+        <td>${escaparHtml(sensor.talhao || "--")}<br><select class="campo-formulario" aria-label="Responsavel do dispositivo" data-responsavel-sensor="${escaparHtml(sensor.id)}"><option value="">Selecione responsavel</option>${opcoesResponsavel}</select></td>
         <td>${escaparHtml(sensor.tipo || sensor.codigo_metrica)}</td>
         <td>${escaparHtml(sensor.leitura || "Sem leitura")}<br><small>${sensor.ultima_leitura_em ? escaparHtml(formatarDataHora(sensor.ultima_leitura_em)) : "Sem leitura registrada"}</small></td>
         <td><span class="badge-status ${statusClasse}">${escaparHtml(status)}</span></td>

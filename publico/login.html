@@ -33,6 +33,24 @@
           <input type="text" id="matricula" name="matricula" placeholder="Matrícula" autocomplete="username" required>
         </div>
 
+        <div class="input-field" id="campo-otp" hidden>
+          <label class="sr-only" for="codigo-otp">Codigo de verificacao</label>
+          <i class="fa-solid fa-shield-halved icon-left" aria-hidden="true"></i>
+          <input type="text" id="codigo-otp" name="codigo-otp" placeholder="Codigo de 6 digitos do autenticador" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" disabled>
+        </div>
+        <button type="button" id="alternar-recuperacao" class="btn-acao-admin" hidden>Usar codigo de recuperacao</button>
+        <div id="configurar-totp" hidden>
+          <p>Escaneie o QR Code com Google Authenticator, Microsoft Authenticator ou Authy. Guarde o segredo manual somente se nao puder escanear.</p>
+          <img id="totp-qr" alt="QR Code para cadastrar FrutLog no aplicativo autenticador">
+          <p>Segredo manual: <code id="totp-segredo"></code></p>
+        </div>
+        <div id="codigos-recuperacao" hidden>
+          <p>Guarde estes codigos agora. Cada codigo funciona uma unica vez; eles nao serao exibidos novamente.</p>
+          <pre id="lista-codigos-recuperacao"></pre>
+          <label><input id="confirmar-codigos" type="checkbox"> Guardei meus codigos de recuperacao.</label>
+          <button type="button" class="btn-login" id="continuar-login" disabled>Continuar</button>
+        </div>
+
         <div class="input-field">
           <label class="sr-only" for="senha">Senha</label>
           <i class="fa-solid fa-lock icon-left" aria-hidden="true"></i>

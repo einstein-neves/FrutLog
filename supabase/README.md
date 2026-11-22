@@ -9,11 +9,13 @@ Este diretório contém o esquema de dados oficial e consolidado do **FrutLog**,
 1. Acesse o painel do seu projeto no [Supabase](https://supabase.com).
 2. No menu lateral, clique em **SQL Editor**.
 3. Crie uma nova consulta clicando em **+ New query**.
-4. Para uma instalacao nova, execute `schema_oficial_atualizado.sql`. Este arquivo e a referencia consolidada e inclui o modelo operacional e as rotinas de API atualmente necessarias.
-5. Para uma instalacao existente, preserve os dados e aplique somente as migracoes pendentes na ordem `006` a `012`, depois `014` a `022` (`013` e uma rotina de recuperacao de senha do Admin). Nao reexecute o esquema-base sobre um banco em operacao.
+4. Para uma instalacao nova, execute `schema_oficial_atualizado.sql` e depois as migracoes `030_login_otp.sql` e `031_totp_idor.sql`. A migracao `029_notificacoes_email.sql` e opcional e necessaria somente para notificacoes por email.
+5. Para uma instalacao existente, preserve os dados e aplique somente as migracoes pendentes na ordem documentada (`006` a `012`, `014` a `029`, depois `030_login_otp.sql` e `031_totp_idor.sql`). A `013` e uma rotina de recuperacao do Admin. Confirme previamente quais ja foram aplicadas. Nao reexecute o esquema-base sobre um banco em operacao.
 6. Configure `SUPABASE_URL` e a chave `service_role` apenas no `.env` local e execute `npm run bootstrap-admin` para criar o primeiro administrador.
 
 O esquema nao inclui usuarios, talhoes, sensores, credenciais ou leituras de exemplo. `schema.sql` e mantido como esquema-base historico; os arquivos de migracao numerados tambem permanecem inalterados.
+
+Para habilitar autenticacao TOTP, configure no servidor `TOTP_ENCRYPTION_KEY` com valor aleatorio de pelo menos 32 caracteres, persistente entre implantacoes e fora do repositorio. Configure tambem as variaveis listadas em `../.env.example`. A migracao `031_totp_idor.sql` depende das tabelas criadas pela `030`. Reinicie a API apos configurar as variaveis.
 O bootstrap só funciona enquanto não houver nenhum usuário e exige alteração da senha provisória no primeiro acesso.
 
 Se o cadastro de funcionários retornar que `public.proxima_matricula_funcionario` não foi encontrada no cache do schema, execute `007_admin_and_map_sync.sql` no SQL Editor do Supabase. Essa migração cria a sequência e a função RPC de matrícula e solicita a atualização do cache do PostgREST; em seguida, tente o cadastro novamente.

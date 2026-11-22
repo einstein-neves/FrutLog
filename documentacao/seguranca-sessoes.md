@@ -1,5 +1,12 @@
 # Correções de sessão e limite de login — 17/11/2026
 
+## Atualizacao de seguranca — 21/11/2026
+
+- Login agora exige senha e TOTP por aplicativo, com cadastro via QR, desafios de cinco minutos, limite de tentativas, deteccao de reuso do passo e codigos de recuperacao de uso unico. Detalhes e configuracao: [autenticacao-otp.md](autenticacao-otp.md).
+- Dispositivos agora possuem usuario responsavel. Endpoints operacionais filtram sensores/leituras por sessao e vinculos por ID validam a posse. Administradores podem atribuir dispositivos. A integracao IoT continua usando uma chave de maquina compartilhada.
+- `npm run test:seguranca` inclui testes A/B com dois funcionarios da mesma organizacao e casos TOTP; veja tambem `seguranca/` para o pacote de entrega. O codigo oficial da missao e as evidencias visuais reais ainda dependem da equipe.
+- Na validacao local desta revisao, `npm run test:seguranca` passou em 17 testes.
+
 ## Comportamento
 
 - Toda requisição autenticada, inclusive GET e a rota modular /api/relatorios, consulta o cadastro do usuário. Conta excluída/inativa ou perfil diferente do token recebe 401 antes de acessar dados operacionais.

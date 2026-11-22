@@ -3,6 +3,10 @@
    Estilos exclusivos da pagina de autenticacao.
    ========================================================= */
 
+[hidden] { display: none !important; }
+#configurar-totp img { display: block; width: min(100%, 240px); margin: 1rem auto; background: #fff; padding: .5rem; border-radius: .5rem; }
+#codigos-recuperacao pre { padding: 1rem; overflow-wrap: anywhere; background: #151515; color: #fff; white-space: pre-wrap; }
+
 .pagina-login {
   display: flex;
   align-items: center;

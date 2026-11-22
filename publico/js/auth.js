@@ -142,7 +142,7 @@ const FrutLog = (() => {
       }
     }
 
-    if (resposta.status === 401 && caminho !== "/login") {
+    if (resposta.status === 401 && !["/login", "/login/otp"].includes(caminho)) {
       encerrarSessao();
       throw new Error("Sessão expirada. Faca login novamente.");
     }

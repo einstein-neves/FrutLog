@@ -30,15 +30,14 @@ async function listarTalhoesComTemperatura(config, query) {
   }
 }
 
-async function farmsForOrganization(config) {
-  const organization = (await db(config, "organizacao", "GET", undefined, "?select=id&order=criado_em&limit=1"))[0];
-  if (!organization) return [];
+async function farmsForOrganization(config, organizationId) {
+  if (typeof organizationId !== "string" || !organizationId) return [];
   return db(
     config,
     "fazenda",
     "GET",
     undefined,
-    `?organizacao_id=eq.${encodeURIComponent(organization.id)}&select=id&order=criado_em`
+    `?organizacao_id=eq.${encodeURIComponent(organizationId)}&select=id&order=criado_em`
   );
 }
 
