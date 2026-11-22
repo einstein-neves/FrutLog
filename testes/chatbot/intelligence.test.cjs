@@ -767,8 +767,9 @@ test("rota exige administrador ativo, usa organização da sessão e não recebe
       pergunta: "Como registrar inspeção?",
       conversationId: "help-tech",
     });
-    assert.equal(techHelp.status, 200);
-    assert.equal(techHelp.data.tutorialId, "inspecao-registrar");
+    assert.equal(techHelp.status, 403);
+    data.usuario[0].perfil = "engenheiro";
+    assert.equal((await send("engenheiro", { pergunta: "Como consultar relatórios?" })).status, 403);
     assert.equal(providerCalls.length, 1);
     data.usuario[0].perfil = "admin";
     process.env.DEEPSEEK_API_KEY = config.deepseekApiKey;

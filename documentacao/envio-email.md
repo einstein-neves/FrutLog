@@ -1,6 +1,6 @@
 # Envio de e-mail pelo Gmail
 
-A infraestrutura fica no servidor em `src/email/`. Usa Nodemailer com `smtp.gmail.com:465`, TLS e validação de certificado, remetente fixado na conta configurada e mensagens com texto simples e HTML. A migração 029 integra os eventos abaixo por uma fila transacional: as operações não aguardam o Gmail. Não há rota pública de envio.
+A infraestrutura fica no servidor em `src/email/`. Usa Nodemailer com `smtp.gmail.com:465`, TLS e validação de certificado, remetente fixado na conta configurada e mensagens com texto simples e HTML. A migração 029 integra os eventos abaixo por uma fila transacional. O cadastro de conta tenta enviar as boas-vindas antes de responder; os demais eventos aguardam o worker. Não há rota pública de envio.
 
 ## Mensagens integradas
 
@@ -107,3 +107,8 @@ npm run test:email
 Os 17 testes de e-mail usam transporte em memória, simulações e PostgreSQL embarcado (PGlite). Exercitam o SQL real da migração, destinatários por organização/perfil, rollback, ACLs, gatilhos sem repetição, reservas e o trabalhador, além de configuração/TLS/templates/CLI. O teste de segurança da API cobre o campo de e-mail e o isolamento dos contatos. Não autenticam no Gmail e não enviam e-mail real.
 
 Referências: [Gmail SMTP](https://developers.google.com/workspace/gmail/imap/imap-smtp), [Nodemailer com Gmail](https://nodemailer.com/guides/using-gmail), [segurança do conteúdo da mensagem](https://nodemailer.com/message).
+## Boas-vindas no cadastro
+
+Ao criar uma conta ativa por `POST /funcionarios` ou `/admin/usuarios`, a API envia o aviso de boas-vindas ao e-mail vinculado, com matricula e orientacoes de primeiro acesso. Senhas e hashes nunca entram na mensagem. O administrador recebe `emailNotificacao` e `avisoEmail` na resposta, exibidos no formulario. Uma falha de envio nao desfaz a conta criada e nao provoca repeticao automatica de SMTP.
+
+O envio usa a configuracao SMTP existente (`EMAIL_ENABLED`, `GMAIL_USER`, `GMAIL_APP_PASSWORD`). Nao exige nova migracao: sem a tabela opcional `email_fila`, envia diretamente. Com a migracao 029, reserva atomicamente apenas o evento `conta_criada` daquele usuario e o confirma, compartilhando as regras do worker para evitar duplicacao. Nao processa a fila de outros usuarios. Eventos ja reservados ou processados nao sao enviados novamente pela API. Contas criadas inativas nao recebem esse aviso.

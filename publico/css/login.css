@@ -6,6 +6,14 @@
 [hidden] { display: none !important; }
 #configurar-totp img { display: block; width: min(100%, 240px); margin: 1rem auto; background: #fff; padding: .5rem; border-radius: .5rem; }
 #codigos-recuperacao pre { padding: 1rem; overflow-wrap: anywhere; background: #151515; color: #fff; white-space: pre-wrap; }
+#opcoes-recuperacao { margin: 1rem 0; padding: 1rem; border: 1px solid #777; border-radius: .5rem; }
+#opcoes-recuperacao label { display: block; margin: .75rem 0; cursor: pointer; }
+#opcoes-recuperacao input { width: auto; margin-right: .4rem; }
+#opcoes-recuperacao p { font-size: .85rem; line-height: 1.5; }
+#escolha-2fa { margin: 1rem 0; }
+#escolha-2fa label { display: block; margin-bottom: .4rem; }
+#metodo-2fa { width: 100%; padding: .75rem; border: 1px solid #777; border-radius: .5rem; background: #fff; color: #222; }
+#reiniciar-login { display: block; margin: .75rem 0; }
 
 .pagina-login {
   display: flex;

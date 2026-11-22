@@ -39,6 +39,12 @@
           <input type="text" id="codigo-otp" name="codigo-otp" placeholder="Codigo de 6 digitos do autenticador" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" disabled>
         </div>
         <button type="button" id="alternar-recuperacao" class="btn-acao-admin" hidden>Usar codigo de recuperacao</button>
+        <fieldset id="opcoes-recuperacao" hidden>
+          <legend>Como deseja recuperar o acesso?</legend>
+          <label><input type="radio" name="acao-recuperacao" value="temporario" checked> Entrar temporariamente, mantendo meu autenticador.</label>
+          <label><input type="radio" name="acao-recuperacao" value="substituir" id="substituir-autenticador"> Perdi ou troquei o celular: configurar novo autenticador.</label>
+          <p>A substituicao exige confirmar o novo autenticador e invalida os codigos de recuperacao anteriores. Se interromper, o codigo de recuperacao utilizado ja estara consumido.</p>
+        </fieldset>
         <div id="configurar-totp" hidden>
           <p>Escaneie o QR Code com Google Authenticator, Microsoft Authenticator ou Authy. Guarde o segredo manual somente se nao puder escanear.</p>
           <img id="totp-qr" alt="QR Code para cadastrar FrutLog no aplicativo autenticador">
@@ -61,6 +67,15 @@
         </div>
 
         <p class="mensagem-feedback" id="mensagem-login" aria-live="polite"></p>
+
+        <div id="escolha-2fa">
+          <label for="metodo-2fa">Receber o codigo por</label>
+          <select id="metodo-2fa" name="metodo-2fa">
+            <option value="autenticador">Aplicativo autenticador</option>
+            <option value="email">E-mail cadastrado</option>
+          </select>
+        </div>
+        <a id="reiniciar-login" href="login.html" hidden>Reiniciar login para reenviar o codigo ou trocar de metodo</a>
 
         <button type="submit" class="btn-login">Entrar</button>
       </form>

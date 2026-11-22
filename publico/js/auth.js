@@ -148,7 +148,9 @@ const FrutLog = (() => {
     }
 
     if (!resposta.ok) {
-      throw new Error(dados?.mensagem || "Resposta HTTP inválida.");
+      const erro = new Error(dados?.mensagem || "Resposta HTTP inválida.");
+      erro.codigo = dados?.codigo;
+      throw erro;
     }
 
     return dados;

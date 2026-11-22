@@ -1,22 +1,38 @@
 // Centraliza o acesso ao PostgREST e as consultas reutilizadas pela API.
+class DatabaseError extends Error {
+  constructor(message, { resource, method, status, code, cause } = {}) {
+    super(`Falha no banco de dados: ${message}`, { cause });
+    this.name = "DatabaseError";
+    // Nao armazenar filtros: podem conter hashes de senha ou outros segredos.
+    this.resource = String(resource || "").split("?")[0];
+    this.method = method;
+    this.status = status;
+    this.code = code;
+  }
+}
+
 async function db(config, resource, method = "GET", data, query = "") {
-  const response = await fetch(`${config.url}/rest/v1/${resource}${query}`, {
-    method,
-    headers: {
-      apikey: config.key,
-      ...(config.key.startsWith("sb_secret_") ? {} : { Authorization: `Bearer ${config.key}` }),
-      "Content-Type": "application/json",
-      Prefer: method === "POST" || method === "PATCH" ? "return=representation,resolution=merge-duplicates" : "",
-    },
-    body: data === undefined ? undefined : JSON.stringify(data),
-  });
+  let response;
+  try {
+    response = await fetch(`${config.url}/rest/v1/${resource}${query}`, {
+      method,
+      headers: {
+        apikey: config.key,
+        ...(config.key.startsWith("sb_secret_") ? {} : { Authorization: `Bearer ${config.key}` }),
+        "Content-Type": "application/json",
+        Prefer: method === "POST" || method === "PATCH" ? "return=representation,resolution=merge-duplicates" : "",
+      },
+      body: data === undefined ? undefined : JSON.stringify(data),
+    });
+  } catch (cause) {
+    throw new DatabaseError("Servico indisponivel.", { resource, method, cause });
+  }
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     const detalhes = [body.message, body.details, body.hint].filter(Boolean).join(" | ");
     const message = detalhes || `HTTP ${response.status}`;
-    console.error(`PostgREST Erro [${method} ${resource}${query}]:`, JSON.stringify(body, null, 2));
-    throw new Error(`Falha no banco de dados: ${message}`);
+    throw new DatabaseError(message, { resource, method, status: response.status, code: body.code });
   }
   return response.status === 204 ? [] : response.json();
 }
@@ -41,4 +57,4 @@ async function farmsForOrganization(config, organizationId) {
   );
 }
 
-module.exports = { db, listarTalhoesComTemperatura, farmsForOrganization };
+module.exports = { db, DatabaseError, listarTalhoesComTemperatura, farmsForOrganization };

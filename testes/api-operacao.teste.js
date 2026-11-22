@@ -186,8 +186,9 @@ async function executar() {
     } finally {
       console.error = registrarErro;
     }
-    assert.equal(resposta.status, 500);
-    assert.match(resposta.body.mensagem, /Falha no banco de dados/);
+    assert.equal(resposta.status, 503);
+    assert.ok(!resposta.body.mensagem.includes("Falha no banco de dados"));
+    assert.ok(resposta.body.erroId);
     console.log("PASSOU  falha de banco não é convertida em lista de sensores vazia");
 
     falharLeitura = false;

@@ -278,6 +278,14 @@ function configurarFormularioFuncionario() {
     const dados = Object.fromEntries(new FormData(formulario));
     const mensagemId = "mensagem-funcionario";
 
+    dados.email = typeof dados.email === "string" ? dados.email.trim() : "";
+    const campoEmail = document.getElementById("funcionario-email");
+    if (!dados.email || !campoEmail.validity.valid) {
+      exibirMensagem(mensagemId, "Informe um e-mail valido. O campo e obrigatorio.", "erro");
+      campoEmail.focus();
+      return;
+    }
+
     const editando = Boolean(dados.id);
     const senhaProvisoriaUsada = dados.senha;
     if ((!editando || dados.senha) && (typeof dados.senha !== "string" || dados.senha.length < 8 || dados.senha.length > 10)) {
@@ -323,7 +331,7 @@ function configurarFormularioFuncionario() {
           ativo: (dados.status || "ativo") === "ativo",
         };
         funcionarios.push(novoFuncionario);
-        exibirMensagem(mensagemId, `Funcionario cadastrado. Matricula: ${novoFuncionario.matricula}. A senha devera ser alterada no primeiro acesso.`, "sucesso");
+        exibirMensagem(mensagemId, `Funcionario cadastrado. Matricula: ${novoFuncionario.matricula}. A senha devera ser alterada no primeiro acesso. ${resposta.avisoEmail || ""}`.trim(), "sucesso");
       }
       renderizarFuncionarios();
       formulario.reset();

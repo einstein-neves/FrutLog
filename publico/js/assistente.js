@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   const sessao = FrutLog.obterSessao();
-  if (!sessao || document.getElementById("painel-chatbot")) return;
+  if (sessao?.perfil !== "admin" || document.getElementById("painel-chatbot")) return;
   const sugestoes = {
     admin: [
       "Como cadastrar um funcionário?",
