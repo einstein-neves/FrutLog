@@ -1,0 +1,1065 @@
+[
+  {
+    "id": "entrar",
+    "title": "Entrar no sistema",
+    "roles": [
+      "admin",
+      "engenheiro",
+      "tecnico"
+    ],
+    "subjects": [
+      "login",
+      "acesso",
+      "entrar"
+    ],
+    "actions": [
+      "entrar",
+      "consultar"
+    ],
+    "steps": [
+      "Abra a página de Login.",
+      "Informe a matrícula fornecida pelo administrador e sua senha de 8 a 10 caracteres.",
+      "Use Mostrar senha se precisar conferir o que digitou e clique em Entrar.",
+      "Se a senha for provisória, conclua a troca antes de acessar seu painel."
+    ],
+    "notes": [
+      "O perfil da conta define qual painel será aberto. Não informe sua senha ao chatbot."
+    ],
+    "sources": [
+      "publico/login.html",
+      "publico/js/login.js"
+    ],
+    "targets": {
+      "login.html": [
+        "formularioLogin",
+        "matricula",
+        "senha"
+      ]
+    }
+  },
+  {
+    "id": "senha-provisoria",
+    "title": "Trocar a senha provisória no primeiro acesso",
+    "roles": [
+      "admin",
+      "engenheiro",
+      "tecnico"
+    ],
+    "subjects": [
+      "senha",
+      "primeiro acesso"
+    ],
+    "actions": [
+      "trocar",
+      "entrar"
+    ],
+    "steps": [
+      "Entre com a matrícula e a senha provisória recebidas do administrador.",
+      "Na tela Crie sua senha pessoal, preencha Senha provisória atual.",
+      "Informe uma Nova senha de 8 a 10 caracteres e repita em Confirmar nova senha.",
+      "Clique em Alterar senha e aguarde a confirmação e o redirecionamento."
+    ],
+    "notes": [
+      "Essa tela é apresentada quando a conta exige troca de senha; não existe um menu geral de alteração de senha nos painéis. Nunca envie a senha pelo chat."
+    ],
+    "sources": [
+      "publico/senha-temporaria.html",
+      "publico/js/senha-temporaria.js"
+    ],
+    "targets": {
+      "senha-temporaria.html": [
+        "form-alterar-senha",
+        "senha-atual",
+        "nova-senha",
+        "confirmar-senha"
+      ]
+    }
+  },
+  {
+    "id": "senha-esquecida",
+    "title": "Recuperar acesso quando esquecer a senha",
+    "roles": [
+      "admin",
+      "engenheiro",
+      "tecnico"
+    ],
+    "subjects": [
+      "senha",
+      "acesso"
+    ],
+    "actions": [
+      "recuperar"
+    ],
+    "steps": [
+      "Solicite ao administrador uma nova senha provisória para sua matrícula.",
+      "O administrador pode editar sua conta na seção Funcionários e definir uma nova senha provisória.",
+      "Entre com a senha recebida e faça a troca obrigatória no próximo acesso."
+    ],
+    "notes": [
+      "A tela de Login não possui recuperação automática por e-mail. Se a conta afetada for a do próprio administrador, solicite suporte ao responsável pela instalação; não é possível editar a própria conta pela tabela. Não envie senhas ao chatbot."
+    ],
+    "sources": [
+      "publico/login.html",
+      "publico/js/admin.js"
+    ],
+    "targets": {
+      "login.html": [
+        "formularioLogin"
+      ]
+    }
+  },
+  {
+    "id": "sair",
+    "title": "Sair da conta",
+    "roles": [
+      "admin",
+      "engenheiro",
+      "tecnico"
+    ],
+    "subjects": [
+      "conta",
+      "sessao",
+      "logout",
+      "sair"
+    ],
+    "actions": [
+      "sair"
+    ],
+    "steps": [
+      "No menu lateral do painel, clique em Sair.",
+      "A sessão local será encerrada e a página de Login será aberta."
+    ],
+    "notes": [
+      "Depois disso, é necessário entrar novamente para acessar as telas protegidas."
+    ],
+    "sources": [
+      "publico/js/auth.js"
+    ],
+    "targets": {
+      "admin.html": [
+        "btn-logout"
+      ],
+      "eng.html": [
+        "btn-logout"
+      ],
+      "tec.html": [
+        "btn-logout"
+      ]
+    }
+  },
+  {
+    "id": "funcionario-cadastrar",
+    "title": "Cadastrar um funcionário",
+    "roles": [
+      "admin"
+    ],
+    "subjects": [
+      "funcionario"
+    ],
+    "actions": [
+      "cadastrar"
+    ],
+    "steps": [
+      "No painel Administração, abra Funcionários.",
+      "Preencha Nome e Cargo e selecione o Perfil de acesso e o Status.",
+      "Confira a Senha provisória ou clique em Gerar automaticamente. Ela deve ter de 8 a 10 caracteres.",
+      "Clique em Cadastrar Funcionário e aguarde a confirmação.",
+      "Anote a matrícula gerada automaticamente e entregue a senha provisória ao funcionário por um canal apropriado. Os botões Mostrar senha e Copiar senha ajudam nessa etapa."
+    ],
+    "notes": [
+      "O funcionário deverá trocar a senha no primeiro acesso. O chatbot não cadastra a conta por você nem recebe senhas."
+    ],
+    "destinations": {
+      "admin": "admin.html#funcionarios"
+    },
+    "sources": [
+      "publico/admin.html",
+      "publico/js/admin.js"
+    ],
+    "targets": {
+      "admin.html": [
+        "funcionarios",
+        "form-funcionario",
+        "btn-salvar-funcionario",
+        "btn-gerar-senha"
+      ]
+    }
+  },
+  {
+    "id": "funcionario-editar",
+    "title": "Editar os dados de um funcionário",
+    "roles": [
+      "admin"
+    ],
+    "subjects": [
+      "funcionario"
+    ],
+    "actions": [
+      "editar"
+    ],
+    "steps": [
+      "Abra Funcionários e localize a conta na lista, usando a busca ou o filtro de status se necessário.",
+      "Na linha da conta, clique em Editar.",
+      "Altere os campos desejados no formulário carregado acima da tabela. Deixe a senha em branco para manter a atual.",
+      "Clique em Salvar Alteracoes e confira a confirmação. Para desistir, use Cancelar edição."
+    ],
+    "notes": [
+      "A matrícula não é editável. A linha da própria conta possui ações desabilitadas."
+    ],
+    "destinations": {
+      "admin": "admin.html#funcionarios"
+    },
+    "sources": [
+      "publico/js/admin.js"
+    ],
+    "targets": {
+      "admin.html": [
+        "funcionarios",
+        "tabela-funcionarios",
+        "btn-cancelar-edicao-funcionario"
+      ]
+    }
+  },
+  {
+    "id": "funcionario-senha",
+    "title": "Redefinir a senha de um funcionário",
+    "roles": [
+      "admin"
+    ],
+    "subjects": [
+      "funcionario",
+      "senha"
+    ],
+    "actions": [
+      "trocar",
+      "recuperar"
+    ],
+    "steps": [
+      "Abra Funcionários e clique em Editar na linha da conta que precisa recuperar o acesso.",
+      "Preencha Senha provisória com uma nova senha de 8 a 10 caracteres, ou use Gerar automaticamente.",
+      "Clique em Salvar Alteracoes.",
+      "Entregue a nova senha ao funcionário por um canal apropriado. A troca será exigida no próximo acesso."
+    ],
+    "notes": [
+      "Deixar a senha vazia preserva a senha atual. Não é possível editar a própria conta por essa tabela. Não informe a senha ao chatbot."
+    ],
+    "destinations": {
+      "admin": "admin.html#funcionarios"
+    },
+    "sources": [
+      "publico/js/admin.js"
+    ],
+    "targets": {
+      "admin.html": [
+        "funcionarios",
+        "funcionario-senha",
+        "btn-gerar-senha"
+      ]
+    }
+  },
+  {
+    "id": "funcionario-status",
+    "title": "Ativar ou desativar um funcionário",
+    "roles": [
+      "admin"
+    ],
+    "subjects": [
+      "funcionario"
+    ],
+    "actions": [
+      "ativar",
+      "desativar"
+    ],
+    "steps": [
+      "Abra Funcionários e encontre a conta na tabela.",
+      "Na linha desejada, clique em Desativar para uma conta ativa ou Ativar para uma conta inativa.",
+      "Aguarde a atualização do status na lista."
+    ],
+    "notes": [
+      "A ação é desabilitada para sua própria conta. Desativar não é o mesmo que excluir."
+    ],
+    "destinations": {
+      "admin": "admin.html#funcionarios"
+    },
+    "sources": [
+      "publico/js/admin.js"
+    ],
+    "targets": {
+      "admin.html": [
+        "funcionarios",
+        "tabela-funcionarios",
+        "filtro-status-funcionarios"
+      ]
+    }
+  },
+  {
+    "id": "funcionario-excluir",
+    "title": "Excluir um funcionário",
+    "roles": [
+      "admin"
+    ],
+    "subjects": [
+      "funcionario"
+    ],
+    "actions": [
+      "excluir"
+    ],
+    "steps": [
+      "Abra Funcionários e confira com cuidado a conta na tabela.",
+      "Clique em Excluir na linha correspondente.",
+      "Leia a confirmação apresentada. Confirme somente se realmente deseja excluir; caso contrário, cancele.",
+      "Aguarde a confirmação do sistema."
+    ],
+    "notes": [
+      "A interface informa que a exclusão não pode ser desfeita. Não é possível excluir a própria conta pela tabela. Para apenas suspender a conta, use Desativar."
+    ],
+    "destinations": {
+      "admin": "admin.html#funcionarios"
+    },
+    "sources": [
+      "publico/js/admin.js"
+    ],
+    "targets": {
+      "admin.html": [
+        "funcionarios",
+        "tabela-funcionarios"
+      ]
+    }
+  },
+  {
+    "id": "sensor-cadastrar",
+    "title": "Cadastrar um sensor",
+    "roles": [
+      "admin"
+    ],
+    "subjects": [
+      "sensor"
+    ],
+    "actions": [
+      "cadastrar",
+      "associar"
+    ],
+    "steps": [
+      "Abra Sensores no menu lateral do painel Administração.",
+      "No formulário, informe o Identificador externo e selecione o Talhão.",
+      "Selecione a Métrica: Temperatura, Umidade do solo, Umidade do ar ou Chuva, e preencha a Unidade correspondente.",
+      "Clique em Cadastrar Sensor e confira a confirmação e a linha na tabela."
+    ],
+    "notes": [
+      "O talhão precisa estar cadastrado. Cadastrar o sensor não faz o hardware começar a transmitir: o estado Online depende da comunicação. Não existe um formulário de edição de identificador, métrica e talhão de um sensor já criado nessa tela."
+    ],
+    "destinations": {
+      "admin": "admin.html#sensores-admin"
+    },
+    "sources": [
+      "publico/admin.html",
+      "publico/js/admin.js"
+    ],
+    "targets": {
+      "admin.html": [
+        "sensores-admin",
+        "form-sensor",
+        "sensor-talhao"
+      ]
+    }
+  },
+  {
+    "id": "sensor-status",
+    "title": "Ativar ou desativar um sensor",
+    "roles": [
+      "admin"
+    ],
+    "subjects": [
+      "sensor"
+    ],
+    "actions": [
+      "ativar",
+      "desativar"
+    ],
+    "steps": [
+      "Abra Sensores e localize o sensor na tabela.",
+      "Na linha desejada, clique em Desativar ou Ativar, conforme o estado atual.",
+      "Confira a mensagem e a atualização da lista."
+    ],
+    "notes": [
+      "Ativar permite que o sensor seja usado, mas não garante comunicação Online. Se precisar relatar um defeito físico, o Técnico utiliza Registro de Problema do Sensor."
+    ],
+    "destinations": {
+      "admin": "admin.html#sensores-admin"
+    },
+    "sources": [
+      "publico/js/admin.js"
+    ],
+    "targets": {
+      "admin.html": [
+        "sensores-admin",
+        "tabela-sensores-admin"
+      ]
+    }
+  },
+  {
+    "id": "sensor-excluir",
+    "title": "Excluir um sensor",
+    "roles": [
+      "admin"
+    ],
+    "subjects": [
+      "sensor"
+    ],
+    "actions": [
+      "excluir"
+    ],
+    "steps": [
+      "Abra Sensores e confira o identificador do sensor na tabela.",
+      "Clique em Excluir na linha correspondente.",
+      "Leia a confirmação: o histórico de leituras associado também será apagado.",
+      "Confirme somente se deseja remover o sensor e suas leituras. Para apenas interromper seu uso, prefira Desativar."
+    ],
+    "notes": [
+      "O chatbot apenas orienta; a exclusão é feita por você na tela e depende da confirmação."
+    ],
+    "destinations": {
+      "admin": "admin.html#sensores-admin"
+    },
+    "sources": [
+      "publico/js/admin.js"
+    ],
+    "targets": {
+      "admin.html": [
+        "sensores-admin",
+        "tabela-sensores-admin"
+      ]
+    }
+  },
+  {
+    "id": "mapa-admin",
+    "title": "Criar ou ajustar talhões no mapa administrativo",
+    "roles": [
+      "admin"
+    ],
+    "subjects": [
+      "talhao",
+      "mapa",
+      "area"
+    ],
+    "actions": [
+      "cadastrar",
+      "editar"
+    ],
+    "steps": [
+      "Abra Monitoramento e clique em Editar Talhões.",
+      "Clique em Criar e depois no mapa para inserir o novo talhão.",
+      "Ajuste os vértices do desenho; a área em hectares é calculada automaticamente.",
+      "Clique em Salvar e aguarde a confirmação. Para descartar alterações, saia do modo de edição."
+    ],
+    "notes": [
+      "O editor possui Criar, Salvar e Excluir. A área acompanha o desenho automaticamente."
+    ],
+    "destinations": {
+      "admin": "admin.html#monitoramento"
+    },
+    "sources": [
+      "publico/js/editor-mapa-admin.js",
+      "publico/admin.html"
+    ],
+    "targets": {
+      "admin.html": [
+        "monitoramento",
+        "camada-talhoes"
+      ]
+    }
+  },
+  {
+    "id": "mapa-eng-criar",
+    "title": "Criar um talhão no painel do Engenheiro",
+    "roles": [
+      "engenheiro"
+    ],
+    "subjects": [
+      "talhao",
+      "mapa"
+    ],
+    "actions": [
+      "cadastrar"
+    ],
+    "steps": [
+      "Abra Monitoramento e clique em Editar Talhões.",
+      "Clique em Criar e depois no mapa para inserir o novo talhão.",
+      "Ajuste os vértices do desenho; a área em hectares é calculada automaticamente.",
+      "Clique em Salvar e aguarde a confirmação. Para descartar alterações, saia do modo de edição."
+    ],
+    "notes": [
+      "Confira a área calculada antes de salvar."
+    ],
+    "destinations": {
+      "engenheiro": "eng.html#monitoramento"
+    },
+    "sources": [
+      "publico/eng.html",
+      "publico/js/eng.js"
+    ],
+    "targets": {
+      "eng.html": [
+        "monitoramento",
+        "btn-editar-talhoes",
+        "btn-criar-talhao",
+        "talhao-area",
+        "btn-salvar-talhao"
+      ]
+    }
+  },
+  {
+    "id": "mapa-eng-editar",
+    "title": "Editar limites ou área de um talhão",
+    "roles": [
+      "engenheiro"
+    ],
+    "subjects": [
+      "talhao",
+      "mapa",
+      "area"
+    ],
+    "actions": [
+      "editar"
+    ],
+    "steps": [
+      "Abra Monitoramento e clique em Editar Talhões.",
+      "Selecione o talhão e arraste seus vértices para ajustar o contorno.",
+      "Confira a área calculada automaticamente e clique em Salvar."
+    ],
+    "notes": [
+      "Saia do modo de edição para descartar alterações ainda não salvas."
+    ],
+    "destinations": {
+      "engenheiro": "eng.html#monitoramento"
+    },
+    "sources": [
+      "publico/js/eng.js"
+    ],
+    "targets": {
+      "eng.html": [
+        "monitoramento",
+        "btn-editar-talhoes",
+        "talhao-area",
+        "btn-salvar-talhao"
+      ]
+    }
+  },
+  {
+    "id": "mapa-dividir",
+    "title": "Dividir um talhão",
+    "roles": [
+      "engenheiro"
+    ],
+    "subjects": [
+      "talhao",
+      "mapa"
+    ],
+    "actions": [
+      "dividir"
+    ],
+    "steps": [
+      "Esta versão não oferece o botão Dividir no mapa.",
+      "Consulte o responsável pelo cadastro para planejar novos limites sem comprometer os registros vinculados."
+    ],
+    "notes": [
+      "O assistente não realiza divisão nem exclusão de dados."
+    ],
+    "destinations": {
+      "engenheiro": "eng.html#monitoramento"
+    },
+    "sources": [
+      "publico/js/eng.js"
+    ],
+    "targets": {
+      "eng.html": [
+        "monitoramento",
+        "btn-editar-talhoes",
+        "btn-salvar-talhao"
+      ]
+    }
+  },
+  {
+    "id": "mapa-excluir",
+    "title": "Excluir um talhão",
+    "roles": [
+      "engenheiro"
+    ],
+    "subjects": [
+      "talhao",
+      "mapa"
+    ],
+    "actions": [
+      "excluir"
+    ],
+    "steps": [
+      "Abra Monitoramento e clique em Editar Talhões.",
+      "Selecione o talhão, clique em Excluir e confira o rascunho.",
+      "Clique em Salvar para confirmar ou saia do modo de edição para descartar."
+    ],
+    "notes": [
+      "Não é possível excluir o último talhão. A remoção preserva o histórico por arquivamento."
+    ],
+    "destinations": {
+      "engenheiro": "eng.html#monitoramento"
+    },
+    "sources": [
+      "publico/js/eng.js"
+    ],
+    "targets": {
+      "eng.html": [
+        "monitoramento",
+        "btn-excluir-talhao",
+        "btn-salvar-talhao",
+        "btn-editar-talhoes"
+      ]
+    }
+  },
+  {
+    "id": "plantio-cadastrar",
+    "title": "Cadastrar um produto ou plantio",
+    "roles": [
+      "engenheiro"
+    ],
+    "subjects": [
+      "plantio",
+      "produto",
+      "cultura"
+    ],
+    "actions": [
+      "cadastrar"
+    ],
+    "steps": [
+      "No painel do Engenheiro, abra Cadastro no menu lateral.",
+      "Em Cadastrar Produto, preencha Produto e Variedade e selecione o Talhão.",
+      "Selecione o Tipo de Solo e informe Data de Plantio, Previsão de Colheita e Temperatura maxima C conforme o planejamento do responsável técnico.",
+      "Confira os Sensores cadastrados neste talhão; a lista é preenchida pelos sensores ativos cadastrados pelo administrador.",
+      "Clique em Cadastrar Produto e aguarde a confirmação."
+    ],
+    "notes": [
+      "O talhão precisa existir. A lista de sensores dessa tela não cria sensores. Não escolha limites agronômicos sem orientação do responsável técnico."
+    ],
+    "destinations": {
+      "engenheiro": "eng.html#cadastro-plantio"
+    },
+    "sources": [
+      "publico/eng.html",
+      "publico/js/eng.js"
+    ],
+    "targets": {
+      "eng.html": [
+        "cadastro-plantio",
+        "formulario-plantio",
+        "produto",
+        "sensor-associado"
+      ]
+    }
+  },
+  {
+    "id": "colheita-registrar",
+    "title": "Registrar uma colheita",
+    "roles": [
+      "admin"
+    ],
+    "subjects": [
+      "colheita"
+    ],
+    "actions": [
+      "cadastrar"
+    ],
+    "steps": [
+      "Abra Colheitas no painel Administração.",
+      "No formulário Registrar colheita, selecione o Talhão e a Data da colheita.",
+      "Informe uma Quantidade positiva e selecione a Unidade: kg, t, sc ou cx.",
+      "Clique em Registrar colheita e confira a confirmação e a atualização do gráfico."
+    ],
+    "notes": [
+      "O registro pode ser vinculado ao ciclo ativo mais recente; a ausência de ciclo ativo não impede a colheita. As unidades não são convertidas automaticamente no gráfico."
+    ],
+    "destinations": {
+      "admin": "admin.html#colheitas-admin"
+    },
+    "sources": [
+      "publico/admin.html",
+      "publico/js/colheitas.js"
+    ],
+    "targets": {
+      "admin.html": [
+        "colheitas-admin"
+      ]
+    }
+  },
+  {
+    "id": "colheita-consultar",
+    "title": "Consultar o histórico de colheitas",
+    "roles": [
+      "admin",
+      "engenheiro"
+    ],
+    "subjects": [
+      "colheita",
+      "grafico"
+    ],
+    "actions": [
+      "consultar"
+    ],
+    "steps": [
+      "No painel Administração, abra Colheitas; no painel do Engenheiro, abra Colheita.",
+      "No Histórico Anual de Colheitas, selecione a unidade pelos botões Toneladas, Sacas, Quilogramas ou Caixas.",
+      "Confira os valores do gráfico na unidade selecionada. No painel do Engenheiro, consulte também os cartões de última, menor e maior colheita."
+    ],
+    "notes": [
+      "Trocar a unidade filtra os registros; não converte automaticamente kg em toneladas. O formulário de registro fica apenas no painel Administração."
+    ],
+    "destinations": {
+      "admin": "admin.html#colheitas-admin",
+      "engenheiro": "eng.html#colheitas"
+    },
+    "sources": [
+      "publico/admin.html",
+      "publico/eng.html"
+    ],
+    "targets": {
+      "admin.html": [
+        "colheitas-admin"
+      ],
+      "eng.html": [
+        "colheitas",
+        "graficoColheita"
+      ]
+    }
+  },
+  {
+    "id": "relatorio-consultar",
+    "title": "Consultar e acompanhar relatórios recebidos",
+    "roles": [
+      "admin",
+      "engenheiro"
+    ],
+    "subjects": [
+      "relatorio"
+    ],
+    "actions": [
+      "consultar",
+      "editar"
+    ],
+    "steps": [
+      "Na Administração, abra Relatórios Recebidos; no painel do Engenheiro, abra Relatórios.",
+      "Use os filtros Técnico ou texto, Data e Status para localizar o relatório.",
+      "Leia o conteúdo na tabela.",
+      "Para atualizar o acompanhamento, escolha Em analise ou Concluido na linha do relatório e clique em Atualizar.",
+      "Aguarde a mensagem Acompanhamento do relatório atualizado."
+    ],
+    "notes": [
+      "Essa ação altera o acompanhamento, não edita o conteúdo enviado pelo Técnico."
+    ],
+    "destinations": {
+      "admin": "admin.html#relatorios-diarios",
+      "engenheiro": "eng.html#relatorios-diarios"
+    },
+    "sources": [
+      "publico/js/relatorios.js",
+      "publico/admin.html",
+      "publico/eng.html"
+    ],
+    "targets": {
+      "admin.html": [
+        "relatorios-diarios",
+        "filtro-relatorio-texto",
+        "tabela-relatorios"
+      ],
+      "eng.html": [
+        "relatorios-diarios",
+        "filtro-relatorio-texto",
+        "tabela-relatorios"
+      ]
+    }
+  },
+  {
+    "id": "inspecao-registrar",
+    "title": "Registrar uma inspeção de campo",
+    "roles": [
+      "tecnico"
+    ],
+    "subjects": [
+      "inspecao"
+    ],
+    "actions": [
+      "cadastrar"
+    ],
+    "steps": [
+      "Abra Registros de campo e selecione Inspeção.",
+      "Escolha o talhão, a data e o sensor, se houver.",
+      "Informe a situação da plantação, os problemas e as observações.",
+      "Clique em Registrar Inspeção e confira a confirmação."
+    ],
+    "notes": [
+      "O sensor é opcional e só pode ser escolhido entre os cadastrados naquele talhão."
+    ],
+    "destinations": {
+      "tecnico": "tec.html#aba-registros"
+    },
+    "sources": [
+      "publico/tec.html",
+      "publico/js/tec.js"
+    ],
+    "targets": {
+      "tec.html": [
+        "aba-registros",
+        "form-registro-campo",
+        "registro-sensor",
+        "registro-situacao"
+      ]
+    }
+  },
+  {
+    "id": "ocorrencia-registrar",
+    "title": "Registrar uma ocorrência de campo",
+    "roles": [
+      "tecnico"
+    ],
+    "subjects": [
+      "ocorrencia",
+      "praga",
+      "doenca"
+    ],
+    "actions": [
+      "cadastrar"
+    ],
+    "steps": [
+      "Abra Registros de campo e selecione Ocorrência.",
+      "Escolha o talhão e a categoria em Problema.",
+      "Preencha as observações e clique em Registrar Ocorrência."
+    ],
+    "notes": [
+      "Use a categoria mais adequada e descreva o que foi observado; decisões técnicas devem ser tomadas pelo engenheiro responsável."
+    ],
+    "destinations": {
+      "tecnico": "tec.html#aba-registros"
+    },
+    "sources": [
+      "publico/tec.html",
+      "publico/js/tec.js"
+    ],
+    "targets": {
+      "tec.html": [
+        "aba-registros",
+        "form-registro-campo",
+        "registro-ocorrencia-tipo"
+      ]
+    }
+  },
+  {
+    "id": "problema-sensor",
+    "title": "Registrar um problema de sensor",
+    "roles": [
+      "tecnico"
+    ],
+    "subjects": [
+      "sensor",
+      "problema",
+      "defeito"
+    ],
+    "actions": [
+      "cadastrar"
+    ],
+    "steps": [
+      "Abra Registros de campo e selecione Ocorrência.",
+      "Escolha o talhão e o problema Problema no sensor.",
+      "Descreva o defeito nas observações e registre a ocorrência."
+    ],
+    "notes": [
+      "Esse registro não cadastra um novo sensor."
+    ],
+    "destinations": {
+      "tecnico": "tec.html#aba-registros"
+    },
+    "sources": [
+      "publico/tec.html",
+      "publico/js/tec.js"
+    ],
+    "targets": {
+      "tec.html": [
+        "aba-monitoramento",
+        "form-registro-campo",
+        "registro-sensor"
+      ]
+    }
+  },
+  {
+    "id": "relatorio-enviar",
+    "title": "Enviar o relatório diário de campo",
+    "roles": [
+      "tecnico"
+    ],
+    "subjects": [
+      "relatorio"
+    ],
+    "actions": [
+      "cadastrar",
+      "enviar"
+    ],
+    "steps": [
+      "Abra Registros de campo e localize Relatório diário de campo.",
+      "Confira a data e o texto gerado a partir dos registros do dia; revise as informações.",
+      "Envie o relatório e aguarde a confirmação."
+    ],
+    "notes": [
+      "O relatório fica disponível para Engenharia e Administração nas respectivas seções de relatórios. O sistema não envia e-mail nem notificação externa."
+    ],
+    "destinations": {
+      "tecnico": "tec.html#aba-registros"
+    },
+    "sources": [
+      "publico/tec.html",
+      "publico/js/tec.js"
+    ],
+    "targets": {
+      "tec.html": [
+        "aba-registros",
+        "form-relatorio-diario",
+        "relatorio-conteudo"
+      ]
+    }
+  },
+  {
+    "id": "telemetria",
+    "title": "Consultar leituras e histórico de telemetria",
+    "roles": [
+      "admin",
+      "engenheiro",
+      "tecnico"
+    ],
+    "subjects": [
+      "telemetria",
+      "sensor",
+      "temperatura",
+      "umidade",
+      "chuva",
+      "grafico",
+      "historico"
+    ],
+    "actions": [
+      "consultar"
+    ],
+    "steps": [
+      "Abra Telemetria no menu do seu painel.",
+      "Selecione o talhão e consulte os gráficos disponíveis.",
+      "Confira a data de coleta e a unidade antes de comparar valores."
+    ],
+    "notes": [
+      "Uma leitura antiga não comprova o estado atual. A ausência de dados pode significar falta de transmissão; não equivale a zero. Painéis externos dependem da disponibilidade da integração."
+    ],
+    "destinations": {
+      "admin": "admin.html#telemetria-admin",
+      "engenheiro": "eng.html#telemetria",
+      "tecnico": "tec.html#aba-telemetria"
+    },
+    "sources": [
+      "publico/admin.html",
+      "publico/eng.html",
+      "publico/tec.html"
+    ],
+    "targets": {
+      "admin.html": [
+        "telemetria-admin"
+      ],
+      "eng.html": [
+        "telemetria"
+      ],
+      "tec.html": [
+        "aba-telemetria",
+        "telemetria-talhao"
+      ]
+    }
+  },
+  {
+    "id": "mapa-consultar",
+    "title": "Consultar talhões no mapa",
+    "roles": [
+      "admin",
+      "engenheiro",
+      "tecnico"
+    ],
+    "subjects": [
+      "talhao",
+      "mapa",
+      "area"
+    ],
+    "actions": [
+      "consultar"
+    ],
+    "steps": [
+      "Abra Monitoramento.",
+      "Selecione um talhão pelo desenho no mapa ou pelos botões.",
+      "Confira as informações e a data das leituras do talhão selecionado."
+    ],
+    "notes": [
+      "O Técnico consulta o mapa, mas não edita limites ou áreas. Se não houver polígonos, confirme com o responsável se os talhões e suas geometrias foram cadastrados."
+    ],
+    "destinations": {
+      "admin": "admin.html#monitoramento",
+      "engenheiro": "eng.html#monitoramento",
+      "tecnico": "tec.html#aba-monitoramento"
+    },
+    "sources": [
+      "publico/admin.html",
+      "publico/eng.html",
+      "publico/tec.html"
+    ],
+    "targets": {
+      "admin.html": [
+        "monitoramento"
+      ],
+      "eng.html": [
+        "monitoramento",
+        "camada-talhoes"
+      ],
+      "tec.html": [
+        "aba-monitoramento",
+        "botoes-talhao"
+      ]
+    }
+  },
+  {
+    "id": "alertas-consultar",
+    "title": "Consultar alertas e dados de campo",
+    "roles": [
+      "admin",
+      "tecnico"
+    ],
+    "subjects": [
+      "alerta",
+      "dados de campo",
+      "tarefa"
+    ],
+    "actions": [
+      "consultar"
+    ],
+    "steps": [
+      "Na Administração, abra Dados de Campo; no Técnico, abra Monitoramento.",
+      "Confira as listas de alertas e tarefas disponíveis e identifique o talhão e a situação descrita.",
+      "Leia os registros de ocorrências e problemas relacionados e encaminhe a situação ao responsável técnico quando necessário."
+    ],
+    "notes": [
+      "A interface não possui um botão geral para encerrar alertas nessa lista. O chatbot não encerra alertas nem executa tarefas por você."
+    ],
+    "destinations": {
+      "admin": "admin.html#resumo-tecnico",
+      "tecnico": "tec.html#aba-monitoramento"
+    },
+    "sources": [
+      "publico/admin.html",
+      "publico/tec.html"
+    ],
+    "targets": {
+      "admin.html": [
+        "resumo-tecnico"
+      ],
+      "tec.html": [
+        "aba-monitoramento",
+        "lista-alertas"
+      ]
+    }
+  }
+]
