@@ -39,6 +39,7 @@
           <input type="text" id="codigo-otp" name="codigo-otp" placeholder="Codigo de 6 digitos do autenticador" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" disabled>
         </div>
         <button type="button" id="alternar-recuperacao" class="btn-acao-admin" hidden>Usar codigo de recuperacao</button>
+        <button type="button" id="reiniciar-login" class="btn-voltar-login" hidden>Voltar e tentar novamente</button>
         <div id="configurar-totp" hidden>
           <p>Escaneie o QR Code com Google Authenticator, Microsoft Authenticator ou Authy. Guarde o segredo manual somente se nao puder escanear.</p>
           <img id="totp-qr" alt="QR Code para cadastrar FrutLog no aplicativo autenticador">

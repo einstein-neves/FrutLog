@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const caixaOtp = document.getElementById("campo-otp");
   const caixaSetupTotp = document.getElementById("configurar-totp");
   const alternarRecuperacao = document.getElementById("alternar-recuperacao");
+  const reiniciarLogin = document.getElementById("reiniciar-login");
   const campoCodigos = document.getElementById("codigos-recuperacao");
   let modoOtp = "login";
   let usarRecuperacao = false;
@@ -59,6 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
         campoOtp.required = true;
         caixaOtp.hidden = false;
         alternarRecuperacao.hidden = modoOtp !== "login";
+        reiniciarLogin.hidden = false;
         if (modoOtp === "setup") {
           document.getElementById("totp-qr").src = dados.qrCode;
           document.getElementById("totp-segredo").textContent = dados.segredoManual;
@@ -130,6 +132,31 @@ document.addEventListener("DOMContentLoaded", () => {
     campoOtp.placeholder = usarRecuperacao ? "Codigo de recuperacao" : "Codigo de 6 digitos do autenticador";
     alternarRecuperacao.textContent = usarRecuperacao ? "Usar codigo do autenticador" : "Usar codigo de recuperacao";
     campoOtp.focus();
+  });
+
+  reiniciarLogin?.addEventListener("click", () => {
+    desafioOtp = null;
+    modoOtp = "login";
+    usarRecuperacao = false;
+    campoMatricula.readOnly = false;
+    campoSenha.closest(".input-field").hidden = false;
+    botaoMostrarSenha.disabled = false;
+    campoOtp.value = "";
+    campoOtp.disabled = true;
+    campoOtp.required = false;
+    caixaOtp.hidden = true;
+    caixaSetupTotp.hidden = true;
+    alternarRecuperacao.hidden = true;
+    reiniciarLogin.hidden = true;
+    campoOtp.maxLength = 6;
+    campoOtp.pattern = "[0-9]{6}";
+    campoOtp.inputMode = "numeric";
+    campoOtp.placeholder = "Codigo de 6 digitos do autenticador";
+    document.getElementById("totp-qr").removeAttribute("src");
+    document.getElementById("totp-segredo").textContent = "";
+    botaoLogin.textContent = "Entrar";
+    campoMatricula.focus();
+    exibirMensagem("Informe sua matricula e senha para iniciar novamente.");
   });
 
   document.getElementById("confirmar-codigos")?.addEventListener("change", (evento) => {

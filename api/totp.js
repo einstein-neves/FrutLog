@@ -49,7 +49,9 @@ function codigoNoPasso(secret, step) {
 function verificarCodigo(secret, code, now = Date.now(), lastStep = -1) {
   if (typeof code !== "string" || !/^\d{6}$/.test(code)) return null;
   const current = Math.floor(now / 30000);
-  for (const step of [current, current - 1, current + 1]) {
+  // Tolera ate 60 segundos de diferenca entre o relogio do servidor e o celular.
+  // Desafios continuam protegidos contra reuso por lastStep e limite de tentativas.
+  for (const step of [current, current - 1, current + 1, current - 2, current + 2]) {
     if (step <= Number(lastStep)) continue;
     const expected = Buffer.from(codigoNoPasso(secret, step));
     const received = Buffer.from(code);

@@ -365,8 +365,8 @@ module.exports = async (req, res) => {
       const challenge = Array.isArray(consumido) ? consumido[0] : consumido;
       const userId = challenge?.usuario_id;
       if (!userId) {
-        registrarBloqueioOtp(codigoValido ? "desafio_expirado_ou_consumido" : "codigo_invalido_expirado_ou_reutilizado");
-        return reply(res, 401, { mensagem: "Codigo invalido ou expirado." }, origin);
+        registrarBloqueioOtp(codigoValido ? "desafio_expirado_ou_consumido" : "codigo_totp_nao_confere_ou_desafio_expirado");
+        return reply(res, 401, { mensagem: "Nao foi possivel validar. Confira se a data e hora estao automaticas no celular e no computador; se persistir, volte e inicie um novo acesso." }, origin);
       }
       if (challenge.modo === "setup") {
         codigosRecuperacao = criarCodigosRecuperacao();
