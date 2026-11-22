@@ -131,9 +131,11 @@ document.addEventListener("DOMContentLoaded", () => {
   async function confirmarOtp() {
     const dados = await FrutLog.apiFetch("/login/otp", {
       method: "POST",
-      body: JSON.stringify({ desafio: desafioOtp, ...(usarRecuperacao
-        ? { codigoRecuperacao: campoOtp.value.trim(), substituirAutenticador: document.getElementById("substituir-autenticador").checked }
-        : { codigo: campoOtp.value.trim() }) }),
+      body: JSON.stringify({
+        desafio: desafioOtp, ...(usarRecuperacao
+          ? { codigoRecuperacao: campoOtp.value.trim(), substituirAutenticador: document.getElementById("substituir-autenticador").checked }
+          : { codigo: campoOtp.value.trim() })
+      }),
     });
     if (dados?.sucesso && dados.otpRequerido && dados.modo === "reset" && dados.desafio) {
       desafioOtp = dados.desafio;
@@ -165,6 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("opcoes-recuperacao").hidden = true;
       document.getElementById("lista-codigos-recuperacao").textContent = dados.codigosRecuperacao.join("\n");
       campoCodigos.hidden = false;
+      campoOtp.required = false;
       formularioLogin.querySelector('[type="submit"]').hidden = true;
       document.getElementById("confirmar-codigos").focus();
       exibirMensagem("Autenticador configurado. Salve seus codigos de recuperacao antes de continuar.");
@@ -210,7 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
     botaoMostrarSenha.addEventListener("click", alternarVisibilidadeSenha);
   }
 
-if (formularioLogin) {
+  if (formularioLogin) {
     formularioLogin.addEventListener("submit", async (evento) => {
       evento.preventDefault();
 
