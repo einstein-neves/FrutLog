@@ -237,3 +237,96 @@
   margin-bottom: 16px;
 }
 
+/* Acoes auxiliares do 2FA seguem os controles verdes da tela de login. */
+.pagina-login .login-acao-secundaria,
+.pagina-login #reiniciar-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 11px 14px;
+  border: 1px solid #cbded2;
+  border-radius: 10px;
+  background: #f0f7f3;
+  color: #226744;
+  cursor: pointer;
+  font: inherit;
+  font-size: .875rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
+  text-decoration: none;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+
+.pagina-login .login-acao-secundaria:hover:not(:disabled) {
+  background: #e3f0e9;
+  border-color: #26734d;
+}
+
+.pagina-login #reiniciar-login {
+  margin: 0 0 16px;
+  border-color: #d7dde3;
+  background: #fff;
+  color: #526170;
+}
+
+.pagina-login #reiniciar-login:hover {
+  border-color: #b8c9bf;
+  background: #f7f9f8;
+  color: #226744;
+}
+
+.pagina-login .login-acao-secundaria:focus-visible,
+.pagina-login #reiniciar-login:focus-visible {
+  outline: 3px solid #26734d;
+  outline-offset: 3px;
+}
+
+.pagina-login .login-acao-secundaria:disabled {
+  background: #f7f8fa;
+  border-color: #e5e9ee;
+  color: #647180;
+  cursor: not-allowed;
+}
+
+.pagina-login #prazo-otp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid #e5e9ee;
+  border-radius: 10px;
+  background: #f7f8fa;
+  color: #526170;
+  font-size: .8125rem;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.pagina-login #opcoes-recuperacao {
+  border-color: #cbded2;
+  border-radius: 12px;
+  background: #f7faf8;
+  color: #526170;
+}
+
+.pagina-login #opcoes-recuperacao legend {
+  padding: 0 6px;
+  color: #226744;
+  font-size: .875rem;
+  font-weight: 600;
+}
+
+.pagina-login #opcoes-recuperacao label {
+  font-size: .875rem;
+  line-height: 1.6;
+}
+
+.pagina-login #opcoes-recuperacao input {
+  accent-color: #26734d;
+}
+
