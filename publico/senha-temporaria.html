@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="css/feedback.css">
   <link rel="stylesheet" href="css/login.css">
+  <link rel="stylesheet" href="css/pulse-frutlog.css">
   <title>FrutLog - Alterar senha provisória</title>
   <link rel="stylesheet" href="css/formularios.css">
   <link rel="stylesheet" href="css/vendor/flatpickr.min.css">
@@ -16,7 +17,7 @@
 </head>
 
 <body class="pagina-login">
-  <main class="login" aria-label="Alteração obrigatória de senha">
+  <main class="login login-compacto" aria-label="Alteração obrigatória de senha">
     <section class="caixa-do-login2">
       <h1>Crie sua senha pessoal</h1>
       <p>A senha provisória precisa ser alterada antes de continuar.</p>
@@ -24,22 +25,34 @@
       <form id="form-alterar-senha" novalidate>
         <div class="input-field">
           <label class="sr-only" for="senha-atual">Senha provisória atual</label>
+          <i class="fa-solid fa-lock icon-left" aria-hidden="true"></i>
           <input id="senha-atual" name="senhaAtual" type="password" autocomplete="current-password" minlength="8"
             maxlength="128" placeholder="Senha provisória atual (8 a 128 caracteres)" required>
+          <button type="button" class="btn-toggle-senha" aria-label="Mostrar senha">
+            <i class="fa-solid fa-eye" aria-hidden="true"></i>
+          </button>
         </div>
         <div class="input-field">
           <label class="sr-only" for="nova-senha">Nova senha</label>
+          <i class="fa-solid fa-lock icon-left" aria-hidden="true"></i>
           <input id="nova-senha" name="novaSenha" type="password" autocomplete="new-password" minlength="8"
             maxlength="128" placeholder="Nova senha (8 a 128 caracteres)" required>
+          <button type="button" class="btn-toggle-senha" aria-label="Mostrar senha">
+            <i class="fa-solid fa-eye" aria-hidden="true"></i>
+          </button>
         </div>
         <div class="input-field">
           <label class="sr-only" for="confirmar-senha">Confirmar nova senha</label>
+          <i class="fa-solid fa-lock icon-left" aria-hidden="true"></i>
           <input id="confirmar-senha" name="confirmarSenha" type="password" autocomplete="new-password" minlength="8"
             maxlength="128" placeholder="Confirme a nova senha" required>
+          <button type="button" class="btn-toggle-senha" aria-label="Mostrar senha">
+            <i class="fa-solid fa-eye" aria-hidden="true"></i>
+          </button>
         </div>
         <p id="mensagem-alterar-senha" class="mensagem-feedback" aria-live="polite"></p>
         <button class="btn-login" type="submit">Alterar senha</button>
-        <button id="btn-sair-senha-provisoria" class="btn-login" type="button">Sair</button>
+        <button id="btn-sair-senha-provisoria" class="btn-login btn-secundario" type="button">Sair</button>
       </form>
     </section>
   </main>

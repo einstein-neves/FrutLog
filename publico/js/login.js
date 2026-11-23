@@ -170,9 +170,11 @@ document.addEventListener("DOMContentLoaded", () => {
   async function confirmarOtp() {
     const dados = await FrutLog.apiFetch("/login/otp", {
       method: "POST",
-      body: JSON.stringify({ desafio: desafioOtp, ...(usarRecuperacao
-        ? { codigoRecuperacao: campoOtp.value.trim(), substituirAutenticador: document.getElementById("substituir-autenticador").checked }
-        : { codigo: campoOtp.value.trim() }) }),
+      body: JSON.stringify({
+        desafio: desafioOtp, ...(usarRecuperacao
+          ? { codigoRecuperacao: campoOtp.value.trim(), substituirAutenticador: document.getElementById("substituir-autenticador").checked }
+          : { codigo: campoOtp.value.trim() })
+      }),
     });
     if (dados?.emailConfirmado && !dados.otpRequerido) {
       reiniciarTentativa();
@@ -198,6 +200,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("opcoes-recuperacao").hidden = true;
       document.getElementById("mensagem-codigos-recuperacao").textContent = dados.mensagem;
       campoCodigos.hidden = false;
+      campoOtp.required = false;
       formularioLogin.querySelector('[type="submit"]').hidden = true;
       document.getElementById("continuar-login").focus();
       exibirMensagem("Autenticador configurado. Confira os codigos de recuperacao no seu e-mail, inclusive no spam.");
@@ -255,7 +258,7 @@ document.addEventListener("DOMContentLoaded", () => {
     botaoMostrarSenha.addEventListener("click", alternarVisibilidadeSenha);
   }
 
-if (formularioLogin) {
+  if (formularioLogin) {
     formularioLogin.addEventListener("submit", async (evento) => {
       evento.preventDefault();
 
