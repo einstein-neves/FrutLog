@@ -60,3 +60,11 @@ verificar("sensor inativo não aparece online mesmo com sinal recente", () => {
     agora
   }), "Inativo");
 });
+
+verificar("comunicacao ativa distingue ausencia, falha e leitura antiga", () => {
+  const comum={statusSensor:"ativo",statusDispositivo:"online",ultimaComunicacao:timestamp(0),agora};
+  assert.equal(estadoSensor({...comum,ultimaLeitura:null}),"Sem leitura");
+  assert.equal(estadoSensor({...comum,ultimaLeitura:timestamp(0),valor:null}),"Falha de medicao");
+  assert.equal(estadoSensor({...comum,ultimaLeitura:timestamp(LIMITE_DADOS_RECENTES_MS+1),valor:25}),"Leitura desatualizada");
+  assert.equal(estadoSensor({...comum,ultimaLeitura:timestamp(0),valor:0}),"Online");
+});

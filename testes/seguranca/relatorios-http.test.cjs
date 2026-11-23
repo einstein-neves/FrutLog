@@ -56,8 +56,9 @@ before(async () => {
     }), { status: 500 });
     const q = url.searchParams;
     let rows;
-    if (table === "usuario") rows = users.filter((u) => matches(u.id, q.get("id")) && matches(u.organizacao_id, q.get("organizacao_id")));
-    else if (table === "relatorio_campo_diario") rows = reports.filter((r) => matches(r.usuario_id, q.get("usuario_id")));
+    if (table === "auditoria_evento") rows=[];
+    else if (table === "usuario") rows = users.filter((u) => matches(u.id, q.get("id")) && matches(u.organizacao_id, q.get("organizacao_id")));
+    else if (table === "relatorio_campo_diario") rows = reports.filter((r) => matches(r.usuario_id, q.get("usuario_id"))).slice(Number(q.get("offset")||0),Number(q.get("offset")||0)+Number(q.get("limit")||500));
     else throw Error(`Consulta inesperada: ${table}`);
     return new Response(JSON.stringify(rows));
   };
@@ -93,6 +94,15 @@ test("relatorios compartilham bloqueios de sessao e senha temporaria", async () 
     users[0].senha_temporaria = false;
   }
   assert.ok(!consultas.includes("relatorio_campo_diario"));
+});
+
+test("paginacao dos relatorios preserva o isolamento e rejeita limites invalidos",async()=>{
+  const a=await request("/relatorios?pagina=1&limite=1",{bearer:token("admin")});
+  const b=await request("/relatorios?pagina=2&limite=1",{bearer:token("admin")});
+  assert.equal(a.status,200);assert.equal(a.data.relatorios.length,1);assert.equal(a.data.paginacao.temProxima,true);
+  assert.equal(b.status,200);assert.equal(b.data.relatorios[0].id,"rel-tec-b");assert.equal(b.data.paginacao.temProxima,false);
+  for(const query of ["pagina=0","pagina=1&limite=101","pagina=abc"])
+    assert.equal((await request(`/relatorios?${query}`,{bearer:token()})).status,400);
 });
 
 test("relatorios compartilham CORS, preflight, cache e permissoes de escrita", async () => {

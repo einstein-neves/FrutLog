@@ -16,8 +16,8 @@ function createPasswordHash(password) {
 
 async function main() {
   const temporaryPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD || crypto.randomBytes(7).toString("base64url").slice(0, 10);
-  if (temporaryPassword.length < 8 || temporaryPassword.length > 10) {
-    throw new Error("BOOTSTRAP_ADMIN_PASSWORD deve possuir entre 8 e 10 caracteres.");
+  if (temporaryPassword.length < 8 || temporaryPassword.length > 128) {
+    throw new Error("BOOTSTRAP_ADMIN_PASSWORD deve possuir entre 8 e 128 caracteres.");
   }
   const response = await fetch(`${baseUrl}/rest/v1/rpc/provisionar_super_admin_inicial`, {
     method: "POST",

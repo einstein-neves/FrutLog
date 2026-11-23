@@ -48,7 +48,7 @@ function erroPublico(error) {
 }
 
 function criarServicoEmail({ env = process.env, criarTransporte = nodemailer.createTransport } = {}) {
-  let transporte, configuracao;
+  let transporte, configuracao, logo;
   function preparar() {
     if (!transporte) {
       configuracao = lerConfiguracao(env);
@@ -57,6 +57,13 @@ function criarServicoEmail({ env = process.env, criarTransporte = nodemailer.cre
           host: "smtp.gmail.com",
           port: 465,
           secure: true,
+          pool: true,
+          maxConnections: 2,
+          maxMessages: 100,
+          // Codigos de acesso nunca devem ser reenviados automaticamente
+          // quando nao sabemos se o servidor ja aceitou a mensagem.
+          maxRequeues: 0,
+          idleTimeout: 60000,
           auth: { user: configuracao.usuario, pass: configuracao.senha },
           tls: { minVersion: "TLSv1.2", rejectUnauthorized: true },
           connectionTimeout: 10000,
@@ -81,7 +88,7 @@ function criarServicoEmail({ env = process.env, criarTransporte = nodemailer.cre
     async enviarNotificacao({ para, titulo, mensagem, categoria, nivel, detalhes, acaoUrl, identificador } = {}) {
       if (!validarEndereco(para)) throw new EmailError("EMAIL_INPUT", "Informe um unico endereco de e-mail valido para o destinatario.");
       const conteudo = criarNotificacao({ titulo, mensagem, categoria, nivel, detalhes, acaoUrl });
-      const logo = fs.readFileSync(path.join(__dirname, "../../publico/imagem/icone-frutlog.jpg"));
+      logo ||= fs.readFileSync(path.join(__dirname, "../../publico/imagem/icone-frutlog.jpg"));
       if (identificador !== undefined && !/^[a-f0-9-]{36}$/i.test(identificador)) throw new EmailError("EMAIL_INPUT", "Identificador de notificacao invalido.");
       const smtp = preparar();
       let resultado;

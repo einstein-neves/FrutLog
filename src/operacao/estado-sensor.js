@@ -8,7 +8,8 @@ function dadosRecentes(em, agora = Date.now()) {
   return idade >= -60_000 && idade <= LIMITE_DADOS_RECENTES_MS;
 }
 
-function estadoSensor({ statusSensor, statusDispositivo, ultimaComunicacao, agora = Date.now() }) {
+function estadoSensor(opcoes) {
+  const { statusSensor, statusDispositivo, ultimaComunicacao, agora = Date.now() } = opcoes;
   if (statusSensor !== "ativo") return "Inativo";
 
   const estadoDispositivo = String(statusDispositivo || "").toLowerCase();
@@ -17,6 +18,11 @@ function estadoSensor({ statusSensor, statusDispositivo, ultimaComunicacao, agor
   if (estadoDispositivo === "offline") return "Offline";
   if (!ultimaComunicacao) return "Sem comunicação";
   if (!dadosRecentes(ultimaComunicacao, agora)) return "Dados desatualizados";
+  if ("ultimaLeitura" in opcoes) {
+    if (!opcoes.ultimaLeitura) return "Sem leitura";
+    if (opcoes.valor === null || opcoes.valor === undefined || !Number.isFinite(Number(opcoes.valor)) || ["invalida","erro"].includes(opcoes.qualidade)) return "Falha de medicao";
+    if (!dadosRecentes(opcoes.ultimaLeitura, agora)) return "Leitura desatualizada";
+  }
   return "Online";
 }
 

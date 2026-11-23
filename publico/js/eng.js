@@ -1059,24 +1059,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function carregarDadosPainel() {
-    const talhoesServidor = await FrutLogMapaTalhoes.carregarMapaTalhoes("engenheiro");
+    const [talhoesServidor, resultados] = await Promise.all([
+      FrutLogMapaTalhoes.carregarMapaTalhoes("engenheiro"),
+      Promise.allSettled([
+        FrutLog.apiFetch("/painel-engenheiro"),
+        FrutLog.apiFetch("/colheitas/anual"),
+        FrutLog.apiFetch("/telemetria/diaria"),
+        FrutLog.apiFetch("/predador/analise"),
+        FrutLog.apiFetch("/telemetria/esp32-mensal"),
+      ]),
+    ]);
     talhoes = talhoesServidor;
     mapaApiPronto = true;
     talhaoSelecionado = obterFeature(talhaoSelecionado)?.properties.codigo || talhoes[0]?.properties.codigo || "";
     codigosIniciais = new Set(talhoes.map((feature) => feature.properties.codigo));
     atualizarControlesEdicao();
 
-    const [resultadoPainel, resultadoColheitas, resultadoTelemetria, resultadoPredador] = await Promise.allSettled([
-      FrutLog.apiFetch("/painel-engenheiro"),
-      FrutLog.apiFetch("/colheitas/anual"),
-      FrutLog.apiFetch("/telemetria/diaria"),
-      // Veredito do Predador (src/ia/predador-nucleo.js). Sem esta linha a tela
-      // do Engenheiro julgava o talhao por conta propria, com uma regra mais
-      // pobre: so temperatura, sem olhar umidade do solo, sem descartar leitura
-      // velha e sem saber se o talhao ainda tem cultura plantada. O mesmo
-      // talhao podia aparecer verde aqui e em ATENCAO no painel do Admin.
-      FrutLog.apiFetch("/predador/analise"),
-    ]);
+    const [resultadoPainel, resultadoColheitas, resultadoTelemetria, resultadoPredador, resultadoEsp32] = resultados;
     const erros = [];
 
     // Entregue ANTES de renderizar: aplicarMonitoramento() consulta estes
@@ -1098,11 +1097,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       colheitas = [];
       erros.push(`Histórico de colheitas: ${resultadoColheitas.reason?.message || resultadoColheitas.reason}`);
     }
-    try {
-      telemetriaMensalEsp32 = (await FrutLog.apiFetch("/telemetria/esp32-mensal")).mensal || [];
-    } catch (erro) {
-      telemetriaMensalEsp32 = [];
-    }
+    telemetriaMensalEsp32 = resultadoEsp32.status === "fulfilled" ? resultadoEsp32.value.mensal || [] : [];
     if (resultadoTelemetria.status === "fulfilled") {
       telemetriaMensalEngenheiro = resultadoTelemetria.value.mensal || [];
       telemetriaDiaria = resultadoTelemetria.value.leituras || [];

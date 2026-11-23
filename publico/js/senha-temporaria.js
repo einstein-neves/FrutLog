@@ -15,14 +15,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (
       typeof dados.senhaAtual !== "string" ||
       dados.senhaAtual.length < 8 ||
-      dados.senhaAtual.length > 10
+      dados.senhaAtual.length > 128
     ) {
-      mensagem.textContent = "A senha atual deve possuir entre 8 e 10 caracteres.";
+      mensagem.textContent = "A senha atual deve possuir entre 8 e 128 caracteres.";
       mensagem.className = "mensagem-feedback erro";
       return;
     }
-    if (dados.novaSenha.length < 8 || dados.novaSenha.length > 10) {
-      mensagem.textContent = "A nova senha deve possuir entre 8 e 10 caracteres.";
+    if (dados.novaSenha.length < 8 || dados.novaSenha.length > 128) {
+      mensagem.textContent = "A nova senha deve possuir entre 8 e 128 caracteres.";
       mensagem.className = "mensagem-feedback erro";
       return;
     }

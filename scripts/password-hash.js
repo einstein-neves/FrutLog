@@ -1,6 +1,6 @@
 const crypto = require("crypto");
 const password = process.argv[2];
-if (!password || password.length < 8 || password.length > 10) {
+if (!password || password.length < 8 || password.length > 128) {
   console.error("Uso: npm.cmd run password-hash -- \"senha-com-8-a-10-caracteres\"");
   process.exit(1);
 }

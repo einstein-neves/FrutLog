@@ -12,7 +12,7 @@
     "test:seguranca": "node --test testes/seguranca/*.test.cjs",
     "security:check": "node --env-file=.env scripts/check-security-config.js",
     "test:chatbot": "node --test testes/chatbot/*.test.cjs",
-    "start": "node --env-file=.env src/server.js",
+    "start": "node --env-file-if-exists=.env src/server.js",
     "dev": "node --env-file=.env --watch src/server.js",
     "password-hash": "node scripts/password-hash.js",
     "bootstrap-admin": "node --env-file=.env scripts/bootstrap-admin.js",
@@ -23,7 +23,9 @@
     "teste": "node testes/predador-nucleo.teste.js && node testes/predador-alertas.teste.js && node testes/ponte-thingspeak.teste.js && node testes/estado-sensor.teste.js && node testes/api-operacao.teste.js",
     "ia": "node --env-file=.env src/ia/predador.js",
     "ia:registrar": "node --env-file=.env src/ia/predador.js --registrar",
-    "ia:vigiar": "node --env-file=.env src/ia/predador.js --vigiar"
+    "ia:vigiar": "node --env-file=.env src/ia/predador.js --vigiar",
+    "migrations:local": "node scripts/check-migrations.js --local",
+    "migrations:check": "node --env-file-if-exists=.env scripts/check-migrations.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
@@ -34,5 +36,8 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.16"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

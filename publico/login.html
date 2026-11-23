@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <link rel="icon" type="image/svg+xml" href="/imagem/favicon.svg">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/global.css">
@@ -39,6 +40,8 @@
           <input type="text" id="codigo-otp" name="codigo-otp" placeholder="Codigo de 6 digitos do autenticador" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" disabled>
         </div>
         <button type="button" id="alternar-recuperacao" class="btn-acao-admin" hidden>Usar codigo de recuperacao</button>
+        <p id="prazo-otp" role="status" hidden></p>
+        <button type="button" id="reenviar-otp" class="btn-acao-admin" hidden disabled>Reenviar codigo</button>
         <fieldset id="opcoes-recuperacao" hidden>
           <legend>Como deseja recuperar o acesso?</legend>
           <label><input type="radio" name="acao-recuperacao" value="temporario" checked> Entrar temporariamente, mantendo meu autenticador.</label>
@@ -51,16 +54,14 @@
           <p>Segredo manual: <code id="totp-segredo"></code></p>
         </div>
         <div id="codigos-recuperacao" hidden>
-          <p>Guarde estes codigos agora. Cada codigo funciona uma unica vez; eles nao serao exibidos novamente.</p>
-          <pre id="lista-codigos-recuperacao"></pre>
-          <label><input id="confirmar-codigos" type="checkbox"> Guardei meus codigos de recuperacao.</label>
-          <button type="button" class="btn-login" id="continuar-login" disabled>Continuar</button>
+          <p id="mensagem-codigos-recuperacao">Os codigos de recuperacao foram enviados ao seu e-mail cadastrado. Guarde a mensagem em um local seguro.</p>
+          <button type="button" class="btn-login" id="continuar-login">Continuar</button>
         </div>
 
         <div class="input-field">
           <label class="sr-only" for="senha">Senha</label>
           <i class="fa-solid fa-lock icon-left" aria-hidden="true"></i>
-          <input type="password" id="senha" name="senha" placeholder="Digite sua senha" autocomplete="current-password" minlength="8" maxlength="10" required>
+          <input type="password" id="senha" name="senha" placeholder="Digite sua senha" autocomplete="current-password" minlength="8" maxlength="128" required>
           <button type="button" class="btn-toggle-senha" id="togglePassword" aria-label="Mostrar senha">
             <i class="fa-solid fa-eye" aria-hidden="true"></i>
           </button>

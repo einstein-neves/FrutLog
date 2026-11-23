@@ -20,6 +20,7 @@ function criarToken(usuario, segredo, senhaHash) {
     nome: usuario.nome,
     perfil: usuario.perfil,
     mustChangePassword: Boolean(usuario.mustChangePassword),
+    ver: Number(usuario.sessaoVersao || 0),
     sv: versaoCredencial(usuario.id, senhaHash, segredo),
     iat: instante,
     exp: instante + 28800,
@@ -65,14 +66,15 @@ async function validarSessao(req, config) {
   const usuario = autenticarRequisicao(req, config.jwt);
   if (!usuario) return null;
   const atual = (await db(config, "usuario", "GET", undefined,
-    `?id=eq.${encodeURIComponent(usuario.sub)}&select=id,perfil,status,senha_hash,senha_temporaria,organizacao_id&limit=1`))[0];
+    `?id=eq.${encodeURIComponent(usuario.sub)}&select=id,perfil,status,senha_hash,senha_temporaria,organizacao_id,sessao_versao&limit=1`))[0];
   const perfil = atual?.perfil === "administrador" ? "admin" : atual?.perfil;
   if (!atual || String(atual.id) !== usuario.sub || atual.status !== "ativo" ||
     perfil !== usuario.perfil || !atual.senha_hash ||
-    Boolean(atual.senha_temporaria) !== usuario.mustChangePassword) return null;
+    Boolean(atual.senha_temporaria) !== usuario.mustChangePassword ||
+    Number(usuario.ver || 0) !== Number(atual.sessao_versao || 0)) return null;
   const esperada = Buffer.from(versaoCredencial(atual.id, atual.senha_hash, config.jwt), "hex");
   const recebida = Buffer.from(usuario.sv, "hex");
-  return crypto.timingSafeEqual(esperada, recebida) ? { ...usuario, organizacaoId: atual.organizacao_id } : null;
+  return crypto.timingSafeEqual(esperada, recebida) ? { ...usuario, organizacaoId: atual.organizacao_id, sessaoVersao: Number(atual.sessao_versao || 0) } : null;
 }
 
 module.exports = { criarToken, autenticarRequisicao, validarSessao };

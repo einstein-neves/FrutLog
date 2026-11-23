@@ -31,7 +31,7 @@ const { criarToken, autenticarRequisicao } = require("../../api/session");
 const totp = require("../../api/totp");
 const app = require("../../src/server");
 const originalFetch = global.fetch;
-let server, usuarios, consultas, indisponivel, desafios, codigosRecuperacao;
+let server, usuarios, consultas, indisponivel, desafios, codigosRecuperacao, contaDesafios;
 function hash(senha) {
   const salt = crypto.randomBytes(16).toString("hex");
   return `pbkdf2$210000$${salt}$${crypto.pbkdf2Sync(senha, salt, 210000, 32, "sha256").toString("hex")}`;
@@ -40,7 +40,7 @@ const hashOriginal = hash("Senha1234");
 function token(id = "admin", extras = {}) {
   const u = usuarios.find((item) => item.id === id);
   return criarToken({ id, perfil: u.perfil === "administrador" ? "admin" : u.perfil,
-    mustChangePassword: u.senha_temporaria, ...extras }, process.env.JWT_SECRET, u.senha_hash);
+    mustChangePassword: u.senha_temporaria, sessaoVersao: Number(u.sessao_versao || 0), ...extras }, process.env.JWT_SECRET, u.senha_hash);
 }
 function request(method, path, { bearer, body, headers = {} } = {}) {
   return new Promise((resolve, reject) => {
@@ -64,10 +64,32 @@ before(async () => {
     const table = url.pathname.split("/").pop();
     consultas.push({ table, method: init.method, query: url.search });
     let rows = [];
+    if(table==="conta_criar_desafio"){
+      const b=JSON.parse(init.body);contaDesafios.push(b);return new Response("true");
+    }
+    if(table==="conta_consumir_desafio"){
+      const b=JSON.parse(init.body),i=contaDesafios.findIndex(d=>d.p_id===b.p_id&&d.p_usuario===b.p_usuario&&d.p_codigo===b.p_codigo&&d.p_credencial===b.p_credencial);
+      const d=i>=0?contaDesafios.splice(i,1)[0]:null;return new Response(JSON.stringify(d?{acao:d.p_acao}:null));
+    }
+    if(table==="conta_revogar_sessoes"){
+      const b=JSON.parse(init.body),u=usuarios.find(u=>u.id===b.p_usuario);if(u)u.sessao_versao=Number(u.sessao_versao||0)+1;return new Response(JSON.stringify(!!u));
+    }
+    if(table==="login_reservar_reenvio"){
+      const b=JSON.parse(init.body),old=desafios.find(d=>d.id===b.p_anterior);
+      const ok=old&&Date.parse(old.criado_em)<Date.now()-60000&&old.credencial_hash===b.p_credencial;
+      if(ok){desafios=desafios.filter(d=>d.id!==old.id);desafios.push({...old,totp_secret_ciphertext:null,id:b.p_novo,codigo_hash:b.p_codigo,criado_em:new Date().toISOString(),tentativas:0});}
+      return new Response(JSON.stringify(!!ok));
+    }
+    if (table === "email_entrega" || table === "auditoria_evento") return new Response(JSON.stringify([{ id: crypto.randomUUID() }]));
+    if (table === "conta_confirmar_email") {
+      const body=JSON.parse(init.body),u=usuarios.find(u=>u.id===body.p_usuario);
+      if(u)u.email_verificado_em=new Date().toISOString();
+      return new Response(JSON.stringify(!!u));
+    }
     if (table === "email_fila") return new Response(JSON.stringify({ code: "PGRST205", message: "Tabela opcional ausente" }), { status: 404 });
     if (table === "organizacao") return new Response(JSON.stringify([{ id: "org" }]));
     if (table === "proxima_matricula_funcionario") return new Response(JSON.stringify("T100"));
-    if (table === "substituir_autenticador") {
+    if (table === "substituir_autenticador" || table === "configurar_autenticador_seguro") {
       const body = JSON.parse(init.body);
       const u = usuarios.find((entry) => entry.id === body.p_usuario_id);
       if (!u || u.status !== "ativo" || u.senha_hash !== body.p_senha_hash || u.totp_secret_ciphertext !== body.p_segredo_anterior) return new Response("false");
@@ -96,13 +118,16 @@ before(async () => {
     }
     if (table === "desafio_login_otp") {
       const query = url.searchParams;
+      const limpeza = query.get("or")?.match(/^\(expira_em\.lt\.(.+),usuario_id\.eq\.(.+)\)$/);
       const matches = (entry) => (!query.has("id") || query.get("id") === `eq.${entry.id}`) &&
+        (!query.has("or") || (limpeza && (Date.parse(entry.expira_em) < Date.parse(limpeza[1]) || entry.usuario_id === limpeza[2]))) &&
         (!query.has("usuario_id") || query.get("usuario_id") === `eq.${entry.usuario_id}`) &&
-        (!query.has("modo") || query.get("modo") === `eq.${entry.modo}`) &&
+        (!query.has("modo") || query.get("modo") === `eq.${entry.modo}` || query.get("modo").slice(4,-1).split(",").includes(entry.modo)) &&
         (!query.has("criado_em") || Date.parse(entry.criado_em) > Date.parse(query.get("criado_em").slice(3))) &&
         (!query.has("expira_em") || Date.parse(entry.expira_em) < Date.parse(query.get("expira_em").slice(3)));
       if (init.method === "POST") desafios.push({ criado_em: new Date().toISOString(), ...JSON.parse(init.body) });
       else if (init.method === "DELETE") desafios = desafios.filter((entry) => !matches(entry));
+      else if (init.method === "PATCH") { rows = desafios.filter(matches); for (const row of rows) Object.assign(row, JSON.parse(init.body)); }
       else rows = desafios.filter(matches);
       return new Response(JSON.stringify(rows));
     }
@@ -139,12 +164,14 @@ beforeEach(() => {
     { id: "tecnico", organizacao_id: "org", matricula: "T001", nome_completo: "Tecnico", perfil: "tecnico", status: "ativo", senha_hash: hashOriginal, senha_temporaria: false, totp_secret: totp.criarSegredo() },
   ];
   for (const user of usuarios) {
+    user.email_verificado_em = new Date().toISOString();
     user.email = `${user.id}@example.com`;
     user.totp_secret_ciphertext = totp.criptografarSegredo(user.totp_secret, process.env.TOTP_ENCRYPTION_KEY);
     user.totp_ultimo_passo = -1;
   }
   desafios = [];
   codigosRecuperacao = [];
+  contaDesafios = [];
 });
 afterEach(() => app.set("trust proxy", false));
 after(async () => { global.fetch = originalFetch; nodemailer.createTransport = originalTransport; await new Promise((resolve) => server.close(resolve)); });
@@ -165,7 +192,20 @@ test("conta ativa acessa GET; bloqueio, exclusao e mudanca de perfil revogam lei
   assert.equal((await request("GET", "/alertas", { bearer: sessao })).status, 401);
 });
 
-test("primeiro acesso configura TOTP e devolve codigos de recuperacao de uso unico", async () => {
+test("novo login remove desafios antigos sem interromper outra conta ativa", async () => {
+  const futuro = new Date(Date.now() + 300000).toISOString();
+  desafios.push(
+    { id: "antigo", usuario_id: "tecnico", modo: "login", expira_em: futuro },
+    { id: "outra-conta", usuario_id: "admin", modo: "login", expira_em: futuro },
+    { id: "expirado", usuario_id: "admin", modo: "login", expira_em: new Date(0).toISOString() }
+  );
+  const inicio = await request("POST", "/login", { body: { matricula: "T001", senha: "Senha1234" } });
+  assert.equal(inicio.status, 200);
+  assert.deepEqual(new Set(desafios.map((d) => d.id)), new Set(["outra-conta", inicio.data.desafio]));
+  assert.equal(consultas.filter((c) => c.table === "desafio_login_otp" && c.method === "DELETE").length, 1);
+});
+
+test("primeiro acesso configura TOTP e envia codigos apenas ao email cadastrado", async () => {
   usuarios[1].totp_secret_ciphertext = null;
   const inicio = await request("POST", "/login", { body: { matricula: "T001", senha: "Senha1234" } });
   assert.equal(inicio.status, 200);
@@ -176,7 +216,16 @@ test("primeiro acesso configura TOTP e devolve codigos de recuperacao de uso uni
   const codigo = totp.codigoNoPasso(inicio.data.segredoManual, Math.floor(Date.now() / 30000));
   const confirmado = await request("POST", "/login/otp", { body: { desafio: inicio.data.desafio, codigo } });
   assert.equal(confirmado.status, 200);
-  assert.equal(confirmado.data.codigosRecuperacao.length, 10);
+  assert.equal(confirmado.data.codigosRecuperacao, undefined);
+  assert.equal(confirmado.data.recuperacaoEmailEnviado, true);
+  assert.equal(emails.length, 1);
+  assert.equal(emails[0].to.address, usuarios[1].email);
+  const enviados = emails[0].text.match(/[A-Z2-7]{4}-[A-Z2-7]{4}-[A-Z2-7]{4}/g);
+  assert.equal(enviados.length, 10);
+  for (const code of enviados) {
+    assert.ok(!JSON.stringify(confirmado.data).includes(code));
+    assert.ok(codigosRecuperacao.some((entry) => entry.codigo_hash === totp.hashCodigoRecuperacao(usuarios[1].id, code, process.env.TOTP_ENCRYPTION_KEY)));
+  }
   assert.ok(usuarios[1].totp_secret_ciphertext);
   assert.notEqual(usuarios[1].totp_secret_ciphertext, inicio.data.segredoManual);
 });
@@ -255,13 +304,47 @@ test("recuperacao substitui autenticador somente apos confirmar novo codigo e re
   const confirmado = await request("POST", "/login/otp", { body: { desafio: reset.data.desafio, codigo } });
   assert.equal(confirmado.status, 200);
   assert.ok(confirmado.data.token);
-  assert.equal(confirmado.data.codigosRecuperacao.length, 10);
+  assert.equal(confirmado.data.codigosRecuperacao, undefined);
+  assert.equal(confirmado.data.recuperacaoEmailEnviado, true);
+  assert.equal(emails.length, 1);
+  assert.equal(emails[0].to.address, usuarios[1].email);
+  const enviados = emails[0].text.match(/[A-Z2-7]{4}-[A-Z2-7]{4}-[A-Z2-7]{4}/g);
+  assert.equal(enviados.length, 10);
+  assert.ok(enviados.every((code) => !JSON.stringify(confirmado.data).includes(code)));
   assert.equal(totp.descriptografarSegredo(usuarios[1].totp_secret_ciphertext, process.env.TOTP_ENCRYPTION_KEY), reset.data.segredoManual);
   assert.equal(codigosRecuperacao.length, 10);
   assert.ok(!codigosRecuperacao.some((entry) => entry.codigo_hash === totp.hashCodigoRecuperacao("tecnico", reserva, process.env.TOTP_ENCRYPTION_KEY)));
   assert.equal((await request("POST", "/login/otp", { body: { desafio: reset.data.desafio, codigo } })).status, 401);
   const novoLogin = await request("POST", "/login", { body: { matricula: "T001", senha: "Senha1234" } });
   assert.equal((await request("POST", "/login/otp", { body: { desafio: novoLogin.data.desafio, codigoRecuperacao: reserva } })).status, 401);
+});
+
+test("sem email ou com falha SMTP a configuracao TOTP nao altera segredo nem codigos", async () => {
+  for (const modo of ["setup", "reset"]) {
+    for (const motivo of ["sem-email", "smtp"]) {
+      usuarios[1].email = motivo === "sem-email" ? null : "tecnico@example.com";
+      usuarios[1].totp_secret_ciphertext = modo === "setup" ? null : totp.criptografarSegredo(usuarios[1].totp_secret, process.env.TOTP_ENCRYPTION_KEY);
+      const anterior = usuarios[1].totp_secret_ciphertext;
+      const inicio = await request("POST", "/login", { body: { matricula: "T001", senha: "Senha1234" } });
+      let desafio = inicio.data;
+      if (modo === "reset") {
+        const code = "ABCD-EFGH-IJKL";
+        codigosRecuperacao.push({ usuario_id: "tecnico", codigo_hash: totp.hashCodigoRecuperacao("tecnico", code, process.env.TOTP_ENCRYPTION_KEY) });
+        const reset = await request("POST", "/login/otp", { body: { desafio: desafio.desafio, codigoRecuperacao: code, substituirAutenticador: true } });
+        desafio = reset.data;
+      }
+      const antesCodigos = JSON.stringify(codigosRecuperacao);
+      falhaEmail = motivo === "smtp";
+      const codigo = totp.codigoNoPasso(desafio.segredoManual, Math.floor(Date.now() / 30000));
+      const result = await request("POST", "/login/otp", { body: { desafio: desafio.desafio, codigo } });
+      assert.equal(result.status, motivo === "smtp" ? 503 : 400);
+      assert.equal(result.data.codigo, "OTP_DESAFIO_ENCERRADO");
+      assert.ok(!result.data.token);
+      assert.equal(usuarios[1].totp_secret_ciphertext, anterior);
+      assert.equal(JSON.stringify(codigosRecuperacao), antesCodigos);
+    }
+  }
+  assert.equal(emails.length, 0);
 });
 
 test("recuperacao expirada ou com credencial alterada nao substitui autenticador", async () => {
@@ -422,6 +505,77 @@ test("senha temporaria bloqueia todas as rotas operacionais inclusive chatbot", 
     assert.equal((await request("GET", rota, { bearer: provisoria })).status, 403);
   }
   assert.equal((await request("POST", "/chatbot/perguntar", { bearer: provisoria, body: { pergunta: "Como cadastrar sensor?" } })).status, 403);
+});
+
+test("autenticador e alternativa independente do email na configuracao e no login", async () => {
+  usuarios[1].email_verificado_em = null;
+  usuarios[1].totp_secret_ciphertext = null;
+  const inicio = await request("POST", "/login", { body: { matricula: "T001", senha: "Senha1234", metodo2fa: "autenticador" } });
+  assert.equal(inicio.status, 200); assert.equal(inicio.data.modo, "setup");
+  assert.match(inicio.data.qrCode, /^data:image\/png;base64,/);
+  assert.equal(emails.length, 0); assert.ok(!inicio.data.token);
+  const passo = Math.floor(Date.now() / 30000);
+  const codigo = totp.codigoNoPasso(inicio.data.segredoManual, passo);
+  const final = await request("POST", "/login/otp", { body: { desafio: inicio.data.desafio, codigo } });
+  assert.equal(final.status, 200); assert.ok(final.data.token);
+  assert.ok(!final.data.otpRequerido); assert.equal(final.data.recuperacaoEmailEnviado, true);
+  assert.equal(usuarios[1].email_verificado_em, null, "TOTP nao confirma posse do email");
+  assert.equal(emails.length, 1); assert.match(emails[0].subject, /recuperacao/);
+  assert.equal(totp.descriptografarSegredo(usuarios[1].totp_secret_ciphertext, process.env.TOTP_ENCRYPTION_KEY), inicio.data.segredoManual);
+  const novo = await request("POST", "/login", { body: { matricula: "T001", senha: "Senha1234", metodo2fa: "autenticador" } });
+  assert.equal(novo.data.modo, "login"); assert.ok(!novo.data.qrCode);
+  const acesso = await request("POST", "/login/otp", { body: { desafio: novo.data.desafio, codigo: totp.codigoNoPasso(inicio.data.segredoManual, passo + 1) } });
+  assert.equal(acesso.status, 200); assert.ok(acesso.data.token);
+  assert.equal(emails.length, 1, "login por aplicativo nao solicita codigo por email");
+});
+test("reenvio de codigo por email respeita intervalo e invalida o anterior",async()=>{
+  const inicio=await request("POST","/login",{body:{matricula:"T001",senha:"Senha1234",metodo2fa:"email"}});
+  assert.equal((await request("POST","/login/reenviar",{body:{desafio:inicio.data.desafio}})).status,429);
+  desafios[0].criado_em=new Date(Date.now()-61000).toISOString();
+  const novo=await request("POST","/login/reenviar",{body:{desafio:inicio.data.desafio}});
+  assert.equal(novo.status,200);assert.notEqual(novo.data.desafio,inicio.data.desafio);
+  assert.equal(emails.length,2);assert.equal(novo.data.reenviarApos,60);
+  const codigo=emails[1].text.match(/verificacao e (\d{6})/)[1];
+  assert.equal((await request("POST","/login/otp",{body:{desafio:inicio.data.desafio,codigo}})).status,401);
+  assert.equal((await request("POST","/login/otp",{body:{desafio:novo.data.desafio,codigo}})).status,200);
+});
+
+test("seguranca da conta exige senha e codigo e revoga inclusive a sessao atual",async()=>{
+  const sessao=token("tecnico");
+  const overview=await request("GET","/conta/seguranca",{bearer:sessao});
+  assert.equal(overview.status,200);assert.equal(overview.data.emailConfirmado,true);
+  assert.ok(!JSON.stringify(overview.data).includes("senha_hash"));
+  const pedido=await request("POST","/conta/confirmacao/solicitar",{bearer:sessao,body:{acao:"sessoes",senhaAtual:"Senha1234"}});
+  assert.equal(pedido.status,200);assert.equal(emails.length,1);
+  const codigo=emails[0].text.match(/Codigo: (\d{6})/)[1];
+  assert.ok(!JSON.stringify(pedido.data).includes(codigo));
+  const acao=await request("POST","/conta/confirmacao/confirmar",{bearer:sessao,body:{desafio:pedido.data.desafio,codigo}});
+  assert.equal(acao.status,200);assert.equal(acao.data.sair,true);
+  assert.equal((await request("GET","/alertas",{bearer:sessao})).status,401);
+  assert.equal((await request("GET","/alertas",{bearer:token("tecnico")})).status,200);
+});
+
+test("paineis de email e auditoria sao administrativos e filtrados por organizacao",async()=>{
+  for(const endpoint of ["/admin/emails","/admin/auditoria"]){
+    assert.equal((await request("GET",endpoint,{bearer:token("tecnico")})).status,403);
+    assert.equal((await request("GET",endpoint+"?pagina=1&limite=10",{bearer:token()})).status,200);
+    assert.equal((await request("GET",endpoint+"?pagina=-1",{bearer:token()})).status,400);
+  }
+  assert.ok(consultas.filter(c=>["email_entrega","auditoria_evento"].includes(c.table)&&c.method==="GET").every(c=>c.query.includes("organizacao_id=eq.org")));
+});
+
+test("alterar a versao da sessao revoga token sem mudar a senha",async()=>{
+  const antigo=token();usuarios[0].sessao_versao=1;
+  assert.equal((await request("GET","/alertas",{bearer:antigo})).status,401);
+  assert.equal((await request("GET","/alertas",{bearer:token()})).status,200);
+});
+
+test("senha longa e aceita na troca e no login",async()=>{
+  const senha="Uma frase de senha longa para o FrutLog 2026!";
+  const alteracao=await request("POST","/alterar-senha",{bearer:token("tecnico"),body:{senhaAtual:"Senha1234",novaSenha:senha}});
+  assert.equal(alteracao.status,200);
+  const acesso=await request("POST","/login",{body:{matricula:"T001",senha,metodo2fa:"email"}});
+  assert.equal(acesso.status,200);
 });
 
 test("chatbot e contexto ficam restritos a administracao", async () => {

@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 
 <head>
+  <link rel="icon" type="image/svg+xml" href="/imagem/favicon.svg">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/global.css">
@@ -24,17 +25,17 @@
         <div class="input-field">
           <label class="sr-only" for="senha-atual">Senha provisória atual</label>
           <input id="senha-atual" name="senhaAtual" type="password" autocomplete="current-password" minlength="8"
-            maxlength="10" placeholder="Senha provisória atual (8 a 10 caracteres)" required>
+            maxlength="128" placeholder="Senha provisória atual (8 a 128 caracteres)" required>
         </div>
         <div class="input-field">
           <label class="sr-only" for="nova-senha">Nova senha</label>
           <input id="nova-senha" name="novaSenha" type="password" autocomplete="new-password" minlength="8"
-            maxlength="10" placeholder="Nova senha (8 a 10 caracteres)" required>
+            maxlength="128" placeholder="Nova senha (8 a 128 caracteres)" required>
         </div>
         <div class="input-field">
           <label class="sr-only" for="confirmar-senha">Confirmar nova senha</label>
           <input id="confirmar-senha" name="confirmarSenha" type="password" autocomplete="new-password" minlength="8"
-            maxlength="10" placeholder="Confirme a nova senha" required>
+            maxlength="128" placeholder="Confirme a nova senha" required>
         </div>
         <p id="mensagem-alterar-senha" class="mensagem-feedback" aria-live="polite"></p>
         <button class="btn-login" type="submit">Alterar senha</button>

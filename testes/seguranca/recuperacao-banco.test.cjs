@@ -36,6 +36,8 @@ test("migracao de recuperacao troca segredo e codigos atomicamente e rejeita est
     assert.equal((await db.query("select * from usuario_codigo_recuperacao")).rows.length, 10);
     assert.equal((await db.query("select * from desafio_login_otp")).rows.length, 0);
     assert.equal((await replace("antigo", codes)).rows[0].ok, false);
+    await db.query("update usuario set totp_secret_ciphertext = null");
+    assert.equal((await replace(null, codes)).rows[0].ok, true, "mesma transacao atende a primeira configuracao");
     const permissions = await db.query("select has_function_privilege('anon', 'substituir_autenticador(uuid,text,text,text,bigint,text[])', 'EXECUTE') as anon, has_function_privilege('service_role', 'substituir_autenticador(uuid,text,text,text,bigint,text[])', 'EXECUTE') as service");
     assert.equal(permissions.rows[0].anon, false);
     assert.equal(permissions.rows[0].service, true);
