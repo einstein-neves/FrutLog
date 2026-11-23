@@ -39,9 +39,9 @@
           <i class="fa-solid fa-shield-halved icon-left" aria-hidden="true"></i>
           <input type="text" id="codigo-otp" name="codigo-otp" placeholder="Codigo de 6 digitos do autenticador" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" disabled>
         </div>
-        <button type="button" id="alternar-recuperacao" class="btn-acao-admin" hidden>Usar codigo de recuperacao</button>
+        <button type="button" id="alternar-recuperacao" class="login-acao-secundaria" hidden>Usar codigo de recuperacao</button>
         <p id="prazo-otp" role="status" hidden></p>
-        <button type="button" id="reenviar-otp" class="btn-acao-admin" hidden disabled>Reenviar codigo</button>
+        <button type="button" id="reenviar-otp" class="login-acao-secundaria" hidden disabled>Reenviar codigo</button>
         <fieldset id="opcoes-recuperacao" hidden>
           <legend>Como deseja recuperar o acesso?</legend>
           <label><input type="radio" name="acao-recuperacao" value="temporario" checked> Entrar temporariamente, mantendo meu autenticador.</label>
@@ -76,7 +76,7 @@
             <option value="email">E-mail cadastrado</option>
           </select>
         </div>
-        <a id="reiniciar-login" href="login.html" hidden>Reiniciar login para reenviar o codigo ou trocar de metodo</a>
+        <a id="reiniciar-login" href="login.html" hidden>Reiniciar login ou trocar de método</a>
 
         <button type="submit" class="btn-login">Entrar</button>
       </form>
