@@ -3,6 +3,12 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!tabela) return;
 
   const relatorios = [];
+  let paginaAtual=1, sequenciaBusca=0;
+  const navegacao=document.createElement("div"),anterior=document.createElement("button"),proxima=document.createElement("button"),paginaTexto=document.createElement("span");
+  anterior.type=proxima.type="button";anterior.textContent="Anterior";proxima.textContent="Próxima";
+  navegacao.append(anterior,paginaTexto,proxima);tabela.closest("table").parentElement.append(navegacao);
+  anterior.addEventListener("click",()=>{paginaAtual=Math.max(1,paginaAtual-1);carregarRelatorios();});
+  proxima.addEventListener("click",()=>{paginaAtual++;carregarRelatorios();});
   const relatoriosSelecionados = new Set();
   // HILCCER ROCHA DE ARAUJO MELO ALTERACAO: renomeada de escapar para escaparHtml (mesmo nome usado no resto do projeto)
   const escaparHtml = (valor) => String(valor ?? "").replace(/[&<>"']/g, (caractere) => ({
@@ -216,9 +222,16 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function carregarRelatorios() {
+    const sequencia=++sequenciaBusca;
     try {
 // HILCCER ROCHA DE ARAUJO MELO ALTERACAO: removida checagem que nunca disparava (AUTENTICACAO_API_ATIVA e sempre true)
-      const resposta = await FrutLog.apiFetch("/relatorios-diarios");
+      const filtros=new URLSearchParams({pagina:String(paginaAtual),limite:"25"});
+      for(const [campo,param]of [["filtro-relatorio-texto","q"],["filtro-relatorio-data","data"],["filtro-relatorio-status","status"],["filtro-visibilidade-relatorios","visibilidade"]]){
+        const valor=document.getElementById(campo)?.value;if(valor)filtros.set(param,valor);
+      }
+      const resposta = await FrutLog.apiFetch(`/relatorios-diarios?${filtros}`);
+      if(sequencia!==sequenciaBusca)return;
+      anterior.disabled=paginaAtual===1;proxima.disabled=!resposta.paginacao?.temProxima;paginaTexto.textContent=` Página ${paginaAtual} `;
       relatorios.splice(0, relatorios.length, ...(resposta.relatorios || []));
       atualizarLista();
       const mensagem = document.getElementById("mensagem-relatorios");
@@ -226,7 +239,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const ativos = relatorios.filter((relatorio) => !relatorio.arquivado_em);
         const aguardando = ativos.filter((relatorio) => relatorio.status === "enviado").length;
         const emAnalise = ativos.filter((relatorio) => relatorio.status === "em_analise").length;
-        mensagem.textContent = `${ativos.length} relatório(s) recebido(s) · ${aguardando} aguardando análise · ${emAnalise} em análise.`;
+        mensagem.textContent = `Nesta página: ${ativos.length} relatório(s) · ${aguardando} aguardando análise · ${emAnalise} em análise.`;
         mensagem.className = "mensagem-feedback";
       }
     } catch (erro) {
@@ -240,9 +253,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  let timerFiltro;
   ["filtro-relatorio-texto", "filtro-relatorio-data", "filtro-relatorio-status", "filtro-visibilidade-relatorios"].forEach((id) => {
-    document.getElementById(id)?.addEventListener("input", atualizarLista);
-    document.getElementById(id)?.addEventListener("change", atualizarLista);
+    const atualizar=()=>{clearTimeout(timerFiltro);timerFiltro=setTimeout(()=>{paginaAtual=1;carregarRelatorios();},300);};
+    document.getElementById(id)?.addEventListener("input", atualizar);
+    document.getElementById(id)?.addEventListener("change", atualizar);
   });
 
   document.getElementById("selecionar-todos-relatorios")?.addEventListener("change", (evento) => {

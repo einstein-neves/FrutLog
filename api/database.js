@@ -15,6 +15,7 @@ async function db(config, resource, method = "GET", data, query = "") {
   let response;
   try {
     response = await fetch(`${config.url}/rest/v1/${resource}${query}`, {
+      signal: AbortSignal.timeout(10000),
       method,
       headers: {
         apikey: config.key,

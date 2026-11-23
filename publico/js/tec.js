@@ -20,8 +20,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   preencherFiltroMetricaTelemetria();
   if (FrutLog.AUTENTICACAO_API_ATIVA) {
     try {
-      await carregarPainelTecnico();
-      await carregarTelemetriaDiaria();
+      await Promise.all([carregarPainelTecnico(), carregarTelemetriaDiaria()]);
     } catch (erro) {
       console.error("Falha ao carregar o painel do técnico:", erro);
       exibirMensagem("mensagem-dados-tecnicos", erro.message, "erro");
@@ -41,8 +40,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (FrutLog.AUTENTICACAO_API_ATIVA) {
     window.setInterval(async () => {
       try {
-        await carregarPainelTecnico();
-        await carregarTelemetriaDiaria();
+        await Promise.all([carregarPainelTecnico(), carregarTelemetriaDiaria()]);
         carregarTalhoes();
         carregarTarefasDia();
         carregarHistoricoRegistros();
@@ -228,26 +226,19 @@ function preencherTexto(id, valor) {
 // primeira linha (AUTENTICACAO_API_ATIVA e sempre true), entao nunca fazia nada.
 
 async function carregarPainelTecnico() {
-  const [painel, talhoesServidor] = await Promise.all([
+  const [resultadoPainel, resultadoMapa, resultadoPredador] = await Promise.allSettled([
     FrutLog.apiFetch("/painel-tecnico"),
     FrutLogMapaTalhoes.carregarMapaTalhoes("tecnico"),
+    FrutLog.apiFetch("/predador/analise"),
   ]);
-
-  // Veredito do Predador (src/ia/predador-nucleo.js). Sem ele a tela do
-  // Tecnico julgava o talhao por conta propria, com uma regra mais pobre: so
-  // temperatura, sem olhar umidade do solo, sem descartar leitura velha e sem
-  // saber se o talhao ainda tem cultura plantada. O mesmo talhao podia
-  // aparecer verde aqui e em ATENCAO no painel do Admin.
-  //
-  // Fica FORA do Promise.all acima de proposito: ali uma falha derrubaria o
-  // carregamento inteiro, e o diagnostico e um reforco, nao um requisito. Se
-  // a rota nao responder, aplicarMonitoramento() cai no calculo local de
-  // reserva -- melhor um mapa com a regra antiga do que um mapa sem cor.
-  try {
-    const predador = await FrutLog.apiFetch("/predador/analise");
-    FrutLogTalhoes.definirDiagnosticos(predador.talhoes || []);
-  } catch (erro) {
-    console.warn("Diagnostico do Predador indisponivel; usando calculo local.", erro.message);
+  if (resultadoPainel.status === "rejected") throw resultadoPainel.reason;
+  if (resultadoMapa.status === "rejected") throw resultadoMapa.reason;
+  const painel = resultadoPainel.value, talhoesServidor = resultadoMapa.value;
+  // O diagnostico continua opcional, mas nao espera o mapa para iniciar.
+  if (resultadoPredador.status === "fulfilled") {
+    FrutLogTalhoes.definirDiagnosticos(resultadoPredador.value.talhoes || []);
+  } else {
+    console.warn("Diagnostico do Predador indisponivel; usando calculo local.", resultadoPredador.reason?.message);
   }
 
   painelTecnico = painel;
@@ -334,14 +325,15 @@ function preencherFiltroTelemetria() {
 async function carregarTelemetriaDiaria() {
   // HILCCER ROCHA DE ARAUJO MELO ALTERACAO: removida checagem que nunca disparava (AUTENTICACAO_API_ATIVA e sempre true)
   try {
-    const resposta = await FrutLog.apiFetch("/telemetria/diaria");
+    const [resultadoDiario, resultadoEsp32] = await Promise.allSettled([
+      FrutLog.apiFetch("/telemetria/diaria"),
+      FrutLog.apiFetch("/telemetria/esp32-mensal"),
+    ]);
+    if (resultadoDiario.status === "rejected") throw resultadoDiario.reason;
+    const resposta = resultadoDiario.value;
     telemetriaDiaria = resposta.leituras || [];
     telemetriaMensal = resposta.mensal || [];
-    try {
-      telemetriaMensalEsp32 = (await FrutLog.apiFetch("/telemetria/esp32-mensal")).mensal || [];
-    } catch (erro) {
-      telemetriaMensalEsp32 = [];
-    }
+    telemetriaMensalEsp32 = resultadoEsp32.status === "fulfilled" ? resultadoEsp32.value.mensal || [] : [];
     renderizarGraficoClimaMensalTecnico();
     carregarGraficoMetricas();
   } catch (erro) {

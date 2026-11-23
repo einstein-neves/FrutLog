@@ -3,6 +3,96 @@ const assert = require("node:assert/strict");
 const { readFileSync } = require("node:fs");
 const vm = require("node:vm");
 
+test("desafios legados de email avancam ao autenticador sem reenviar senha", async () => {
+  for (const modo of ["setup", "login"]) {
+    const elements = new Map(), requests = [], saved = [];
+    function element(id) {
+      if (!elements.has(id)) elements.set(id, {
+        value: "", hidden: true, listeners: {}, focus() {},
+        removeAttribute(name) { delete this[name]; },
+        addEventListener(event, callback) { this.listeners[event] = callback; },
+        closest() { return element(`${id}-parent`); }, querySelector() { return element("submit"); }
+      });
+      return elements.get(id);
+    }
+    const respostas = [
+      { otpRequerido: true, modo: "verificar_email", desafio: "email-primeiro" },
+      { sucesso: true, emailConfirmado: true, otpRequerido: true, modo, desafio: "app-segundo",
+        ...(modo === "setup" ? { qrCode: "qr-sintetico", segredoManual: "segredo-sintetico" } : {}) },
+      { sucesso: true, usuario: { perfil: "tecnico" }, token: "token-sintetico" }
+    ];
+    vm.runInNewContext(readFileSync(require.resolve("../../publico/js/login.js"), "utf8"), {
+      document: { getElementById: element, addEventListener(event, callback) { callback(); } },
+      window: { location: { replace() {} } }, FrutLogFeedback: { toast() {} },
+      FrutLog: { async apiFetch(path, options) { requests.push({ path, body: JSON.parse(options.body) }); return respostas.shift(); },
+        salvarSessao(...args) { saved.push(args); }, redirecionarPorPerfil() {} }
+    });
+    const submit = () => element("formularioLogin").listeners.submit({ preventDefault() {} });
+    element("matricula").value = "T001"; element("senha").value = "Senha1234";
+    element("metodo-2fa").value = "autenticador";
+    await submit();
+    assert.match(element("codigo-otp").placeholder, /e-mail/);
+    element("codigo-otp").value = "123456";
+    await submit();
+    assert.equal(element("configurar-totp").hidden, modo !== "setup");
+    if (modo === "setup") assert.equal(element("totp-qr").src, "qr-sintetico");
+    assert.equal(element("escolha-2fa").hidden, true);
+    assert.equal(element("codigo-otp").value, "");
+    assert.equal(element("senha").value, "");
+    assert.match(element("codigo-otp").placeholder, /autenticador/);
+    assert.equal(saved.length, 0);
+    element("codigo-otp").value = "654321";
+    await submit();
+    assert.deepEqual(requests.map((r) => r.path), ["/login", "/login/otp", "/login/otp"]);
+    assert.equal(requests[2].body.desafio, "app-segundo");
+    assert.equal(requests[2].body.senha, undefined);
+    assert.equal(saved[0][1], "token-sintetico");
+  }
+});
+
+test("QR aparece antes do email e a transicao limpa o codigo TOTP sem liberar sessao", async () => {
+  const elements = new Map(), requests = [], saved = [];
+  function element(id) {
+    if (!elements.has(id)) elements.set(id, {
+      value: "", hidden: true, listeners: {}, focus() {},
+      removeAttribute(name) { delete this[name]; },
+      addEventListener(event, callback) { this.listeners[event] = callback; },
+      closest() { return element(`${id}-parent`); }, querySelector() { return element("submit"); }
+    });
+    return elements.get(id);
+  }
+  const respostas = [
+    { sucesso: true, otpRequerido: true, modo: "setup", desafio: "app", qrCode: "qr-sintetico", segredoManual: "segredo-sintetico" },
+    { sucesso: true, otpRequerido: true, modo: "verificar_email", desafio: "email" },
+    { sucesso: true, usuario: { perfil: "tecnico" }, token: "token-sintetico", recuperacaoEmailEnviado: true, mensagem: "Codigos enviados." }
+  ];
+  vm.runInNewContext(readFileSync(require.resolve("../../publico/js/login.js"), "utf8"), {
+    document: { getElementById: element, addEventListener(event, callback) { callback(); } },
+    window: { location: { replace() {} } }, FrutLogFeedback: { toast() {} },
+    FrutLog: { async apiFetch(path, options) { requests.push({ path, body: JSON.parse(options.body) }); return respostas.shift(); },
+      salvarSessao(...args) { saved.push(args); }, redirecionarPorPerfil() {} }
+  });
+  const submit = () => element("formularioLogin").listeners.submit({ preventDefault() {} });
+  element("matricula").value = "T001"; element("senha").value = "Senha1234";
+  element("metodo-2fa").value = "autenticador";
+  await submit();
+  assert.equal(element("configurar-totp").hidden, false);
+  assert.equal(element("totp-qr").src, "qr-sintetico");
+  element("codigo-otp").value = "123456";
+  await submit();
+  assert.equal(element("configurar-totp").hidden, true);
+  assert.equal(element("totp-segredo").textContent, "");
+  assert.equal(element("codigo-otp").value, "");
+  assert.match(element("codigo-otp").placeholder, /e-mail/);
+  assert.equal(saved.length, 0);
+  element("codigo-otp").value = "654321";
+  await submit();
+  assert.equal(requests[2].body.desafio, "email");
+  assert.equal(element("codigos-recuperacao").hidden, false);
+  element("continuar-login").listeners.click();
+  assert.equal(saved[0][1], "token-sintetico");
+});
+
 test("interface permite escolher email e entrar somente depois do codigo", async () => {
   const elements = new Map(), requests = [], saved = [];
   function element(id) {
@@ -54,7 +144,7 @@ test("interface permite escolher email e entrar somente depois do codigo", async
   assert.equal(saved[0][1], "email-token");
 });
 
-test("interface confirma recuperacao, solicita novo TOTP e guarda codigos antes de entrar", async () => {
+test("interface confirma novo TOTP e informa envio por email sem exibir codigos", async () => {
   const elements = new Map();
   function element(id) {
     if (!elements.has(id)) elements.set(id, {
@@ -67,7 +157,7 @@ test("interface confirma recuperacao, solicita novo TOTP e guarda codigos antes 
     return elements.get(id);
   }
   const requests = [], saved = [], redirects = [];
-  const final = { sucesso: true, usuario: { perfil: "tecnico" }, token: "token-teste", codigosRecuperacao: ["ABCD-EFGH-IJKL"] };
+  const final = { sucesso: true, usuario: { perfil: "tecnico" }, token: "token-teste", recuperacaoEmailEnviado: true, mensagem: "Os codigos foram enviados ao e-mail cadastrado." };
   const responses = [
     { otpRequerido: true, modo: "login", desafio: "primeiro" },
     { sucesso: true, otpRequerido: true, modo: "reset", desafio: "segundo", qrCode: "novo-qr", segredoManual: "novo-segredo" },
@@ -106,8 +196,7 @@ test("interface confirma recuperacao, solicita novo TOTP e guarda codigos antes 
   assert.equal(element("codigos-recuperacao").hidden, false);
   assert.equal(element("submit").hidden, true);
   assert.equal(saved.length, 0);
-  element("confirmar-codigos").listeners.change({ target: { checked: true } });
-  assert.equal(element("continuar-login").disabled, false);
+  assert.match(element("mensagem-codigos-recuperacao").textContent, /e-mail cadastrado/);
   element("continuar-login").listeners.click();
   assert.equal(saved[0][1], "token-teste");
   assert.deepEqual(redirects, ["tecnico"]);

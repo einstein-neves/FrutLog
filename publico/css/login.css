@@ -5,7 +5,6 @@
 
 [hidden] { display: none !important; }
 #configurar-totp img { display: block; width: min(100%, 240px); margin: 1rem auto; background: #fff; padding: .5rem; border-radius: .5rem; }
-#codigos-recuperacao pre { padding: 1rem; overflow-wrap: anywhere; background: #151515; color: #fff; white-space: pre-wrap; }
 #opcoes-recuperacao { margin: 1rem 0; padding: 1rem; border: 1px solid #777; border-radius: .5rem; }
 #opcoes-recuperacao label { display: block; margin: .75rem 0; cursor: pointer; }
 #opcoes-recuperacao input { width: auto; margin-right: .4rem; }

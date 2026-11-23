@@ -1,6 +1,6 @@
 # Autenticacao TOTP e propriedade de dispositivos
 
-O login exige matricula, senha e codigo temporario de seis digitos de um aplicativo autenticador compatível (Google Authenticator, Microsoft Authenticator ou Authy). No primeiro login, a API entrega um QR Code e um segredo manual; a conta somente recebe uma sessao depois de confirmar um codigo TOTP. O desafio expira em cinco minutos, aceita no maximo cinco tentativas e e consumido atomicamente. Codigos TOTP ja usados sao recusados. A ativacao tambem gera dez codigos de recuperacao de uso unico, exibidos uma vez.
+O login exige matricula, senha e codigo temporario de seis digitos de um aplicativo autenticador compatível (Google Authenticator, Microsoft Authenticator ou Authy). No primeiro login, a API entrega um QR Code e um segredo manual; a conta somente recebe uma sessao depois de confirmar um codigo TOTP. O desafio expira em cinco minutos, aceita no maximo cinco tentativas e e consumido atomicamente. Codigos TOTP ja usados sao recusados. A ativacao tambem gera dez codigos de recuperacao de uso unico, enviados exclusivamente ao e-mail cadastrado. Eles nao sao exibidos na tela nem retornados pela API.
 
 ## Ativacao
 
@@ -9,7 +9,7 @@ Esta versao tambem aceita codigo por e-mail. Aplique `032_recuperacao_autenticad
 1. Em banco existente, aplique `supabase/030_login_otp.sql` e depois `supabase/031_totp_idor.sql`; a 029 de notificacoes por email e opcional para TOTP. Em banco novo, execute primeiro `schema_oficial_atualizado.sql`. Ver `supabase/README.md` para detalhes.
 2. Configure `TOTP_ENCRYPTION_KEY` no ambiente da API com pelo menos 32 caracteres aleatorios e mantenha a mesma chave entre implantacoes. Exemplo para gerar localmente: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. Se a chave for perdida ou trocada, os segredos cifrados existentes deixam de ser validos e cada usuario precisara reconfigurar o autenticador por um procedimento administrativo.
 3. Instale as dependencias e publique API e frontend juntos. O frontend usa `qrcode` no servidor; o segredo TOTP nunca e persistido em texto puro.
-4. Em cada primeiro acesso, digitalize o QR no app autenticador, confirme o codigo e guarde os dez codigos de recuperacao em local seguro. Nao compartilhe QR, segredo manual, OTP ou codigos de recuperacao.
+4. Em cada primeiro acesso, digitalize o QR no app autenticador, confirme o codigo e confira o e-mail com os dez codigos de recuperacao. Guarde essa mensagem em local seguro. Nao compartilhe QR, segredo manual, OTP ou codigos de recuperacao.
 
 Os segredos TOTP sao cifrados com AES-256-GCM. Os codigos de recuperacao sao armazenados como HMAC, associados ao usuario e removidos atomicamente no primeiro uso. Configure tambem `SECURITY_MISSION_CODE` quando a equipe receber o codigo da atividade; ele aparece nos eventos de bloqueio IDOR. Nao substitua esse valor por um codigo inventado.
 
@@ -17,7 +17,7 @@ Os segredos TOTP sao cifrados com AES-256-GCM. Os codigos de recuperacao sao arm
 
 Aplique tambem `supabase/032_recuperacao_autenticador.sql` antes de publicar esta versao da API e do frontend.
 
-Depois de informar matricula e senha, clique em **Usar codigo de recuperacao**. Escolha entrar temporariamente (mantem o autenticador) ou configurar um novo celular. Na substituicao, o codigo de recuperacao e consumido imediatamente e um novo QR Code e exibido, sem liberar sessao. Confirme um codigo do novo aplicativo em ate cinco minutos; ha no maximo cinco tentativas. Apenas essa confirmacao substitui o segredo antigo e todos os codigos de recuperacao, em uma transacao. Guarde os dez novos codigos antes de continuar.
+Depois de informar matricula e senha, clique em **Usar codigo de recuperacao**. Escolha entrar temporariamente (mantem o autenticador) ou configurar um novo celular. Na substituicao, o codigo de recuperacao e consumido imediatamente e um novo QR Code e exibido, sem liberar sessao. Confirme um codigo do novo aplicativo em ate cinco minutos; ha no maximo cinco tentativas. Apenas essa confirmacao substitui o segredo antigo e todos os codigos de recuperacao, em uma transacao. Os dez novos codigos sao enviados ao e-mail cadastrado; a tela apresenta apenas a confirmacao de envio.
 
 Se interromper ou expirar, o autenticador anterior permanece ativo, mas o codigo de recuperacao utilizado nao pode ser reutilizado. Reinicie com outro codigo. Alteracoes de senha ou do segredo do autenticador invalidam desafios pendentes. Sem celular e sem codigos restantes, e necessario um procedimento administrativo de verificacao de identidade.
 
@@ -38,3 +38,7 @@ Dispositivos existentes ficam sem responsavel apos a migracao e nao aparecem par
 ## Verificacao local
 
 Execute `npm run test:seguranca` para os testes de TOTP, sessao e isolamento A/B. Eles usam somente registros sinteticos e nao conectam ao Supabase de producao. A equipe deve guardar evidencias reais de execucao na pasta `seguranca/evidencias/` sem dados pessoais, tokens, codigos MFA ou segredos.
+
+## Entrega dos codigos de recuperacao
+
+A primeira configuracao e a substituicao do autenticador exigem um e-mail valido e envio SMTP confirmado. O sistema envia os codigos e so depois grava o segredo e os dez hashes em uma transacao pela funcao da migracao 032. Falhas de SMTP nao alteram o autenticador nem os codigos anteriores. Se o e-mail foi enviado mas a gravacao falhar ou nao puder ser confirmada, a tela pede um novo login e orienta usar somente os codigos da ultima configuracao concluida. SMTP e banco nao compartilham transacao. Aceitacao SMTP nao garante chegada na caixa de entrada: confira o spam. Cada mensagem permanece na caixa de e-mail conforme as regras do provedor e as acoes do usuario. Ao trocar o autenticador, mensagens antigas podem continuar na caixa, mas seus codigos deixam de funcionar.

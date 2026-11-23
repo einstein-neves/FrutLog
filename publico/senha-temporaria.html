@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 
 <head>
+  <link rel="icon" type="image/svg+xml" href="/imagem/favicon.svg">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/global.css">
@@ -26,7 +27,7 @@
           <label class="sr-only" for="senha-atual">Senha provisória atual</label>
           <i class="fa-solid fa-lock icon-left" aria-hidden="true"></i>
           <input id="senha-atual" name="senhaAtual" type="password" autocomplete="current-password" minlength="8"
-            maxlength="10" placeholder="Senha provisória atual (8 a 10 caracteres)" required>
+            maxlength="128" placeholder="Senha provisória atual (8 a 128 caracteres)" required>
           <button type="button" class="btn-toggle-senha" aria-label="Mostrar senha">
             <i class="fa-solid fa-eye" aria-hidden="true"></i>
           </button>
@@ -35,7 +36,7 @@
           <label class="sr-only" for="nova-senha">Nova senha</label>
           <i class="fa-solid fa-lock icon-left" aria-hidden="true"></i>
           <input id="nova-senha" name="novaSenha" type="password" autocomplete="new-password" minlength="8"
-            maxlength="10" placeholder="Nova senha (8 a 10 caracteres)" required>
+            maxlength="128" placeholder="Nova senha (8 a 128 caracteres)" required>
           <button type="button" class="btn-toggle-senha" aria-label="Mostrar senha">
             <i class="fa-solid fa-eye" aria-hidden="true"></i>
           </button>
@@ -44,7 +45,7 @@
           <label class="sr-only" for="confirmar-senha">Confirmar nova senha</label>
           <i class="fa-solid fa-lock icon-left" aria-hidden="true"></i>
           <input id="confirmar-senha" name="confirmarSenha" type="password" autocomplete="new-password" minlength="8"
-            maxlength="10" placeholder="Confirme a nova senha" required>
+            maxlength="128" placeholder="Confirme a nova senha" required>
           <button type="button" class="btn-toggle-senha" aria-label="Mostrar senha">
             <i class="fa-solid fa-eye" aria-hidden="true"></i>
           </button>

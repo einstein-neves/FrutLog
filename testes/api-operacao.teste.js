@@ -38,6 +38,7 @@ global.fetch = async (url, init = {}) => {
     return respostaBanco([{ id: usuario.id, organizacao_id: "org-1", matricula: usuario.matricula, perfil: perfilBanco, status: "ativo", senha_hash: senhaHashTeste, senha_temporaria: false }]);
   }
   if (recurso === "organizacao") return respostaBanco([{ id: "org-1" }]);
+  if (recurso === "auditoria_evento") return respostaBanco([]);
   if (recurso === "fazenda") return respostaBanco([{ id: "fazenda-1" }]);
   if (recurso === "talhao") {
     if (init.method === "PATCH") return respostaBanco([]);
@@ -171,7 +172,7 @@ async function executar() {
     leituraEm = new Date(Date.now() - 6 * 60 * 1000).toISOString();
     resposta = await fazerRequisicao("GET", "/api/painel-tecnico");
     assert.equal(resposta.status, 200);
-    assert.equal(resposta.body.sensores[0].status, "Online");
+    assert.equal(resposta.body.sensores[0].status, "Leitura desatualizada");
     assert.equal(resposta.body.sensores[0].dados_recentes, false);
     assert.equal(resposta.body.talhoes[0].situacao, "Dados desatualizados");
     assert.equal(resposta.body.talhoes[0].dados_recentes, false);

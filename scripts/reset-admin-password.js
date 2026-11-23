@@ -8,8 +8,8 @@ if (!baseUrl || !serviceKey) {
   console.error("Configure SUPABASE_URL e SUPABASE_SECRET_KEY no .env.");
   process.exit(1);
 }
-if (!newPassword || newPassword.length < 8 || newPassword.length > 10) {
-  console.error("Defina ADMIN_RESET_PASSWORD no .env com uma senha de 8 a 10 caracteres.");
+if (!newPassword || newPassword.length < 8 || newPassword.length > 128) {
+  console.error("Defina ADMIN_RESET_PASSWORD no .env com uma senha de 8 a 128 caracteres.");
   process.exit(1);
 }
 

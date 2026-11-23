@@ -1,4 +1,8 @@
 const crypto = require("crypto");
+const { hashPassword, passwordOk } = require("./password");
+const { contaSeguranca } = require("./account-security");
+const { monitorarEmail } = require("../src/email/monitor");
+const { paginacao } = require("./pagination");
 const { validarEndereco, criarServicoEmail } = require("../src/email");
 const emailLogin = criarServicoEmail();
 const { notificarContaCriada } = require("../src/email/conta-criada");
@@ -52,7 +56,12 @@ function originFor(req, c) {
   return origin && c.origins.includes(origin) ? origin : undefined;
 }
 
-function reply(res, status, data, origin) {
+async function reply(res, status, data, origin) {
+  if (res.auditoria) {
+    const { config, ...evento } = res.auditoria;
+    try { await db(config, "auditoria_evento", "POST", { ...evento, resultado: status }); }
+    catch { console.error(JSON.stringify({ evento: "AUDITORIA_INDISPONIVEL", metodo: evento.metodo, resultado: status })); }
+  }
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -85,17 +94,12 @@ function parseBody(req, maximum = 16384) {
   });
 }
 
-function hashPassword(password) {
-  const rounds = 210000;
-  const salt = crypto.randomBytes(16).toString("hex");
-  const hash = crypto.pbkdf2Sync(password, salt, rounds, 32, "sha256").toString("hex");
-  return `pbkdf2$${rounds}$${salt}$${hash}`;
-}
-
 function versaoCredencialOtp(usuario, segredo) {
   return crypto.createHmac("sha256", segredo)
-    .update(JSON.stringify(["frutlog-otp-v3", String(usuario.id), usuario.senha_hash, usuario.totp_secret_ciphertext, usuario.email])).digest("hex");
+    .update(JSON.stringify(["frutlog-otp-v4", String(usuario.id), usuario.senha_hash, usuario.totp_secret_ciphertext, usuario.email, Number(usuario.sessao_versao || 0)])).digest("hex");
 }
+
+function emailUsuario(c, usuario, tipo) { return monitorarEmail({ config: c, usuario, tipo, servico: emailLogin }); }
 
 function hashOtpEmail(desafio, codigo, segredo) {
   return crypto.createHmac("sha256", segredo).update(`frutlog-email-otp-v1:${desafio}:${codigo}`).digest("hex");
@@ -111,13 +115,6 @@ function registrarBloqueioIdor(user, recurso, id) {
 
 function registrarBloqueioOtp(motivo) {
   console.warn(JSON.stringify({ evento: "OTP_BLOQUEADO", missao: process.env.SECURITY_MISSION_CODE || "PREENCHER", motivo }));
-}
-
-function passwordOk(password, stored) {
-  const [kind, rounds, salt, hash] = String(stored || "").split("$");
-  if (kind !== "pbkdf2" || !/^\d+$/.test(rounds) || !salt || !/^[a-f0-9]{64}$/i.test(hash)) return false;
-  const actual = crypto.pbkdf2Sync(password, salt, Number(rounds), 32, "sha256").toString("hex");
-  return crypto.timingSafeEqual(Buffer.from(actual), Buffer.from(hash));
 }
 
 const hits = new Map();
@@ -229,7 +226,7 @@ module.exports = async (req, res) => {
   }
 
   const route = new URL(req.url, "http://localhost").pathname.replace(/^\/api/, "") || "/";
-  const isLoginRequest = req.method === "POST" && ["/login", "/login/otp"].includes(route);
+  const isLoginRequest = req.method === "POST" && ["/login", "/login/otp", "/login/reenviar"].includes(route);
   if (!rateLimit(req, isLoginRequest ? 10 : 120, isLoginRequest ? "login" : "api")) {
     return reply(res, 429, { mensagem: "Muitas requisicoes." }, origin);
   }
@@ -278,7 +275,7 @@ module.exports = async (req, res) => {
       const d = await parseBody(req);
       const matricula = text(d.matricula, 40);
       const senha = typeof d.senha === "string" ? d.senha : "";
-      if (!matricula || senha.length < 8 || senha.length > 10) {
+      if (!matricula || senha.length < 8 || senha.length > 128) {
         return reply(res, 401, { mensagem: "Matrícula ou senha inválida." }, origin);
       }
 
@@ -287,10 +284,10 @@ module.exports = async (req, res) => {
         "usuario",
         "GET",
         undefined,
-        `?matricula=eq.${encodeURIComponent(matricula)}&select=id,matricula,email,nome_completo,perfil,senha_hash,status,senha_temporaria,totp_secret_ciphertext,totp_ativado_em&limit=1`
+        `?matricula=eq.${encodeURIComponent(matricula)}&select=id,matricula,email,email_verificado_em,sessao_versao,organizacao_id,nome_completo,perfil,senha_hash,status,senha_temporaria,totp_secret_ciphertext,totp_ativado_em&limit=1`
       );
       const user = users[0];
-      if (!user || user.status !== "ativo" || !passwordOk(senha, user.senha_hash)) {
+      if (!user || user.status !== "ativo" || !(await passwordOk(senha, user.senha_hash))) {
         return reply(res, 401, { mensagem: "Matrícula ou senha inválida." }, origin);
       }
 
@@ -305,18 +302,19 @@ module.exports = async (req, res) => {
         return reply(res, 503, { mensagem: "Configure TOTP_ENCRYPTION_KEY com pelo menos 32 caracteres." }, origin);
       }
       const challengeId = crypto.randomUUID();
-      const modo = porEmail ? "email" : user.totp_secret_ciphertext ? "login" : "setup";
+      const modo = porEmail ? (d.metodo2fa === "email" ? "email" : "verificar_email") : user.totp_secret_ciphertext ? "login" : "setup";
       if (porEmail) {
         const recentes = await db(c, "desafio_login_otp", "GET", undefined,
-          `?usuario_id=eq.${encodeURIComponent(user.id)}&modo=eq.email&criado_em=gt.${encodeURIComponent(new Date(Date.now() - 60000).toISOString())}&select=id&limit=1`);
+          `?usuario_id=eq.${encodeURIComponent(user.id)}&modo=in.(email,verificar_email)&criado_em=gt.${encodeURIComponent(new Date(Date.now() - 60000).toISOString())}&select=id&limit=1`);
         if (recentes.length) return reply(res, 429, { mensagem: "Aguarde um minuto antes de solicitar outro codigo por e-mail." }, origin);
       }
       const codigoEmail = porEmail ? String(crypto.randomInt(0, 1000000)).padStart(6, "0") : null;
       const segredo = modo === "setup" ? criarSegredo() : null;
       const segredoCifrado = segredo ? criptografarSegredo(segredo, process.env.TOTP_ENCRYPTION_KEY) : null;
       const credencialHash = versaoCredencialOtp(user, c.jwt);
-      await db(c, `desafio_login_otp?expira_em=lt.${encodeURIComponent(new Date().toISOString())}`, "DELETE");
-      await db(c, `desafio_login_otp?usuario_id=eq.${encodeURIComponent(user.id)}`, "DELETE");
+      // Uma unica ida ao banco invalida as tentativas anteriores deste
+      // usuario e remove os desafios expirados antes de criar o novo.
+      await db(c, `desafio_login_otp?or=(expira_em.lt.${encodeURIComponent(new Date().toISOString())},usuario_id.eq.${encodeURIComponent(user.id)})`, "DELETE");
       await db(c, "desafio_login_otp", "POST", {
         id: challengeId, usuario_id: user.id, codigo_hash: porEmail ? hashOtpEmail(challengeId, codigoEmail, c.jwt) : null, credencial_hash: credencialHash,
         modo, totp_secret_ciphertext: segredoCifrado,
@@ -324,7 +322,7 @@ module.exports = async (req, res) => {
       });
       if (porEmail) {
         try {
-          await emailLogin.enviarNotificacao({ para: user.email, titulo: "Seu codigo de acesso ao FrutLog",
+          await emailUsuario(c, user, "login").enviarNotificacao({ para: user.email, titulo: modo === "verificar_email" ? "Confirme seu e-mail no FrutLog" : "Seu codigo de acesso ao FrutLog",
             mensagem: `Seu codigo de verificacao e ${codigoEmail}. Ele expira em 5 minutos e funciona uma unica vez. Nao compartilhe este codigo. Se voce nao solicitou o acesso, altere sua senha.`,
             categoria: "seguranca", nivel: "informacao" });
         } catch {
@@ -338,9 +336,33 @@ module.exports = async (req, res) => {
       } : {};
       return reply(res, 200, {
         sucesso: true, otpRequerido: true, desafio: challengeId, modo,
-        mensagem: porEmail ? `Enviamos um codigo para ${user.email[0]}***@${user.email.split("@")[1]}. Ele expira em 5 minutos. Para reenviar ou trocar de metodo, reinicie o login.` : modo === "setup" ? "Configure o FrutLog no aplicativo autenticador e informe o codigo." : "Informe o codigo do aplicativo autenticador.",
+        expiraEm: new Date(Date.now() + 300000).toISOString(), reenviarApos: 60,
+        destino: porEmail ? `${user.email[0]}***@${user.email.split("@")[1]}` : null,
+        mensagem: modo === "verificar_email" ? `Confirme primeiro seu e-mail com o codigo enviado para ${user.email[0]}***@${user.email.split("@")[1]}. Em seguida, voce continuara automaticamente no autenticador. O codigo expira em 5 minutos.` : porEmail ? `Enviamos um codigo para ${user.email[0]}***@${user.email.split("@")[1]}. Ele expira em 5 minutos. Use Reenviar codigo caso precise de outro.` : modo === "setup" ? "Configure o FrutLog no aplicativo autenticador e informe o codigo." : "Informe o codigo do aplicativo autenticador.",
         ...configuracaoTotp,
       }, origin);
+    }
+
+    if (req.method === "POST" && route === "/login/reenviar") {
+      const d = await parseBody(req, 4096);
+      if (typeof d.desafio !== "string" || !/^[a-f0-9-]{36}$/i.test(d.desafio)) return reply(res, 400, { mensagem: "Tentativa invalida. Reinicie o login." }, origin);
+      const [anterior] = await db(c,"desafio_login_otp","GET",undefined,`?id=eq.${encodeURIComponent(d.desafio)}&select=usuario_id,modo,credencial_hash,totp_secret_ciphertext&limit=1`);
+      if (!anterior || !["email","verificar_email"].includes(anterior.modo)) return reply(res,401,{codigo:"OTP_DESAFIO_ENCERRADO",mensagem:"Reinicie o login para solicitar outro codigo."},origin);
+      const [u] = await db(c,"usuario","GET",undefined,`?id=eq.${encodeURIComponent(anterior.usuario_id)}&status=eq.ativo&select=id,email,organizacao_id,senha_hash,sessao_versao,totp_secret_ciphertext&limit=1`);
+      if (!u || !validarEndereco(u.email)) return reply(res,401,{codigo:"OTP_DESAFIO_ENCERRADO",mensagem:"Conta indisponivel. Reinicie o login."},origin);
+      const novo = crypto.randomUUID(), codigo = String(crypto.randomInt(0,1000000)).padStart(6,"0");
+      const ok = await db(c,"rpc/login_reservar_reenvio","POST",{p_anterior:d.desafio,p_novo:novo,p_codigo:hashOtpEmail(novo,codigo,c.jwt),p_credencial:versaoCredencialOtp(u,c.jwt)});
+      if (!ok) return reply(res,429,{mensagem:"Aguarde um minuto entre envios. Se a tentativa expirou, reinicie o login."},origin);
+      try {
+        // A RPC existente conserva o codigo e a credencial, mas nao a prova
+        // cifrada do aplicativo. Preserve-a antes de entregar o novo desafio.
+        if (anterior.totp_secret_ciphertext) await db(c, `desafio_login_otp?id=eq.${novo}`, "PATCH", { totp_secret_ciphertext: anterior.totp_secret_ciphertext });
+        await emailUsuario(c,u,"login").enviarNotificacao({para:u.email,titulo:"Seu novo codigo do FrutLog",mensagem:`Seu codigo de verificacao e ${codigo}. Valido por cinco minutos. O codigo anterior foi invalidado. Nao compartilhe.`,categoria:"Seguranca"});
+      } catch {
+        await db(c,`desafio_login_otp?id=eq.${novo}`,"DELETE");
+        return reply(res,503,{codigo:"OTP_DESAFIO_ENCERRADO",mensagem:"Envio nao confirmado. Reinicie o login."},origin);
+      }
+      return reply(res,200,{sucesso:true,desafio:novo,modo:anterior.modo,expiraEm:new Date(Date.now()+300000).toISOString(),reenviarApos:60,destino:`${u.email[0]}***@${u.email.split("@")[1]}`,mensagem:"Novo codigo enviado. Use somente o e-mail mais recente."},origin);
     }
 
     if (req.method === "POST" && route === "/login/otp") {
@@ -363,11 +385,11 @@ module.exports = async (req, res) => {
         registrarBloqueioOtp("desafio_expirado_ou_limite_de_tentativas");
         return reply(res, 401, { codigo: "OTP_DESAFIO_ENCERRADO", mensagem: "Esta tentativa de login expirou ou atingiu o limite de tentativas. Informe matricula e senha novamente." }, origin);
       }
-      if (challengeAtual.modo !== "email" && (!process.env.TOTP_ENCRYPTION_KEY || process.env.TOTP_ENCRYPTION_KEY.length < 32)) {
+      if (!["email", "verificar_email"].includes(challengeAtual.modo) && (!process.env.TOTP_ENCRYPTION_KEY || process.env.TOTP_ENCRYPTION_KEY.length < 32)) {
         return reply(res, 503, { mensagem: "Autenticacao por aplicativo indisponivel." }, origin);
       }
       const user = (await db(c, "usuario", "GET", undefined,
-        `?id=eq.${encodeURIComponent(challengeAtual.usuario_id)}&status=eq.ativo&select=id,matricula,email,nome_completo,perfil,senha_hash,senha_temporaria,totp_secret_ciphertext,totp_ultimo_passo&limit=1`))[0];
+        `?id=eq.${encodeURIComponent(challengeAtual.usuario_id)}&status=eq.ativo&select=id,matricula,email,email_verificado_em,sessao_versao,organizacao_id,nome_completo,perfil,senha_hash,senha_temporaria,totp_secret_ciphertext,totp_ultimo_passo&limit=1`))[0];
       if (!user) {
         registrarBloqueioOtp("conta_indisponivel");
         return reply(res, 401, { codigo: "OTP_DESAFIO_ENCERRADO", mensagem: "A conta nao esta disponivel. Reinicie o login." }, origin);
@@ -383,7 +405,7 @@ module.exports = async (req, res) => {
       let codigoValido = false;
       let recoveryHash = null;
       let codigosRecuperacao;
-      if (challengeAtual.modo === "email") {
+      if (["email", "verificar_email"].includes(challengeAtual.modo)) {
         const esperado = challengeAtual.codigo_hash || "";
         const recebido = hashOtpEmail(challengeId, codigo, c.jwt);
         codigoValido = /^\d{6}$/.test(codigo) && /^[a-f0-9]{64}$/.test(esperado) &&
@@ -413,15 +435,49 @@ module.exports = async (req, res) => {
         return reply(res, 401, { mensagem: codigoReutilizado
           ? "Este codigo do autenticador ja foi utilizado. Aguarde o proximo codigo no aplicativo."
           : recoveryCode ? "Codigo de recuperacao invalido ou ja utilizado."
-          : challengeAtual.modo === "email" ? "Codigo incorreto. Use o codigo do e-mail mais recente."
+          : ["email","verificar_email"].includes(challengeAtual.modo) ? "Codigo incorreto. Use o codigo do e-mail mais recente."
           : "Codigo incorreto. Use a entrada FrutLog cadastrada com o ultimo QR Code e confira o horario automatico do celular." }, origin);
       }
-      if (challenge.modo === "setup") {
-        codigosRecuperacao = criarCodigosRecuperacao();
-        await db(c, `usuario_codigo_recuperacao?usuario_id=eq.${encodeURIComponent(user.id)}`, "DELETE");
-        await db(c, "usuario_codigo_recuperacao", "POST", codigosRecuperacao.map((code) => ({
-          usuario_id: user.id, codigo_hash: hashCodigoRecuperacao(user.id, code, process.env.TOTP_ENCRYPTION_KEY)
-        })));
+      if (["email", "verificar_email"].includes(challenge.modo) && !user.email_verificado_em) {
+        const ok = await db(c, "rpc/conta_confirmar_email", "POST", { p_usuario: user.id, p_email: user.email, p_senha: user.senha_hash, p_versao: Number(user.sessao_versao || 0) });
+        if (!ok) return reply(res, 401, { codigo: "OTP_DESAFIO_ENCERRADO", mensagem: "A conta foi alterada. Reinicie o login." }, origin);
+        user.email_verificado_em = new Date().toISOString();
+      }
+      if (challenge.modo === "verificar_email" && challenge.totp_secret_ciphertext) {
+        const pendente = JSON.parse(descriptografarSegredo(challenge.totp_secret_ciphertext, process.env.TOTP_ENCRYPTION_KEY));
+        if (pendente.tipo !== "configuracao-totp-v1" || !["setup", "reset"].includes(pendente.modo) ||
+            !Number.isSafeInteger(pendente.passo) || pendente.passo < 0 || typeof pendente.segredo !== "string") {
+          return reply(res, 401, { codigo: "OTP_DESAFIO_ENCERRADO", mensagem: "Configuracao invalida. Reinicie o login." }, origin);
+        }
+        challenge.modo = pendente.modo;
+        challenge.totp_secret_ciphertext = pendente.segredo;
+        passoUsado = pendente.passo;
+      }
+      if (challenge.modo === "verificar_email") {
+        if (!process.env.TOTP_ENCRYPTION_KEY || process.env.TOTP_ENCRYPTION_KEY.length < 32) {
+          return reply(res, 503, { codigo: "OTP_DESAFIO_ENCERRADO", mensagem: "E-mail confirmado, mas o autenticador esta indisponivel. Reinicie o login ou contate a Administracao." }, origin);
+        }
+        const novoDesafio = crypto.randomUUID();
+        const modo = user.totp_secret_ciphertext ? "login" : "setup";
+        const segredo = modo === "setup" ? criarSegredo() : null;
+        const configuracao = segredo ? {
+          qrCode: await QRCode.toDataURL(criarUriTotp(segredo, user.matricula)), segredoManual: segredo
+        } : {};
+        const expiraEm = new Date(Date.now() + 300000).toISOString();
+        // A prova de e-mail foi consumida. O novo desafio continua vinculado
+        // a mesma credencial e nao emite sessao antes da prova do autenticador.
+        await db(c, "desafio_login_otp", "POST", {
+          id: novoDesafio, usuario_id: user.id, modo, codigo_hash: null,
+          credencial_hash: credencialAtual,
+          totp_secret_ciphertext: segredo ? criptografarSegredo(segredo, process.env.TOTP_ENCRYPTION_KEY) : null,
+          expira_em: expiraEm, tentativas: 0
+        });
+        return reply(res, 200, {
+          sucesso: true, emailConfirmado: true, otpRequerido: true, desafio: novoDesafio, modo, expiraEm,
+          mensagem: segredo ? "E-mail confirmado. Escaneie o QR Code no Google Authenticator e informe o codigo do aplicativo."
+            : "E-mail confirmado. Informe agora o codigo do seu aplicativo autenticador.",
+          ...configuracao
+        }, origin);
       }
       if (recoveryHash) {
         const removed = await db(c, "rpc/consumir_codigo_recuperacao", "POST", {
@@ -447,29 +503,48 @@ module.exports = async (req, res) => {
             mensagem: "Configure o novo autenticador e confirme o codigo. O antigo sera substituido somente apos a confirmacao."
           }, origin);
         }
-      } else if (challenge.modo === "reset") {
+      } else if (["setup", "reset"].includes(challenge.modo)) {
+
         codigosRecuperacao = criarCodigosRecuperacao();
-        const substituido = await db(c, "rpc/substituir_autenticador", "POST", {
-          p_usuario_id: user.id, p_senha_hash: user.senha_hash,
-          p_segredo_anterior: user.totp_secret_ciphertext,
-          p_novo_segredo: challenge.totp_secret_ciphertext, p_passo: passoUsado,
-          p_codigos: codigosRecuperacao.map((code) => hashCodigoRecuperacao(user.id, code, process.env.TOTP_ENCRYPTION_KEY))
-        });
+        if (!validarEndereco(user.email)) {
+          return reply(res, 400, { codigo: "OTP_DESAFIO_ENCERRADO", mensagem: "Cadastre um e-mail valido com a Administracao antes de configurar o autenticador." }, origin);
+        }
+        try {
+          await emailUsuario(c, user, "codigos_recuperacao").enviarNotificacao({
+            para: user.email,
+            titulo: "Seus codigos de recuperacao do FrutLog",
+            categoria: "Seguranca da conta",
+            mensagem: `Guarde este e-mail em um local seguro. Estes sao seus 10 codigos de recuperacao do FrutLog:\n\n${codigosRecuperacao.join("\n")}\n\nCada codigo funciona uma unica vez, junto com sua matricula e senha, caso voce perca acesso ao autenticador. Nao compartilhe nem encaminhe esta mensagem. Ao substituir o autenticador, use somente os codigos da ultima configuracao concluida com sucesso.`,
+            detalhes: [["Matricula", user.matricula]]
+          });
+        } catch {
+          return reply(res, 503, { codigo: "OTP_DESAFIO_ENCERRADO", mensagem: "Nao foi possivel confirmar o envio dos codigos de recuperacao. O autenticador nao foi alterado. Reinicie o login e tente novamente." }, origin);
+        }
+        let substituido;
+        try {
+          // A prova de posse do aplicativo e a segunda etapa deste metodo.
+          // A confirmacao de email e independente e nunca e marcada aqui.
+          // Ambas as RPCs trocam segredo/codigos atomicamente e conferem
+          // conta ativa, hash da senha e segredo anterior sob bloqueio.
+          substituido = await db(c, user.email_verificado_em ? "rpc/configurar_autenticador_seguro" : "rpc/substituir_autenticador", "POST", {
+            p_usuario_id: user.id, p_senha_hash: user.senha_hash,
+            p_segredo_anterior: user.totp_secret_ciphertext,
+            p_novo_segredo: challenge.totp_secret_ciphertext, p_passo: passoUsado,
+            p_codigos: codigosRecuperacao.map((code) => hashCodigoRecuperacao(user.id, code, process.env.TOTP_ENCRYPTION_KEY)),
+            ...(user.email_verificado_em ? { p_email:user.email,p_versao:Number(user.sessao_versao || 0) } : {})
+          });
+        } catch {
+          console.error(JSON.stringify({ evento: "CONFIGURACAO_TOTP_NAO_CONFIRMADA" }));
+          return reply(res, 503, { codigo: "OTP_DESAFIO_ENCERRADO", mensagem: "O e-mail foi enviado, mas nao foi possivel confirmar a configuracao no banco. Reinicie o login; use somente os codigos da ultima configuracao confirmada com sucesso." }, origin);
+        }
         if (substituido !== true) {
-          return reply(res, 401, { mensagem: "A conta foi alterada. Inicie novamente a recuperacao." }, origin);
+          return reply(res, 401, { codigo: "OTP_DESAFIO_ENCERRADO", mensagem: "A conta foi alterada. A configuracao nao foi concluida; desconsidere os codigos recebidos por e-mail nesta tentativa e reinicie o login." }, origin);
         }
       } else if (challenge.modo !== "email") {
-        const updated = challenge.modo === "setup"
-          ? await db(c, `usuario?id=eq.${encodeURIComponent(user.id)}&senha_hash=eq.${encodeURIComponent(user.senha_hash)}&totp_secret_ciphertext=is.null`, "PATCH", {
-            totp_secret_ciphertext: challenge.totp_secret_ciphertext,
-            totp_ativado_em: new Date().toISOString(),
-            totp_ultimo_passo: passoUsado
-          })
-          : await db(c, `usuario?id=eq.${encodeURIComponent(user.id)}&senha_hash=eq.${encodeURIComponent(user.senha_hash)}&totp_ultimo_passo=lt.${passoUsado}`, "PATCH", {
+        const updated = await db(c, `usuario?id=eq.${encodeURIComponent(user.id)}&senha_hash=eq.${encodeURIComponent(user.senha_hash)}&totp_ultimo_passo=lt.${passoUsado}`, "PATCH", {
             totp_ultimo_passo: passoUsado
           });
         if (!updated.length) {
-          if (challenge.modo === "setup") await db(c, `usuario_codigo_recuperacao?usuario_id=eq.${encodeURIComponent(user.id)}`, "DELETE");
           registrarBloqueioOtp("codigo_reutilizado_ou_credencial_alterada");
           return reply(res, 401, { mensagem: "Codigo invalido, expirado ou ja utilizado." }, origin);
         }
@@ -479,13 +554,19 @@ module.exports = async (req, res) => {
         matricula: user.matricula,
         nome: user.nome_completo,
         perfil: user.perfil === "administrador" ? "admin" : user.perfil,
-        mustChangePassword: Boolean(user.senha_temporaria)
+        mustChangePassword: Boolean(user.senha_temporaria),
+        sessaoVersao: Number(user.sessao_versao || 0)
       };
+      if (["setup", "reset"].includes(challenge.modo)) {
+        const [atual] = await db(c, "usuario", "GET", undefined, `?id=eq.${encodeURIComponent(user.id)}&select=sessao_versao&limit=1`);
+        safe.sessaoVersao = Number(atual.sessao_versao || 0);
+      }
       return reply(res, 200, {
         sucesso: true,
         usuario: safe,
         token: criarToken(safe, c.jwt, user.senha_hash),
-        ...(codigosRecuperacao ? { codigosRecuperacao } : {})
+        ...(codigosRecuperacao ? { recuperacaoEmailEnviado: true,
+          mensagem: "Autenticador configurado. Os codigos de recuperacao foram enviados ao seu e-mail cadastrado. Guarde essa mensagem; cada codigo funciona uma unica vez." } : {})
       }, origin);
     }
 
@@ -601,6 +682,13 @@ module.exports = async (req, res) => {
         mensagem: "Altere sua senha provisória antes de continuar.",
         codigo: "SENHA_PROVISORIA"
       }, origin);
+    }
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) res.auditoria = {
+      config: c, organizacao_id: user.organizacaoId, ator_usuario_id: user.sub, metodo: req.method, recurso: route
+    };
+    if (route.startsWith("/conta/") || route.startsWith("/admin/emails") || route === "/admin/auditoria") {
+      if (req.method === "POST" && !rateLimit(req, 10, "conta")) return reply(res, 429, { mensagem: "Muitas tentativas. Aguarde um minuto." }, origin);
+      return await contaSeguranca({ req,res,c,user,route,origin,reply,parseBody,servico:emailLogin,versaoCredencialOtp });
     }
 
     if (["/chatbot/perguntar", "/chatbot/contexto"].includes(route) && user.perfil !== "admin") {
@@ -789,13 +877,13 @@ module.exports = async (req, res) => {
       if (
         typeof d.senhaAtual !== "string" ||
         d.senhaAtual.length < 8 ||
-        d.senhaAtual.length > 10 ||
+        d.senhaAtual.length > 128 ||
         typeof d.novaSenha !== "string" ||
         d.novaSenha.length < 8 ||
-        d.novaSenha.length > 10 ||
+        d.novaSenha.length > 128 ||
         d.novaSenha === d.senhaAtual
       ) {
-        return reply(res, 400, { mensagem: "Informe a senha atual e uma senha nova diferente, ambas entre 8 e 10 caracteres." }, origin);
+        return reply(res, 400, { mensagem: "Informe a senha atual e uma senha nova diferente, ambas entre 8 e 128 caracteres." }, origin);
       }
 
       const current = (await db(
@@ -805,22 +893,24 @@ module.exports = async (req, res) => {
         undefined,
         `?id=eq.${encodeURIComponent(user.sub)}&select=id,matricula,nome_completo,perfil,senha_hash,status&limit=1`
       ))[0];
-      if (!current || current.status !== "ativo" || !passwordOk(d.senhaAtual, current.senha_hash)) {
+      if (!current || current.status !== "ativo" || !(await passwordOk(d.senhaAtual, current.senha_hash))) {
         return reply(res, 401, { mensagem: "Senha atual inválida." }, origin);
       }
 
-      const novaSenhaHash = hashPassword(d.novaSenha);
-      await db(c, `usuario?id=eq.${encodeURIComponent(user.sub)}`, "PATCH", {
+      const novaSenhaHash = await hashPassword(d.novaSenha);
+      const alterados = await db(c, `usuario?id=eq.${encodeURIComponent(user.sub)}&senha_hash=eq.${encodeURIComponent(current.senha_hash)}`, "PATCH", {
         senha_hash: novaSenhaHash,
         senha_temporaria: false
       });
+      if (!alterados[0]) return reply(res,409,{mensagem:"A conta foi alterada. Entre novamente."},origin);
 
       const updatedUser = {
         id: current.id,
         matricula: current.matricula,
         nome: current.nome_completo,
         perfil: current.perfil === "administrador" ? "admin" : current.perfil,
-        mustChangePassword: false
+        mustChangePassword: false,
+        sessaoVersao: Number(alterados[0]?.sessao_versao || 0)
       };
       return reply(res, 200, {
         sucesso: true,
@@ -1212,6 +1302,18 @@ module.exports = async (req, res) => {
       const reportId = reportMatch[1] ? decodeURIComponent(reportMatch[1]) : null;
 
       if (req.method === "GET" && !reportId) {
+        const urlRelatorios = new URL(req.url,"http://localhost");
+        let page;
+        try { page = (urlRelatorios.searchParams.has("pagina") || urlRelatorios.searchParams.has("limite")) ? paginacao(urlRelatorios) : null; }
+        catch(e) { return reply(res,400,{mensagem:e.message},origin); }
+        let filtros = "";
+        const statusBusca=urlRelatorios.searchParams.get("status"),dataBusca=urlRelatorios.searchParams.get("data"),textoBusca=urlRelatorios.searchParams.get("q"),visibilidade=urlRelatorios.searchParams.get("visibilidade");
+        if(statusBusca && !["enviado","em_analise","concluido","pendentes","todos"].includes(statusBusca)) return reply(res,400,{mensagem:"Status invalido."},origin);
+        if(statusBusca && statusBusca!=="todos") filtros+=statusBusca==="pendentes" ? "&status=neq.concluido" : `&status=eq.${statusBusca}`;
+        if(dataBusca){if(!date(dataBusca))return reply(res,400,{mensagem:"Data invalida."},origin);filtros+=`&data_relatorio=eq.${encodeURIComponent(dataBusca)}`;}
+        if(textoBusca){const termo=textoBusca.replace(/[^\p{L}\p{N} @._-]/gu,"").slice(0,80);if(termo)filtros+=`&or=(conteudo.ilike.*${encodeURIComponent(termo)}*,tecnico_nome.ilike.*${encodeURIComponent(termo)}*)`;}
+        if(visibilidade==="arquivados")filtros+="&arquivado_em=not.is.null";
+        else if(visibilidade && visibilidade!=="todos")filtros+="&arquivado_em=is.null";
         const ehTecnico = user.perfil === "tecnico";
         if (!ehTecnico && !["engenheiro", "admin"].includes(user.perfil)) {
           return reply(res, 403, { mensagem: "Sem permissão para consultar relatórios." }, origin);
@@ -1224,10 +1326,11 @@ module.exports = async (req, res) => {
             ? `&usuario_id=in.(${autoresOrg.map((autor) => encodeURIComponent(autor.id)).join(",")})`
             : "&usuario_id=eq.00000000-0000-0000-0000-000000000000";
         }
-        const reports = await db(
+        const registros = await db(
           c, "relatorio_campo_diario", "GET", undefined,
-          `?select=id,usuario_id,tecnico_nome,data_relatorio,conteudo,status,criado_em,atualizado_em,arquivado_em&order=data_relatorio.desc,criado_em.desc&limit=500${filtroAutor}`
+          `?select=id,usuario_id,tecnico_nome,data_relatorio,conteudo,status,criado_em,atualizado_em,arquivado_em&order=data_relatorio.desc,criado_em.desc,id.desc&limit=${page ? page.limite+1 : 500}${page ? `&offset=${page.offset}` : ""}${filtroAutor}${filtros}`
         );
+        const reports=page ? registros.slice(0,page.limite) : registros;
         // A matrícula vem do cadastro atual do técnico; o relatório guarda o usuário autor pelo ID.
         const authorIds = [...new Set(reports.map((report) => report.usuario_id).filter(Boolean))];
         const authors = authorIds.length
@@ -1238,7 +1341,7 @@ module.exports = async (req, res) => {
           ...report,
           tecnico_matricula: matriculaPorAutor.get(report.usuario_id) || "Não informada"
         }));
-        return reply(res, 200, { relatorios: reportsWithAuthor }, origin);
+        return reply(res, 200, { relatorios: reportsWithAuthor, ...(page ? { paginacao:{...page,temProxima:registros.length>page.limite} } : {}) }, origin);
       }
 
       if (req.method === "POST" && !reportId) {
@@ -1533,7 +1636,7 @@ module.exports = async (req, res) => {
           status: estadoSensor({
             statusSensor: s.status,
             statusDispositivo: d?.status,
-            ultimaComunicacao: comunicacao
+            ultimaComunicacao: comunicacao, ultimaLeitura: r?.coletado_em, valor: r?.valor, qualidade: r?.qualidade
           }),
           ativo: s.status === "ativo",
           leitura: r ? `${r.valor} ${r.unidade}` : "Sem leitura",
@@ -1887,7 +1990,7 @@ module.exports = async (req, res) => {
           status: estadoSensor({
             statusSensor: s.status,
             statusDispositivo: d?.status,
-            ultimaComunicacao: comunicacao
+            ultimaComunicacao: comunicacao, ultimaLeitura: r?.coletado_em, valor: r?.valor, qualidade: r?.qualidade
           }),
           leitura: r ? `${r.valor} ${r.unidade}` : "Sem leitura",
           responsavel_usuario_id: d?.responsavel_usuario_id || null,
@@ -2257,7 +2360,7 @@ module.exports = async (req, res) => {
           profissao.length > 160 ||
           !ROLES.includes(d.perfil) ||
           !["ativo", "inativo"].includes(status) ||
-          (d.senha !== undefined && d.senha !== "" && (typeof d.senha !== "string" || d.senha.length < 8 || d.senha.length > 10))
+          (d.senha !== undefined && d.senha !== "" && (typeof d.senha !== "string" || d.senha.length < 8 || d.senha.length > 128))
         ) {
           return reply(res, 400, { mensagem: "Dados inválidos para atualizar funcionário." }, origin);
         }
@@ -2270,7 +2373,7 @@ module.exports = async (req, res) => {
         };
         if (d.email !== undefined) updates.email = d.email?.trim() || null;
         if (d.senha) {
-          updates.senha_hash = hashPassword(d.senha);
+          updates.senha_hash = await hashPassword(d.senha);
           updates.senha_temporaria = true;
         }
         await db(c, `usuario?id=eq.${encodeURIComponent(employeeId)}&organizacao_id=eq.${encodeURIComponent(user.organizacaoId)}`, "PATCH", updates);
@@ -2292,17 +2395,22 @@ module.exports = async (req, res) => {
       if (!user.organizacaoId) return reply(res, 403, { mensagem: "Organização da conta não configurada." }, origin);
       if (req.method === "GET") {
         if (user.perfil !== "admin") return reply(res, 403, { mensagem: "Sem permissão." }, origin);
-        const rows = await db(
+        const urlFuncionarios=new URL(req.url,"http://localhost");
+        let page;
+        try{page=(urlFuncionarios.searchParams.has("pagina") || urlFuncionarios.searchParams.has("limite")) ? paginacao(urlFuncionarios) : null;}catch(e){return reply(res,400,{mensagem:e.message},origin);}
+        const resultado = await db(
           c,
           "usuario",
           "GET",
           undefined,
-          `?organizacao_id=eq.${encodeURIComponent(user.organizacaoId)}&select=id,matricula,nome_completo,email,perfil,cargo,profissao,status,criado_em&order=matricula`
+          `?organizacao_id=eq.${encodeURIComponent(user.organizacaoId)}&select=id,matricula,nome_completo,email,perfil,cargo,profissao,status,criado_em&order=matricula,id${page ? `&limit=${page.limite+1}&offset=${page.offset}` : ""}`
         );
+        const rows=page ? resultado.slice(0,page.limite) : resultado;
         return reply(
           res,
           200,
           {
+            ...(page ? { paginacao:{...page,temProxima:resultado.length>page.limite} } : {}),
             usuarios: rows.map((r) => ({
               id: r.id,
               matricula: r.matricula,
@@ -2341,8 +2449,8 @@ module.exports = async (req, res) => {
         ) {
           return reply(res, 400, { mensagem: "Dados inválidos para cadastrar funcionário." }, origin);
         }
-        if (typeof d.senha !== "string" || d.senha.length < 8 || d.senha.length > 10) {
-          return reply(res, 400, { mensagem: "A senha temporária deve possuir entre 8 e 10 caracteres." }, origin);
+        if (typeof d.senha !== "string" || d.senha.length < 8 || d.senha.length > 128) {
+          return reply(res, 400, { mensagem: "A senha temporária deve possuir entre 8 e 128 caracteres." }, origin);
         }
 
         const org = (await db(c, "organizacao", "GET", undefined, `?id=eq.${encodeURIComponent(user.organizacaoId)}&select=id&limit=1`))[0];
@@ -2363,14 +2471,14 @@ module.exports = async (req, res) => {
           profissao,
           perfil: perfil === "admin" ? "administrador" : perfil,
           status,
-          senha_hash: hashPassword(d.senha),
+          senha_hash: await hashPassword(d.senha),
           senha_temporaria: true
         });
         const employee = Array.isArray(created) ? created[0] : created;
         if (!employee?.id) {
           throw new Error("O banco não confirmou a gravacao do funcionário. Atualize o esquema e tente novamente.");
         }
-        const notificacao = await notificarContaCriada({ config: c, servico: emailLogin,
+        const notificacao = await notificarContaCriada({ config: c, servico: emailUsuario(c, { id: employee.id, organizacao_id: org.id }, "boas_vindas"),
           baseUrl: process.env.EMAIL_APP_URL,
           usuario: { id: employee.id, organizacao_id: org.id, matricula,
             email: d.email.trim(), perfil: perfil === "admin" ? "administrador" : perfil, status }

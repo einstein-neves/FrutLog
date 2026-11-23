@@ -120,6 +120,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 let funcionarios = [];
+let paginaFuncionarios = 1;
 let sensores = [];
 let historicoOperacao = [];
 let historicoOperacaoCarregado = false;
@@ -256,7 +257,7 @@ function configurarFormularioFuncionario() {
     campoSenha.required = true;
     campoSenha.type = "text";
     botaoMostrarSenha.textContent = "Ocultar senha";
-    campoSenha.placeholder = "8 a 10 caracteres";
+    campoSenha.placeholder = "8 a 128 caracteres";
     campoSenha.value = gerarSenhaTemporaria();
     botaoCancelar.hidden = true;
     botaoSalvar.innerHTML = '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Cadastrar Funcionario';
@@ -288,8 +289,8 @@ function configurarFormularioFuncionario() {
 
     const editando = Boolean(dados.id);
     const senhaProvisoriaUsada = dados.senha;
-    if ((!editando || dados.senha) && (typeof dados.senha !== "string" || dados.senha.length < 8 || dados.senha.length > 10)) {
-      exibirMensagem(mensagemId, "A senha provisoria deve possuir entre 8 e 10 caracteres.", "erro");
+    if ((!editando || dados.senha) && (typeof dados.senha !== "string" || dados.senha.length < 8 || dados.senha.length > 128)) {
+      exibirMensagem(mensagemId, "A senha provisoria deve possuir entre 8 e 128 caracteres.", "erro");
       campoSenha?.focus();
       return;
     }
@@ -338,7 +339,7 @@ function configurarFormularioFuncionario() {
       campoId.value = "";
       campoMatricula.value = "Gerada ao cadastrar";
       campoSenha.required = true;
-      campoSenha.placeholder = "8 a 10 caracteres";
+      campoSenha.placeholder = "8 a 128 caracteres";
       campoSenha.value = editando ? gerarSenhaTemporaria() : senhaProvisoriaUsada;
       campoSenha.type = "text";
       botaoMostrarSenha.textContent = "Ocultar senha";
@@ -369,13 +370,21 @@ function carregarFuncionarios() {
       .join(" ").toLocaleLowerCase("pt-BR");
     return combinaStatus && texto.includes(termo);
   });
+  const totalPaginas=Math.max(1,Math.ceil(filtrados.length/20));paginaFuncionarios=Math.min(paginaFuncionarios,totalPaginas);
+  let nav=document.getElementById("paginacao-funcionarios");
+  if(!nav){nav=document.createElement("div");nav.id="paginacao-funcionarios";tabela.closest("table").parentElement.append(nav);}
+  nav.replaceChildren();
+  for(const [texto,delta,desabilitado]of [["Anterior",-1,paginaFuncionarios===1],[`Página ${paginaFuncionarios} de ${totalPaginas}`,0,true],["Próxima",1,paginaFuncionarios===totalPaginas]]){
+    const botao=document.createElement("button");botao.type="button";botao.textContent=texto;botao.disabled=desabilitado;
+    botao.addEventListener("click",()=>{paginaFuncionarios+=delta;carregarFuncionarios();});nav.append(botao);
+  }
 
   if (!filtrados.length) {
     mostrarLinhasVazias("tabela-funcionarios", 6);
     return;
   }
 
-  tabela.innerHTML = filtrados.map((funcionario) => {
+  tabela.innerHTML = filtrados.slice((paginaFuncionarios-1)*20,paginaFuncionarios*20).map((funcionario) => {
     const ativo = funcionario.status ? funcionario.status === "ativo" : funcionario.ativo === true;
     const status = ativo ? "ativo" : (funcionario.status || "inativo");
     const textoStatus = status === "excluido" ? "Excluido" : ativo ? "Ativo" : "Inativo";
@@ -396,8 +405,8 @@ function carregarFuncionarios() {
 }
 
 function configurarFiltrosFuncionarios() {
-  document.getElementById("filtro-funcionarios")?.addEventListener("input", carregarFuncionarios);
-  document.getElementById("filtro-status-funcionarios")?.addEventListener("change", carregarFuncionarios);
+  document.getElementById("filtro-funcionarios")?.addEventListener("input", ()=>{paginaFuncionarios=1;carregarFuncionarios();});
+  document.getElementById("filtro-status-funcionarios")?.addEventListener("change", ()=>{paginaFuncionarios=1;carregarFuncionarios();});
 }
 
 function configurarAcoesTabelas() {

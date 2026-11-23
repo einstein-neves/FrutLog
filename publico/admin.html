@@ -14,8 +14,7 @@
   <link rel="stylesheet" href="css/calendarios.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <title>FrutLog</title>
-  <link rel="icon" type="image/svg+xml"
-    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23eef3ea'/%3E%3Cpath d='M50 12C30 12 14 22 14 38c0 4 2 8 5 10 2-8 8-15 18-20-7 6-12 12-14 21 3 2 6 3 9 3 14 0 18-18 18-40z' fill='%232e7d32'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="/imagem/favicon.svg">
   <link rel="stylesheet" href="css/chatbot.css">
 </head>
 
@@ -60,6 +59,9 @@
 
 
     <div class="sidebar-acoes">
+      <a href="conta-seguranca.html" class="nav-link"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Minha conta e segurança</a>
+      <a href="admin-operacao.html" class="nav-link"><i class="fa-solid fa-envelope-circle-check" aria-hidden="true"></i> E-mails e auditoria</a>
+
       <button id="btn-logout" class="btn-logout" type="button"><i class="fa-solid fa-right-from-bracket"
           aria-hidden="true"></i> Sair</button>
     </div>
@@ -123,8 +125,8 @@
                   class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> Gerar automaticamente</button>
             </div>
 
-            <input type="text" id="funcionario-senha" name="senha" class="campo-formulario" minlength="8" maxlength="10"
-              autocomplete="new-password" placeholder="8 a 10 caracteres" required>
+            <input type="text" id="funcionario-senha" name="senha" class="campo-formulario" minlength="8" maxlength="128"
+              autocomplete="new-password" placeholder="8 a 128 caracteres" required>
             <div class="acoes-senha-provisoria">
               <button type="button" class="btn-secundario" id="btn-mostrar-senha">Mostrar senha</button>
               <button type="button" class="btn-secundario" id="btn-copiar-senha">Copiar senha</button>

@@ -77,6 +77,15 @@ border-radius: 9px; }
 border-top: 1px solid var(--cor-borda);
 margin-top: auto;
 }
+.layout-dashboard .sidebar-acoes .nav-link {
+  min-height: 44px;
+  line-height: 1.45;
+}
+.layout-dashboard .sidebar-acoes .nav-link i { flex-shrink: 0; }
+.layout-dashboard .sidebar-acoes .nav-link:focus-visible {
+  outline: 2px solid #ffe0a6;
+  outline-offset: 2px;
+}
 .pulse-profile { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 8px 4px; }
 
 .pulse-avatar { display: grid; place-items: center; flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; color: #26734d; background: #e9f3ec; font-weight: 700; }
