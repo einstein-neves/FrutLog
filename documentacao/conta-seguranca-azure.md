@@ -24,15 +24,9 @@ Relatorios possuem filtros no servidor e paginas de 25 itens. A listagem de func
 
 Sensores diferenciam dispositivo offline, sem comunicacao, leitura ausente, falha de medicao e leitura desatualizada. Uma comunicacao recente nao transforma uma medicao antiga em dado atual.
 
-## Azure App Service e GitHub Actions
+## GitHub Actions
 
-O workflow `.github/workflows/qualidade-azure.yml` executa os testes em PRs e na `main`. A publicacao so e habilitada quando `AZURE_WEBAPP_NAME` estiver configurada. Depois dos testes e da conferencia do esquema remoto, usa OpenID Connect para publicar em um App Service existente. Nao cria recursos nem altera o banco automaticamente.
-
-Configure um App Service Linux com Node.js 22 e comando de inicializacao `npm start`. O processo funciona sem arquivo `.env`; em producao, as variaveis ficam nas configuracoes do App Service. Configure `NODE_ENV=production`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `JWT_SECRET`, `IOT_API_KEY`, `TOTP_ENCRYPTION_KEY`, `FRONTEND_ORIGIN` com a origem HTTPS publicada e as credenciais SMTP existentes. Use o mesmo segredo TOTP entre publicacoes. Configure `EMAIL_APP_URL` com a URL HTTPS publica. `TRUSTED_PROXIES` deve refletir apenas proxies confiaveis da infraestrutura; nao habilite confianca indiscriminada em cabecalhos enviados pelo cliente.
-
-No repositorio GitHub, configure as variaveis `AZURE_WEBAPP_NAME`, `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` e `AZURE_SUBSCRIPTION_ID`. O ambiente `production` precisa de credencial federada OIDC no Microsoft Entra ID, com permissao de publicar no App Service. Configure tambem os secrets `SUPABASE_URL` e `SUPABASE_SECRET_KEY` nesse ambiente para a conferencia das migracoes antes da publicacao. Esses secrets nao sao copiados para o pacote. Os demais segredos permanecem no App Service. Nao ha credenciais de Azure neste repositorio.
-
-Preparacao e autenticacao: [documentacao oficial do Azure App Service](https://learn.microsoft.com/en-us/azure/app-service/deploy-github-actions?tabs=openid).
+O workflow publica no Container Apps apos testes bem-sucedidos e push ou merge na main. Usa a identidade frutlog-github-deploy por OIDC restrito a essa branch; nao exige senha permanente, variaveis de ambiente GitHub ou copia dos segredos da aplicacao. Consulte [publicacao-github-azure.md](publicacao-github-azure.md) para operacao, permissoes e reversao. As credenciais de execucao continuam no Container App e as migracoes de producao sao aplicadas separadamente.
 
 ## Azure Container Apps
 
@@ -48,7 +42,7 @@ A imagem privada fica no registro Basic `frutlogarthur20261122.azurecr.io`; a id
 
 O `Dockerfile` prepara Node 22 e instala somente dependencias de producao. A `.dockerignore` restringe o contexto aos arquivos de execucao e aos dois documentos usados pelo assistente. Para novas publicacoes, construa uma imagem Linux amd64, envie ao registro privado e atualize a revisao, preservando os secrets e o limite de uma replica. A assinatura bloqueou ACR Tasks; a primeira imagem foi montada com a base oficial Node e uma camada de arquivos/dependencias JavaScript usando crane. Nao reutilize essa abordagem se houver modulos nativos compilados no Windows; nesse caso, construa em Linux.
 
-O registro Basic tem cobranca fixa aproximada de US$ 5/mes, alem do consumo do Container Apps, trafego e eventuais construcoes. A escala maxima de uma replica limita concorrencia de instancias, mas nao representa teto monetario. O workflow de App Service descrito acima nao publica no Container Apps; essa integracao ainda nao esta configurada.
+O registro Basic tem cobranca fixa aproximada de US$ 5/mes, alem do consumo do Container Apps, trafego e eventuais construcoes. A escala maxima de uma replica limita concorrencia de instancias, mas nao representa teto monetario. O workflow de GitHub Actions publica no Container Apps conforme o guia de publicacao.
 
 A publicacao foi conferida por HTTPS: `/login.html` e `/api/health` retornaram 200, com banco e esquema confirmados. Uma rota protegida sem sessao retornou 401 e `/.env` retornou 404. Login com MFA e entrega de e-mail real ainda exigem verificacao funcional com a conta do usuario.
 
