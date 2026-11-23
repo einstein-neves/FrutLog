@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <link rel="icon" type="image/svg+xml" href="/imagem/favicon.svg">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="css/feedback.css">
+  <link rel="stylesheet" href="css/login.css">
+  <link rel="stylesheet" href="css/pulse-frutlog.css">
+  <title>FrutLog - Alterar senha provisória</title>
+  <link rel="stylesheet" href="css/formularios.css">
+  <link rel="stylesheet" href="css/vendor/flatpickr.min.css">
+  <link rel="stylesheet" href="css/calendarios.css">
+</head>
+
+<body class="pagina-login">
+  <main class="login login-compacto" aria-label="Alteração obrigatória de senha">
+    <section class="caixa-do-login2">
+      <h1>Crie sua senha pessoal</h1>
+      <p>A senha provisória precisa ser alterada antes de continuar.</p>
+      <!-- Definicao da nova senha inicial da conta. -->
+      <form id="form-alterar-senha" novalidate>
+        <div class="input-field">
+          <label class="sr-only" for="senha-atual">Senha provisória atual</label>
+          <i class="fa-solid fa-lock icon-left" aria-hidden="true"></i>
+          <input id="senha-atual" name="senhaAtual" type="password" autocomplete="current-password" minlength="8"
+            maxlength="128" placeholder="Senha provisória atual (8 a 128 caracteres)" required>
+          <button type="button" class="btn-toggle-senha" aria-label="Mostrar senha">
+            <i class="fa-solid fa-eye" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="input-field">
+          <label class="sr-only" for="nova-senha">Nova senha</label>
+          <i class="fa-solid fa-lock icon-left" aria-hidden="true"></i>
+          <input id="nova-senha" name="novaSenha" type="password" autocomplete="new-password" minlength="8"
+            maxlength="128" placeholder="Nova senha (8 a 128 caracteres)" required>
+          <button type="button" class="btn-toggle-senha" aria-label="Mostrar senha">
+            <i class="fa-solid fa-eye" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="input-field">
+          <label class="sr-only" for="confirmar-senha">Confirmar nova senha</label>
+          <i class="fa-solid fa-lock icon-left" aria-hidden="true"></i>
+          <input id="confirmar-senha" name="confirmarSenha" type="password" autocomplete="new-password" minlength="8"
+            maxlength="128" placeholder="Confirme a nova senha" required>
+          <button type="button" class="btn-toggle-senha" aria-label="Mostrar senha">
+            <i class="fa-solid fa-eye" aria-hidden="true"></i>
+          </button>
+        </div>
+        <p id="mensagem-alterar-senha" class="mensagem-feedback" aria-live="polite"></p>
+        <button class="btn-login" type="submit">Alterar senha</button>
+        <button id="btn-sair-senha-provisoria" class="btn-login btn-secundario" type="button">Sair</button>
+      </form>
+    </section>
+  </main>
+  <script src="js/auth.js"></script>
+  <script src="js/feedback.js"></script>
+  <script src="js/senha-temporaria.js"></script>
+  <script src="js/vendor/flatpickr.min.js"></script>
+  <script src="js/vendor/flatpickr-pt.js"></script>
+  <script src="js/calendarios.js"></script>
+</body>
+
+</html>

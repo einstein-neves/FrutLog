@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+!.env.*.example
+.vercel
+node_modules
+src/iot/ponte-estado.json
+# Credenciais Wi-Fi/MQTT locais dos sketches ESP32.
+arduino_secrets.h
+**/arduino_secrets.h
+
+# Artefatos temporarios e PDFs gerados localmente.
+/tmp/
+/output/

@@ -1,0 +1,462 @@
+[
+  {
+    "id": "frutlog_aba",
+    "type": "tab",
+    "label": "FrutLog ThingSpeak",
+    "disabled": false,
+    "info": "Le o canal do ThingSpeak a cada 20 s e alimenta os 3 graficos do painel FrutLog.\n\nfield1 Temperatura | field2 Umidade do ar | field3 Umidade do solo (ainda sem sensor)"
+  },
+  {
+    "id": "frutlog_timer",
+    "type": "inject",
+    "z": "frutlog_aba",
+    "name": "A cada 20 s",
+    "props": [],
+    "repeat": "20",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "1",
+    "topic": "",
+    "x": 130,
+    "y": 120,
+    "wires": [
+      [
+        "frutlog_busca"
+      ]
+    ]
+  },
+  {
+    "id": "frutlog_busca",
+    "type": "http request",
+    "z": "frutlog_aba",
+    "name": "Busca no ThingSpeak",
+    "method": "GET",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "https://api.thingspeak.com/channels/3494574/feeds.json?results=60",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 340,
+    "y": 120,
+    "wires": [
+      [
+        "frutlog_separa"
+      ]
+    ]
+  },
+  {
+    "id": "frutlog_separa",
+    "type": "function",
+    "z": "frutlog_aba",
+    "name": "Separa as 3 leituras do ThingSpeak",
+    "func": "// Canal ThingSpeak do FrutLog\n//   field1 = Temperatura (C)\n//   field2 = Umidade do ar (%)\n//   field3 = Umidade do solo (%)  -> ainda sem sensor publicando\n// Cada campo sai por uma porta diferente, na ordem abaixo.\nconst CAMPOS = [\n    { campo: \"field1\", topico: \"Temperatura\" },\n    { campo: \"field2\", topico: \"Umidade do ar\" },\n    { campo: \"field3\", topico: \"Umidade do solo\" }\n];\n\nconst resposta = msg.payload || {};\nconst feeds = Array.isArray(resposta.feeds) ? resposta.feeds : [];\n\nif (feeds.length === 0) {\n    node.status({ fill: \"red\", shape: \"ring\", text: \"sem resposta do ThingSpeak\" });\n    return null;\n}\n\n// O ThingSpeak devolve os valores como texto e manda null quando o sensor falha.\nfunction pontos(campo) {\n    return feeds\n        .filter((feed) => {\n            const bruto = feed[campo];\n            if (bruto === null || bruto === undefined) return false;\n            if (String(bruto).trim() === \"\") return false;\n            return Number.isFinite(Number(bruto));\n        })\n        .map((feed) => ({\n            x: new Date(feed.created_at).getTime(),\n            y: Number(feed[campo])\n        }));\n}\n\n// Porta sem dado nenhum devolve null em vez de lista vazia.\n// Assim o grafico nao e apagado, so fica esperando o sensor comecar a publicar.\nconst saidas = CAMPOS.map(({ campo, topico }) => {\n    const dados = pontos(campo);\n    return dados.length === 0 ? null : { topic: topico, payload: dados };\n});\n\nconst vazios = CAMPOS.filter((_, indice) => saidas[indice] === null).map((item) => item.campo);\nnode.status(vazios.length\n    ? { fill: \"yellow\", shape: \"ring\", text: feeds.length + \" leituras - sem dados em \" + vazios.join(\", \") }\n    : { fill: \"green\", shape: \"dot\", text: feeds.length + \" leituras - 3 campos ok\" });\n\nreturn saidas;",
+    "outputs": 3,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 610,
+    "y": 120,
+    "wires": [
+      [
+        "frutlog_graf_temp"
+      ],
+      [
+        "frutlog_graf_umid"
+      ],
+      [
+        "de14bd5510719fe3"
+      ]
+    ]
+  },
+  {
+    "id": "frutlog_graf_temp",
+    "type": "ui-chart",
+    "z": "frutlog_aba",
+    "group": "frutlog_grupo_temp",
+    "name": "Grafico temperatura",
+    "label": "",
+    "order": 1,
+    "chartType": "line",
+    "category": "topic",
+    "categoryType": "msg",
+    "xAxisLabel": "",
+    "xAxisProperty": "x",
+    "xAxisPropertyType": "property",
+    "xAxisType": "time",
+    "xAxisFormat": "",
+    "xAxisFormatType": "auto",
+    "xmin": "",
+    "xmax": "",
+    "yAxisLabel": "C",
+    "yAxisProperty": "y",
+    "yAxisPropertyType": "property",
+    "ymin": "",
+    "ymax": "",
+    "bins": 10,
+    "action": "replace",
+    "stackSeries": false,
+    "pointShape": "circle",
+    "pointRadius": 2,
+    "showLegend": false,
+    "removeOlder": 1,
+    "removeOlderUnit": "604800",
+    "removeOlderPoints": "",
+    "colors": [
+      "#c62828",
+      "#1976d2",
+      "#2e7d32",
+      "#6a1b9a",
+      "#ff7f0e",
+      "#d62728",
+      "#9467bd",
+      "#8c564b",
+      "#17becf"
+    ],
+    "textColor": [
+      "#666666"
+    ],
+    "textColorDefault": true,
+    "gridColor": [
+      "#e5e5e5"
+    ],
+    "gridColorDefault": true,
+    "width": 12,
+    "height": 4,
+    "className": "",
+    "interpolation": "linear",
+    "x": 900,
+    "y": 40,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "frutlog_graf_umid",
+    "type": "ui-chart",
+    "z": "frutlog_aba",
+    "group": "frutlog_grupo_umid",
+    "name": "Grafico umidade do ar",
+    "label": "",
+    "order": 1,
+    "chartType": "line",
+    "category": "topic",
+    "categoryType": "msg",
+    "xAxisLabel": "",
+    "xAxisProperty": "x",
+    "xAxisPropertyType": "property",
+    "xAxisType": "time",
+    "xAxisFormat": "",
+    "xAxisFormatType": "auto",
+    "xmin": "",
+    "xmax": "",
+    "yAxisLabel": "%",
+    "yAxisProperty": "y",
+    "yAxisPropertyType": "property",
+    "ymin": "0",
+    "ymax": "100",
+    "bins": 10,
+    "action": "replace",
+    "stackSeries": false,
+    "pointShape": "circle",
+    "pointRadius": 2,
+    "showLegend": false,
+    "removeOlder": 1,
+    "removeOlderUnit": "604800",
+    "removeOlderPoints": "",
+    "colors": [
+      "#1976d2",
+      "#c62828",
+      "#2e7d32",
+      "#6a1b9a",
+      "#ff7f0e",
+      "#d62728",
+      "#9467bd",
+      "#8c564b",
+      "#17becf"
+    ],
+    "textColor": [
+      "#666666"
+    ],
+    "textColorDefault": true,
+    "gridColor": [
+      "#e5e5e5"
+    ],
+    "gridColorDefault": true,
+    "width": 12,
+    "height": 4,
+    "className": "",
+    "interpolation": "linear",
+    "x": 900,
+    "y": 100,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "de14bd5510719fe3",
+    "type": "ui-chart",
+    "z": "frutlog_aba",
+    "group": "edad25f3869184e6",
+    "name": "Grafico umidade do solo",
+    "label": "",
+    "order": 1,
+    "chartType": "line",
+    "category": "topic",
+    "categoryType": "msg",
+    "xAxisLabel": "",
+    "xAxisProperty": "x",
+    "xAxisPropertyType": "property",
+    "xAxisType": "time",
+    "xAxisFormat": "",
+    "xAxisFormatType": "auto",
+    "xmin": "",
+    "xmax": "",
+    "yAxisLabel": "%",
+    "yAxisProperty": "y",
+    "yAxisPropertyType": "property",
+    "ymin": "0",
+    "ymax": "100",
+    "bins": 10,
+    "action": "replace",
+    "stackSeries": false,
+    "pointShape": "circle",
+    "pointRadius": 2,
+    "showLegend": false,
+    "removeOlder": 1,
+    "removeOlderUnit": "604800",
+    "removeOlderPoints": "",
+    "colors": [
+      "#2e7d32",
+      "#c62828",
+      "#1976d2",
+      "#6a1b9a",
+      "#ff7f0e",
+      "#d62728",
+      "#9467bd",
+      "#8c564b",
+      "#17becf"
+    ],
+    "textColor": [
+      "#666666"
+    ],
+    "textColorDefault": true,
+    "gridColor": [
+      "#e5e5e5"
+    ],
+    "gridColorDefault": true,
+    "width": 12,
+    "height": 4,
+    "className": "",
+    "interpolation": "linear",
+    "x": 900,
+    "y": 160,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "frutlog_grupo_temp",
+    "type": "ui-group",
+    "name": "Temperatura (C)",
+    "page": "frutlog_pagina",
+    "width": 12,
+    "height": 1,
+    "order": 1,
+    "showTitle": true,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "groupType": "default"
+  },
+  {
+    "id": "frutlog_grupo_umid",
+    "type": "ui-group",
+    "name": "Umidade do ar (%)",
+    "page": "frutlog_pagina_umid",
+    "width": 12,
+    "height": 1,
+    "order": 2,
+    "showTitle": true,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "groupType": "default"
+  },
+  {
+    "id": "edad25f3869184e6",
+    "type": "ui-group",
+    "name": "Umidade do solo (%)",
+    "page": "88acd9abccb0c6f8",
+    "width": 12,
+    "height": 1,
+    "order": 3,
+    "showTitle": true,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "groupType": "default"
+  },
+  {
+    "id": "frutlog_pagina",
+    "type": "ui-page",
+    "name": "Temperatura",
+    "ui": "frutlog_base",
+    "path": "/temperatura",
+    "icon": "thermometer",
+    "layout": "grid",
+    "theme": "frutlog_tema",
+    "breakpoints": [
+      {
+        "name": "Default",
+        "px": 0,
+        "cols": 3
+      },
+      {
+        "name": "Tablet",
+        "px": 576,
+        "cols": 6
+      },
+      {
+        "name": "Small Desktop",
+        "px": 768,
+        "cols": 9
+      },
+      {
+        "name": "Desktop",
+        "px": 1024,
+        "cols": 12
+      }
+    ],
+    "tabs": [],
+    "order": 1,
+    "className": "",
+    "visible": "true",
+    "disabled": "false"
+  },
+  {
+    "id": "frutlog_pagina_umid",
+    "type": "ui-page",
+    "name": "Umidade do ar",
+    "ui": "frutlog_base",
+    "path": "/umidade",
+    "icon": "water-percent",
+    "layout": "grid",
+    "theme": "frutlog_tema",
+    "breakpoints": [
+      {
+        "name": "Default",
+        "px": 0,
+        "cols": 3
+      },
+      {
+        "name": "Tablet",
+        "px": 576,
+        "cols": 6
+      },
+      {
+        "name": "Small Desktop",
+        "px": 768,
+        "cols": 9
+      },
+      {
+        "name": "Desktop",
+        "px": 1024,
+        "cols": 12
+      }
+    ],
+    "tabs": [],
+    "order": 2,
+    "className": "",
+    "visible": "true",
+    "disabled": "false"
+  },
+  {
+    "id": "88acd9abccb0c6f8",
+    "type": "ui-page",
+    "name": "Umidade do solo",
+    "ui": "frutlog_base",
+    "path": "/solo",
+    "icon": "sprout",
+    "layout": "grid",
+    "theme": "frutlog_tema",
+    "breakpoints": [
+      {
+        "name": "Default",
+        "px": 0,
+        "cols": 3
+      },
+      {
+        "name": "Tablet",
+        "px": 576,
+        "cols": 6
+      },
+      {
+        "name": "Small Desktop",
+        "px": 768,
+        "cols": 9
+      },
+      {
+        "name": "Desktop",
+        "px": 1024,
+        "cols": 12
+      }
+    ],
+    "tabs": [],
+    "order": 3,
+    "className": "",
+    "visible": "true",
+    "disabled": "false"
+  },
+  {
+    "id": "frutlog_base",
+    "type": "ui-base",
+    "name": "FrutLog",
+    "path": "/dashboard",
+    "includeClientData": true,
+    "acceptsClientConfig": [
+      "ui-notification",
+      "ui-control"
+    ],
+    "showPathInSidebar": false,
+    "headerContent": "none",
+    "navigationStyle": "none",
+    "titleBarStyle": "hidden",
+    "showReconnectNotification": true,
+    "notificationDisplayTime": 1,
+    "showDisconnectNotification": true
+  },
+  {
+    "id": "frutlog_tema",
+    "type": "ui-theme",
+    "name": "FrutLog",
+    "colors": {
+      "surface": "#ffffff",
+      "primary": "#2e7d32",
+      "bgPage": "#ffffff",
+      "groupBg": "#ffffff",
+      "groupOutline": "#e2ded8"
+    },
+    "sizes": {
+      "density": "default",
+      "pagePadding": "8px",
+      "groupGap": "8px",
+      "groupBorderRadius": "8px",
+      "widgetGap": "8px"
+    }
+  },
+  {
+    "id": "1fbeb1427b6ea612",
+    "type": "global-config",
+    "env": [],
+    "modules": {
+      "@flowfuse/node-red-dashboard": "1.33.0"
+    }
+  }
+]

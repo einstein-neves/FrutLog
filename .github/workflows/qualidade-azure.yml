@@ -1,0 +1,85 @@
+name: Testar e publicar FrutLog
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: frutlog-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run migrations:local
+      - run: npm run test:seguranca
+      - run: npm run test:email
+      - run: npm run test:chatbot
+      - run: npm run teste
+      - run: git diff --check
+  publicar:
+    needs: testes
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      REGISTRY: frutlogarthur20261122.azurecr.io
+      IMAGE: frutlogarthur20261122.azurecr.io/frutlog:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      # IDs de recursos nao sao senhas. OIDC aceita apenas este repositorio na main.
+      - uses: azure/login@v2
+        with:
+          client-id: 3ebd3940-07a3-4cd6-9996-242479e633b8
+          tenant-id: 4a22f116-51ce-4fe3-aeaa-9c46143d088b
+          subscription-id: f0f3d5ad-199c-41d2-a044-161ca779c595
+      - name: Construir e enviar imagem Linux
+        run: |
+          az acr login --name frutlogarthur20261122
+          docker build --pull --platform linux/amd64 \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            -t "$IMAGE" .
+          docker push "$IMAGE"
+      - name: Publicar e verificar a nova revisao
+        run: |
+          az extension add --name containerapp --upgrade --only-show-errors
+          REVISION=$(az containerapp update \
+            --name frutlog-arthur \
+            --resource-group appcursoPI4_group \
+            --image "$IMAGE" \
+            --query properties.latestRevisionName -o tsv)
+          for tentativa in $(seq 1 30); do
+            READY=$(az containerapp show \
+              --name frutlog-arthur \
+              --resource-group appcursoPI4_group \
+              --query properties.latestReadyRevisionName -o tsv)
+            if [ "$READY" = "$REVISION" ]; then
+              curl --fail --silent --show-error --max-time 30 \
+                --retry 2 --retry-delay 3 https://frutlog.com.br/api/health
+              echo
+              echo "Revisao $REVISION publicada e saudavel."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "A nova revisao nao ficou pronta no prazo."
+          exit 1
+      - name: Encerrar autenticacao do registro
+        if: always()
+        run: docker logout "$REGISTRY"

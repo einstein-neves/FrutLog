@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <link rel="icon" type="image/svg+xml" href="/imagem/favicon.svg">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Minha conta e segurança — FrutLog</title>
+
+<link rel="stylesheet" href="css/global.css"><link rel="stylesheet" href="css/dashboard.css"><link rel="stylesheet" href="css/pulse-frutlog.css"><link rel="stylesheet" href="css/formularios.css"><link rel="stylesheet" href="css/conta-seguranca.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></head>
+<body class="layout-dashboard pagina-conta"><a class="pular-conteudo" href="#conteudo-conta">Pular para o conteúdo</a><aside class="sidebar">
+<div class="logo-area"><i class="fa-solid fa-leaf logo-icone" aria-hidden="true"></i><h2>FrutLog</h2></div>
+<nav class="menu" aria-label="Menu da conta">
+<a class="nav-link" href="login.html" id="voltar-painel"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Voltar ao painel</a>
+<a class="nav-link active" href="conta-seguranca.html" aria-current="page"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Minha conta e segurança</a>
+<a class="nav-link" href="admin-operacao.html" id="link-operacao" hidden><i class="fa-solid fa-envelope-circle-check" aria-hidden="true"></i> E-mails e auditoria</a>
+</nav><div class="sidebar-acoes"><button id="btn-logout" class="btn-logout" type="button"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Sair</button></div></aside>
+  <main class="conteudo-dashboard" id="conteudo-conta">
+    <header class="topo"><h1>Minha conta e segurança</h1><p>Proteja seu acesso e mantenha seus meios de recuperação atualizados.</p></header>
+    <p id="conta-mensagem" class="conta-feedback" role="status" aria-live="polite"></p>
+    <section class="cartao resumo-conta"><div class="conta-cabecalho"><div class="conta-titulo"><span class="conta-icone"><i class="fa-solid fa-user-shield" aria-hidden="true"></i></span><div><h2>Situação da conta</h2><p>Confira seus dados e as proteções do seu acesso.</p></div></div><button class="btn-secundario" type="button" id="atualizar-conta"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Atualizar</button></div><dl id="conta-resumo"><dt>Carregando...</dt></dl></section>
+    <div class="conta-grid"><section class="cartao"><div class="conta-titulo"><span class="conta-icone"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span><div><h2>Proteção do acesso</h2><p>Escolha a ação que deseja realizar.</p></div></div><p>Informe sua senha e escolha a ação. Enviaremos um código ao seu e-mail cadastrado. Confirme o endereço antes de executar as demais ações.</p>
+      <form class="conta-form" id="conta-solicitar">
+        <label for="conta-acao">Ação</label><select id="conta-acao" required>
+          <option value="email">Confirmar meu e-mail</option><option value="autenticador">Configurar ou substituir autenticador</option>
+          <option value="recuperacao">Gerar novos códigos de recuperação</option><option value="sessoes">Encerrar todas as sessões</option>
+        </select>
+        <p>Substituir o autenticador ou renovar códigos invalida os códigos anteriores e encerra as sessões anteriores. Encerrar todas as sessões também desconecta este navegador.</p>
+        <label for="conta-senha">Senha atual</label><input class="campo-formulario" id="conta-senha" type="password" autocomplete="current-password" minlength="8" maxlength="128" required>
+        <button class="btn-primario" type="submit">Enviar confirmação por e-mail</button>
+      </form>
+      <form class="conta-form" id="conta-confirmar" hidden>
+        <label for="conta-codigo">Código recebido por e-mail</label><input class="campo-formulario" id="conta-codigo" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
+        <p id="conta-prazo"></p><button class="btn-primario" type="submit">Confirmar ação</button>
+      </form>
+      <form class="conta-form" id="conta-totp" hidden><span class="conta-etiqueta">Aplicativo autenticador</span><h3>Configure seu novo autenticador</h3><p>Escaneie o QR Code e confirme o código gerado pelo aplicativo.</p>
+        <img class="conta-qr" id="conta-qr" alt="QR Code para configurar seu autenticador" width="240" height="240">
+        <details><summary>Não consigo escanear</summary><code id="conta-segredo"></code></details>
+        <label for="conta-totp-codigo">Código do novo aplicativo</label><input class="campo-formulario" id="conta-totp-codigo" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
+        <button class="btn-primario" type="submit">Ativar novo autenticador</button>
+      </form>
+    </section>
+    <section class="cartao"><div class="conta-titulo"><span class="conta-icone"><i class="fa-solid fa-key" aria-hidden="true"></i></span><div><h2>Alterar senha</h2><p>Uma senha exclusiva ajuda a proteger sua conta.</p></div></div><p>Use de 8 a 128 caracteres. Uma frase longa é permitida. A alteração encerra as outras sessões.</p>
+      <form class="conta-form" id="conta-alterar-senha">
+        <label for="senha-atual">Senha atual</label><input class="campo-formulario" id="senha-atual" type="password" autocomplete="current-password" minlength="8" maxlength="128" required>
+        <label for="senha-nova">Nova senha</label><input class="campo-formulario" id="senha-nova" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+        <label for="senha-confirmar">Repita a nova senha</label><input class="campo-formulario" id="senha-confirmar" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+        <button class="btn-primario" type="submit">Alterar senha</button>
+      </form>
+    </section>
+  </div></main>
+  <script src="js/auth.js"></script><script src="js/conta-seguranca.js"></script>
+<script src="js/pulse-frutlog.js"></script></body></html>

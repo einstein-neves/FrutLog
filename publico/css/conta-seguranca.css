@@ -1,0 +1,75 @@
+/* Componentes de conta e operação, integrados aos painéis do FrutLog. */
+.pagina-conta .conteudo-dashboard { max-width:1800px; }
+.pagina-conta .conta-grid { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); gap:20px; align-items:start; }
+.pagina-conta .cartao { padding:24px; }
+.pagina-conta .conta-cabecalho { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:22px; }
+.pagina-conta .conta-titulo { display:flex; align-items:flex-start; gap:12px; margin-bottom:20px; min-width:0; }
+.pagina-conta .conta-cabecalho .conta-titulo { margin:0; }
+.pagina-conta .conta-icone { display:grid; place-items:center; flex:0 0 42px; width:42px; height:42px; border:1px solid #dcebe1; border-radius:12px; color:var(--cor-destaque); background:#edf5ef; font-size:18px; }
+.pagina-conta h2 { margin:1px 0 6px; font-size:16px; font-weight:650; letter-spacing:-.25px; }
+.pagina-conta h3 { margin:6px 0; font-size:16px; }
+.pagina-conta p { font-size:12px; line-height:1.7; color:var(--cor-texto-suave); }
+.pagina-conta .conta-titulo p { margin:0; }
+.pagina-conta .conta-cabecalho > button { flex-shrink:0; }
+.pagina-conta .conta-form { display:flex; flex-direction:column; align-items:flex-start; margin-top:20px; }
+.pagina-conta label { display:block; margin:16px 0 7px; color:#53695b; font-size:12px; font-weight:650; }
+.pagina-conta .conta-form > label:first-child { margin-top:0; }
+.pagina-conta .conta-form input,.pagina-conta .conta-form select { width:100%; padding:11px 14px; }
+.pagina-conta .conta-form > button { max-width:100%; margin-top:20px; }
+.pagina-conta .conta-form > p { margin:10px 0 0; }
+.pagina-conta .conta-form > p + label { margin-top:20px; }
+.pagina-conta .conta-etiqueta { display:inline-flex; padding:5px 9px; border-radius:6px; background:#edf5ef; color:#26734d; font-size:10px; font-weight:700; letter-spacing:.3px; }
+.pagina-conta #conta-resumo { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; margin:0; }
+.pagina-conta .conta-resumo-item { min-width:0; padding:15px; background:#f8faf9; border:1px solid #e7ece9; border-radius:9px; }
+.pagina-conta dt { font-size:11px; color:var(--cor-texto-suave); line-height:1.5; }
+.pagina-conta dd { margin:8px 0 0; font-size:13px; font-weight:650; line-height:1.5; overflow-wrap:anywhere; }
+.pagina-conta .resumo-positivo { color:#26734d; }
+.pagina-conta .resumo-pendente { color:#936012; }
+.pagina-conta .conta-feedback:empty { display:none; }
+.pagina-conta .conta-feedback { position:sticky; top:12px; z-index:5; margin:0 0 20px; padding:14px 18px; border:1px solid #cbded1; border-left:3px solid var(--cor-destaque); border-radius:8px; background:#f0f7f2; color:#254d35; box-shadow:var(--sombra-card); line-height:1.6; overflow-wrap:anywhere; }
+.pagina-conta #conta-confirmar,.pagina-conta #conta-totp { margin-top:24px; padding-top:24px; border-top:1px solid var(--cor-borda); }
+.pagina-conta #conta-codigo,.pagina-conta #conta-totp-codigo { max-width:250px; font-size:22px; letter-spacing:.35em; font-variant-numeric:tabular-nums; }
+.pagina-conta .conta-qr { display:block; margin:16px 0; padding:12px; border:1px solid var(--cor-borda); border-radius:12px; background:#fff; width:264px; height:auto; }
+.pagina-conta details { width:100%; padding:12px 14px; border:1px solid var(--cor-borda); border-radius:8px; }
+.pagina-conta summary { cursor:pointer; color:var(--cor-destaque); font-size:12px; font-weight:600; }
+.pagina-conta code { display:block; margin-top:12px; overflow-wrap:anywhere; font-size:13px; }
+.pagina-conta button:disabled { opacity:.5; cursor:not-allowed; }
+.pagina-conta :is(button,a,summary,.tabela-rolavel):focus-visible { outline:3px solid #438562; outline-offset:3px; }
+.pagina-conta .operacao-filtros { display:flex; align-items:end; gap:12px; margin:20px 0; }
+.pagina-conta .operacao-filtros > div { width:240px; max-width:100%; }
+.pagina-conta .operacao-filtros label { margin-top:0; }
+.pagina-conta .operacao-filtros select { width:100%; }
+.pagina-conta .operacao-filtros > button { min-height:46px; }
+.pagina-conta #auditoria-atualizar { margin:4px 0 20px; }
+.pagina-conta .tabela-rolavel { overflow-x:auto; border:1px solid var(--cor-borda); border-radius:9px; }
+.pagina-conta .tabela-dados { min-width:700px; font-size:12px; }
+.pagina-conta .tabela-dados th { background:#f7f9fa; color:#647180; font-size:11px; font-weight:650; white-space:nowrap; }
+.pagina-conta .tabela-dados th,.pagina-conta .tabela-dados td { padding:15px 16px; line-height:1.55; }
+.pagina-conta .tabela-dados td { max-width:260px; overflow-wrap:anywhere; }
+.pagina-conta .tabela-dados td:first-child { min-width:125px; font-variant-numeric:tabular-nums; }
+.pagina-conta .tabela-dados tr:last-child td { border-bottom:0; }
+.pagina-conta .tabela-dados tbody tr:hover { background:#fafcfb; }
+.pagina-conta .tabela-dados .estado-vazio { padding:44px 20px; text-align:center; color:var(--cor-texto-suave); }
+.pagina-conta .operacao-paginacao { display:flex; align-items:center; justify-content:space-between; gap:16px; padding-top:18px; color:var(--cor-texto-suave); font-size:12px; }
+.pagina-conta .operacao-paginacao > div { display:flex; gap:8px; }
+.pagina-conta .operacao-status { display:inline-flex; align-items:center; gap:6px; padding:4px 9px; border-radius:6px; background:#eef1f4; color:#526171; font-size:11px; font-weight:650; white-space:nowrap; }
+.pagina-conta .operacao-status::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; }
+.pagina-conta .status-positivo { background:#eaf4ed; color:#26734d; }
+.pagina-conta .status-alerta { background:#fbf2de; color:#946018; }
+.pagina-conta .status-erro { background:#fbeceb; color:#b13e35; }
+.pagina-conta .pular-conteudo { position:fixed; top:-100px; left:12px; z-index:200; padding:12px; border-radius:8px; background:#fff; color:#26734d; }
+.pagina-conta .pular-conteudo:focus { top:12px; }
+@media(max-width:1200px) {
+  .pagina-conta #conta-resumo { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .pagina-conta .conta-grid { grid-template-columns:minmax(0,1fr); gap:0; }
+}
+@media(max-width:760px) {
+  .pagina-conta .menu { flex-wrap:wrap; }
+  .pagina-conta .conta-cabecalho { flex-wrap:wrap; gap:14px; }
+  .pagina-conta #conta-resumo { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .pagina-conta .conta-resumo-item:nth-child(2) { grid-column:1/-1; }
+  .pagina-conta .operacao-filtros { flex-wrap:wrap; }
+  .pagina-conta .operacao-filtros > div { flex:1 1 180px; }
+  .pagina-conta .conta-form > button { width:100%; }
+  .pagina-conta .conta-icone { flex-basis:36px; width:36px; height:36px; font-size:16px; border-radius:10px; }
+}

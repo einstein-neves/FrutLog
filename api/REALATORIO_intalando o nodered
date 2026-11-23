@@ -1,0 +1,14 @@
+INSTALAR O NODE RED 
+1 NO MENU DO NODE RED  CLIQUE EM GERENCIAR  VA EM INTALAR  NA BARRA DE PESQUISA COLE 
+
+
+" @flowfuse/node-red-dashboard 
+
+cliquei em INTALAR 
+
+
+2 impostar arquivos clique em importa   uma janela vai abriri  serar a pasta do sistema frutlog , a minah estar no G; 
+
+G;|Frutlog-main\frutlog-main|node-red
+
+selecione  o fluxo  thinggspeak-jason e clique para abrir  , cliquei em impotar e os dados do Espe32 vai aparecer na  tela do Frutlog . 
