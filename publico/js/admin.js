@@ -79,6 +79,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   carregarRelatoriosHistorico();
   carregarHistoricoQuandoVisivel();
   preencherSelectTalhoes();
+  preencherSelectResponsaveis();
 
   window.addEventListener("frutlog:colheitas-atualizadas", async () => {
     try {
@@ -588,6 +589,49 @@ function normalizarStatus(valor) {
 
 function renderizarFuncionarios() {
   carregarFuncionarios();
+  preencherSelectResponsaveis();
+  if (sensores.length) renderizarSensores();
+}
+
+/**
+ * Retorna os usuários ativos da organização disponíveis para assumir dispositivos.
+ * @returns {Array<object>} Lista de funcionários com status ativo.
+ */
+function obterUsuariosAtivosAdmin() {
+  return funcionarios.filter((funcionario) => funcionario.status === "ativo" || funcionario.ativo === true);
+}
+
+/**
+ * Monta as opções HTML de usuários ativos para selects de responsável.
+ * @param {string|number|null} [selecionadoId=""] - ID atualmente selecionado.
+ * @param {Array<object>} [usuarios=obterUsuariosAtivosAdmin()] - Lista de usuários ativos.
+ * @param {boolean} [incluirPerfil=false] - Indica se o perfil deve ser exibido ao lado do nome.
+ * @returns {string} HTML com elementos <option>.
+ */
+function gerarOpcoesResponsaveis(selecionadoId = "", usuarios = obterUsuariosAtivosAdmin(), incluirPerfil = false) {
+  return usuarios.map((funcionario) => {
+    const nomeBase = funcionario.nome_completo || funcionario.nome || funcionario.matricula || "Usuário";
+    const rotulo = incluirPerfil && funcionario.perfil ? `${nomeBase} (${funcionario.perfil})` : nomeBase;
+    const selected = String(funcionario.id) === String(selecionadoId) ? " selected" : "";
+    return `<option value="${escaparHtml(funcionario.id)}"${selected}>${escaparHtml(rotulo)}</option>`;
+  }).join("");
+}
+
+/**
+ * Preenche o select de usuário responsável no formulário de cadastro de sensores.
+ * @returns {void}
+ */
+function preencherSelectResponsaveis() {
+  const select = document.getElementById("sensor-responsavel");
+  if (!select) return;
+
+  const selecionado = select.value;
+  const usuariosAtivos = obterUsuariosAtivosAdmin();
+  const vazio = usuariosAtivos.length ? "Selecione o usuário responsável" : "Nenhum usuário ativo disponível";
+  select.innerHTML = `<option value="">${vazio}</option>` + gerarOpcoesResponsaveis(selecionado, usuariosAtivos, true);
+  if (usuariosAtivos.some((funcionario) => String(funcionario.id) === String(selecionado))) {
+    select.value = selecionado;
+  }
 }
 
 /**
@@ -758,8 +802,7 @@ function renderizarSensores() {
     const atualidade = !sensor.ultima_leitura_em
       ? "Sem leitura"
       : sensor.dados_recentes ? "Atual" : "Desatualizada";
-    const usuariosAtivos = funcionarios.filter((funcionario) => funcionario.status === "ativo" || funcionario.ativo === true);
-    const opcoesResponsavel = usuariosAtivos.map((funcionario) => `<option value="${escaparHtml(funcionario.id)}" ${String(funcionario.id) === String(sensor.responsavel_usuario_id) ? "selected" : ""}>${escaparHtml(funcionario.nome_completo || funcionario.nome || funcionario.matricula)}</option>`).join("");
+    const opcoesResponsavel = gerarOpcoesResponsaveis(sensor.responsavel_usuario_id);
     return `
       <tr>
         <td>${escaparHtml(sensor.sensor || sensor.id_externo)}</td>
